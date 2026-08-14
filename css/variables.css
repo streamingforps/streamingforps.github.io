@@ -1,0 +1,65 @@
+/*
+  Design tokens for Streaming For PS.
+  This is the ONLY file that should need changing when real brand
+  colors, fonts, or spacing are provided later.
+
+  Palette: PerthSanta brand colors — red, white, and black, expressed as
+  a small set of near-black/gray/white/red shades for hierarchy.
+
+  --color-accent is the saturated brand red, used for solid fills
+  (buttons, progress bars, borders, icons/decorative glyphs) where the
+  relevant WCAG threshold is 3:1 (non-text UI) rather than 4.5:1.
+  --color-accent-hover is a brighter red used both for the button hover
+  state and for any red TEXT rendered on a dark background (links,
+  badges) — saturated reds are too dark to hit 4.5:1 as small text on
+  black, so text uses this brighter variant instead.
+*/
+
+:root {
+  /* ---- Color: base surfaces (near-black theme) ---- */
+  --color-bg: #0a0a0a;
+  --color-bg-rgb: 10, 10, 10;
+  --color-bg-alt: #121212;
+  --color-surface: #1a1a1a;
+  --color-surface-alt: #242424;
+  --color-border: #2c2c2c;
+  --color-border-strong: #3d3d3d;
+
+  /* ---- Color: text ---- */
+  --color-text: #f5f5f5;
+  --color-text-muted: #b3b3b3;
+  --color-text-faint: #888888;
+
+  /* ---- Color: accent (PerthSanta red) ---- */
+  --color-accent: #e10600;
+  --color-accent-hover: #ff2d2d;
+  --color-accent-soft: rgba(225, 6, 0, 0.16);
+
+  /* ---- Color: focus ring (accessibility) ---- */
+  --color-focus: #ff8a80;
+
+  /* ---- Typography ---- */
+  --font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: var(--font-body);
+
+  /* ---- Spacing scale ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  /* ---- Radius & shadow ---- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+
+  /* ---- Layout ---- */
+  --container-max: 1200px;
+  --header-height: 68px;
+}
