@@ -541,6 +541,35 @@ button:focus-visible,
   border-radius: 999px;
 }
 
+.goal-card h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.goal-card.is-reached {
+  border-color: var(--color-accent);
+}
+
+.goal-card.is-reached .progress-fill {
+  background: var(--color-accent);
+}
+
+.badge-reached {
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px var(--space-2);
+}
+
+.goals-live-note {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+}
+
 /* ==========================================================================
    Mission checklist
    ========================================================================== */

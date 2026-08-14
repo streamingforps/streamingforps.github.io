@@ -1,0 +1,87 @@
+name: Update YouTube View Count
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Cron runs are queued rather than run concurrently, so a slow run can
+# never race a later one for the git push below.
+concurrency:
+  group: update-youtube-views
+  cancel-in-progress: false
+
+env:
+  VIDEO_ID: I1guVkLJ4mU
+  STATS_FILE: data/youtube-stats.json
+
+jobs:
+  update-view-count:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch view count from YouTube Data API
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${YOUTUBE_API_KEY:-}" ]; then
+            echo "::error::YOUTUBE_API_KEY secret is not set."
+            exit 1
+          fi
+
+          http_status=$(curl -s -o response.json -w "%{http_code}" \
+            "https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${VIDEO_ID}&key=${YOUTUBE_API_KEY}")
+
+          if [ "$http_status" -ne 200 ]; then
+            echo "::error::YouTube API request failed with HTTP status $http_status"
+            cat response.json
+            exit 1
+          fi
+
+          item_count=$(jq '.items | length' response.json)
+          if [ "$item_count" -lt 1 ]; then
+            echo "::error::YouTube API response did not contain any video for ID ${VIDEO_ID}. Refusing to overwrite stats file."
+            cat response.json
+            exit 1
+          fi
+
+          view_count=$(jq -r '.items[0].statistics.viewCount // empty' response.json)
+          if [ -z "$view_count" ]; then
+            echo "::error::YouTube API response did not include statistics.viewCount."
+            cat response.json
+            exit 1
+          fi
+
+          updated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq -n \
+            --arg videoId "$VIDEO_ID" \
+            --argjson viewCount "$view_count" \
+            --arg updatedAt "$updated_at" \
+            '{videoId: $videoId, viewCount: $viewCount, updatedAt: $updatedAt}' \
+            > "${STATS_FILE}.tmp"
+
+          mv "${STATS_FILE}.tmp" "$STATS_FILE"
+          rm -f response.json
+
+      - name: Commit and push if changed
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "$STATS_FILE"; then
+            echo "No change in view count — skipping commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$STATS_FILE"
+          git commit -m "Update YouTube view count"
+          git push
