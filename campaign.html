@@ -46,6 +46,7 @@
         <ul>
           <li><a href="index.html">Home</a></li>
           <li><a href="campaign.html">Current Campaign</a></li>
+          <li><a href="music.html">Music</a></li>
           <li><a href="index.html#guides">Streaming Guides</a></li>
           <li><a href="index.html#platforms">Platforms</a></li>
           <li><a href="index.html#goals">Goals</a></li>
@@ -201,6 +202,91 @@
       </div>
     </section>
 
+    <!-- Comment Helper -->
+    <section
+      class="section"
+      id="comment-helper"
+      aria-labelledby="comment-helper-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="comment-helper-heading">
+            Comment Helper
+          </h2>
+
+          <p>
+            Not sure what to write? Generate a genuine comment idea for the
+            Heartbound pilot trailer, then edit it and make it yours before posting.
+          </p>
+        </div>
+
+        <div class="comment-helper" data-comment-helper>
+
+          <div class="comment-helper-controls">
+
+            <div class="comment-helper-field">
+              <label for="comment-style">Comment style</label>
+              <select id="comment-style" data-comment-style>
+                <!-- Rendered by js/main.js -->
+              </select>
+            </div>
+
+            <div class="comment-helper-field">
+              <label for="comment-length">Length</label>
+              <select id="comment-length" data-comment-length>
+                <!-- Rendered by js/main.js -->
+              </select>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-comment-generate
+            >
+              Generate Comment
+            </button>
+
+          </div>
+
+          <div
+            class="comment-helper-result"
+            data-comment-result
+            hidden
+          >
+            <p
+              class="comment-helper-text"
+              data-comment-text
+            ></p>
+
+            <div class="comment-helper-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-comment-regenerate
+              >
+                Generate Another
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-comment-copy
+              >
+                Copy Comment
+              </button>
+            </div>
+
+            <p class="comment-helper-note">
+              Make it yours — feel free to edit the suggestion before posting.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
     <!-- Platform Support Center -->
     <section
       class="section section-alt"
@@ -289,22 +375,39 @@
   <footer class="site-footer">
     <div class="container">
 
-      <nav
-        class="footer-nav"
-        aria-label="Footer"
-      >
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="campaign.html">Current Campaign</a></li>
-          <li><a href="index.html#guides">Streaming Guides</a></li>
-          <li><a href="index.html#faq">FAQ</a></li>
-        </ul>
-      </nav>
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="Streaming For PS profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">Streaming For PS</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
 
       <p class="footer-disclaimer">
         Streaming For PS is an unofficial, fan-run project and is not affiliated
         with, endorsed by, or operated on behalf of PerthSanta, Heartbound, or
         any associated network or platform.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
       </p>
 
       <p class="footer-meta">
@@ -318,4 +421,3 @@
   <script src="js/main.js"></script>
 </body>
 </html>
-```

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>PerthSanta Music — Streaming For PS</title>
+
+  <meta
+    name="description"
+    content="A permanent hub to stream PerthSanta songs, singles, and series OSTs."
+  />
+
+  <link rel="icon" type="image/png" href="assets/icons/favicon.jpg" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        Streaming <span>For</span> PS
+      </a>
+
+      <button
+        type="button"
+        class="nav-toggle"
+        aria-expanded="false"
+        aria-controls="primary-navigation"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="nav-toggle-icon" aria-hidden="true"></span>
+      </button>
+
+      <nav
+        class="main-nav"
+        id="primary-navigation"
+        aria-label="Primary"
+      >
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="campaign.html">Current Campaign</a></li>
+          <li><a href="music.html">Music</a></li>
+          <li><a href="index.html#guides">Streaming Guides</a></li>
+          <li><a href="index.html#platforms">Platforms</a></li>
+          <li><a href="index.html#goals">Goals</a></li>
+          <li><a href="index.html#faq">FAQ / Important Info</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- Music Hero -->
+    <section class="music-hero">
+      <div class="container">
+        <p class="hero-eyebrow">
+          PerthSanta Music
+        </p>
+
+        <h1>PERTHSANTA MUSIC</h1>
+
+        <p class="hero-lede">
+          A permanent place to stream PerthSanta songs, singles, and series OSTs.
+        </p>
+      </div>
+    </section>
+
+    <!-- OSTs -->
+    <section
+      class="section section-alt"
+      aria-labelledby="music-osts-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="music-osts-heading">
+            OSTs
+          </h2>
+
+          <p>
+            Songs from PerthSanta series and projects.
+          </p>
+        </div>
+
+        <div data-render="music-osts">
+          <!-- Rendered by js/main.js, grouped by series -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PerthSanta Songs -->
+    <section
+      class="section"
+      aria-labelledby="music-perthsanta-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="music-perthsanta-heading">
+            PerthSanta Songs
+          </h2>
+
+          <p>
+            Songs released by Perth and Santa together outside of series OSTs.
+          </p>
+        </div>
+
+        <div
+          class="music-grid"
+          data-render="music-perthsanta"
+        >
+          <!-- Rendered by js/main.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Perth Solo Songs -->
+    <section
+      class="section section-alt"
+      aria-labelledby="music-perth-solo-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="music-perth-solo-heading">
+            Perth Solo Songs
+          </h2>
+
+          <p>
+            Perth Tanapon's solo releases.
+          </p>
+        </div>
+
+        <div
+          class="music-grid"
+          data-render="music-perth-solo"
+        >
+          <!-- Rendered by js/main.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- JASP.ER Songs -->
+    <section
+      class="section"
+      aria-labelledby="music-jasper-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="music-jasper-heading">
+            JASP.ER Songs
+          </h2>
+
+          <p>
+            Songs by JASP.ER, the group Santa is part of.
+          </p>
+        </div>
+
+        <div
+          class="music-grid"
+          data-render="music-jasper"
+        >
+          <!-- Rendered by js/main.js -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Music streaming modal -->
+  <div class="music-modal-overlay" data-music-modal hidden>
+    <div
+      class="music-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="music-modal-title"
+    >
+      <button
+        type="button"
+        class="music-modal-close"
+        data-music-modal-close
+        aria-label="Close"
+      >&times;</button>
+
+      <div class="music-modal-cover" data-music-modal-cover></div>
+
+      <h2 class="music-modal-title" id="music-modal-title" data-music-modal-title></h2>
+      <p class="music-modal-artist" data-music-modal-artist></p>
+      <p class="music-modal-meta" data-music-modal-meta></p>
+
+      <p class="music-modal-heading">Choose where to stream</p>
+
+      <div class="music-modal-links" data-music-modal-links>
+        <!-- Rendered by js/main.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="Streaming For PS profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">Streaming For PS</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        Streaming For PS is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, Heartbound, or any associated
+        network or platform.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> Streaming For PS
+      </p>
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -58,6 +58,7 @@ button {
 /* ---- Focus visibility (accessibility) ---- */
 a:focus-visible,
 button:focus-visible,
+select:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
@@ -297,6 +298,11 @@ button:focus-visible,
   width: 100%;
 }
 
+.btn-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8rem;
+}
+
 .btn-placeholder,
 .btn[aria-disabled="true"] {
   background: var(--color-surface-alt);
@@ -407,6 +413,26 @@ button:focus-visible,
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
+}
+
+/* ---- Music page hero (single-column, centered) ---- */
+.music-hero {
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+.music-hero .container {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.music-hero h1 {
+  font-size: clamp(2rem, 1.6rem + 1.6vw, 3rem);
+  margin-bottom: var(--space-3);
+}
+
+.music-hero .hero-lede {
+  margin-inline: auto;
 }
 
 .hero-visual {
@@ -521,6 +547,257 @@ button:focus-visible,
 
 .quicklink-card .quicklink-label {
   font-weight: 700;
+}
+
+/* ==========================================================================
+   PerthSanta Music
+   ------------------------------------------------------------------
+   A permanent, campaign-independent hub for songs/OSTs. More visual
+   than the other card grids since cover artwork carries the section.
+   ========================================================================== */
+
+.music-grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .music-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .music-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .music-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.music-card {
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.music-card:hover {
+  border-color: var(--color-accent);
+}
+
+.music-card-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--color-surface-alt);
+}
+
+.music-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.music-card-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+  font-size: 2.5rem;
+}
+
+.music-card-cover-placeholder::before {
+  content: "\266A";
+}
+
+.music-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.music-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.music-card-artist {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.music-card-meta {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent-hover);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.music-card-release {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+}
+
+.music-card-note {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-faint);
+  font-size: 0.85rem;
+}
+
+.music-card-hint {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-hover);
+}
+
+/* ---- OST series grouping (music.html) ---- */
+.music-series-group + .music-series-group {
+  margin-top: var(--space-7);
+}
+
+.music-series-heading {
+  font-size: 1.05rem;
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   Music streaming modal
+   ------------------------------------------------------------------
+   One reusable overlay/dialog (markup lives once in music.html);
+   js/main.js repopulates it with the clicked song's details.
+   ========================================================================== */
+
+.music-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.music-modal-overlay[hidden] {
+  display: none;
+}
+
+.music-modal {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  text-align: center;
+}
+
+.music-modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.music-modal-close:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.music-modal-cover {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-alt);
+}
+
+.music-modal-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.music-modal-title {
+  margin: 0 0 var(--space-1);
+  font-size: 1.2rem;
+}
+
+.music-modal-artist {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.music-modal-meta {
+  margin: 0 0 var(--space-4);
+  color: var(--color-accent-hover);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.music-modal-heading {
+  margin: 0 0 var(--space-3);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.music-modal-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body.music-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .music-modal {
+    max-width: 100%;
+  }
 }
 
 /* ==========================================================================
@@ -660,6 +937,100 @@ button:focus-visible,
 }
 
 /* ==========================================================================
+   Comment Helper (campaign.html)
+   ========================================================================== */
+
+.comment-helper {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.comment-helper-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.comment-helper-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1 1 180px;
+}
+
+.comment-helper-field label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.comment-helper-field select {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.comment-helper-controls .btn {
+  flex: 0 0 auto;
+}
+
+.comment-helper-result {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.comment-helper-text {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.comment-helper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.comment-helper-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .comment-helper {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .comment-helper-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .comment-helper-controls .btn {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
    FAQ accordion
    ========================================================================== */
 
@@ -758,41 +1129,90 @@ button:focus-visible,
 
 .site-footer .container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: var(--space-4);
 }
 
-.footer-nav ul {
-  list-style: none;
+.footer-brand {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
+  flex-direction: column;
+  align-items: center;
+  max-width: 360px;
 }
 
-.footer-nav a {
-  color: var(--color-text-muted);
-  text-decoration: none;
-  font-size: 0.9rem;
+.footer-brand-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  margin-bottom: var(--space-3);
 }
 
-.footer-nav a:hover {
+.footer-brand-name {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
   color: var(--color-text);
+}
+
+.footer-brand-desc {
+  margin: 0 0 var(--space-3);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.footer-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-hover);
+  text-decoration: none;
+}
+
+.footer-brand-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
 }
 
 .footer-disclaimer {
   font-size: 0.8rem;
   color: var(--color-text-faint);
-  max-width: 640px;
-  margin: var(--space-4) 0 0;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.footer-credit {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+}
+
+.footer-credit a {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer-credit a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
 }
 
 .footer-meta {
   width: 100%;
+  max-width: 500px;
   font-size: 0.8rem;
   color: var(--color-text-faint);
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }

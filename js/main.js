@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   highlightActiveNavLink();
   setFooterYear();
   initFaqAccordion();
+  initCommentHelper();
 
   renderActiveCampaignSummary();
   renderCampaignHero();
@@ -20,6 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPlatforms(document.querySelector("[data-render='platforms']"));
   renderMissions(document.querySelector("[data-render='missions']"));
   renderQuickLinks(document.querySelector("[data-render='quick-links']"));
+  renderMusicSections();
+  initMusicModal();
   renderAnnouncements(document.querySelector("[data-render='announcements']"));
   renderGuides(document.querySelector("[data-render='guides']"));
   renderFaq(document.querySelector("[data-render='faq']"));
@@ -451,6 +454,310 @@ function renderQuickLinks(container) {
 }
 
 /* ==========================================================================
+   PerthSanta Music
+   ------------------------------------------------------------------
+   Independent of currentCampaign — a permanent hub for songs/OSTs that
+   stays populated across campaigns. Add new songs directly to the
+   relevant category array in `siteData.music` (js/data.js); no
+   HTML/JS changes needed. Each category's <section> is hidden
+   automatically when its array is empty.
+   ========================================================================== */
+
+const MUSIC_PLATFORM_LABELS = {
+  youtube: "YouTube",
+  spotify: "Spotify",
+  appleMusic: "Apple Music",
+  youtubeMusic: "YouTube Music"
+};
+
+function renderMusicSections() {
+  const music = siteData.music || {};
+
+  renderOstSection(document.querySelector("[data-render='music-osts']"), music.osts);
+  renderMusicGrid(document.querySelector("[data-render='music-perthsanta']"), music.perthsanta);
+  renderMusicGrid(document.querySelector("[data-render='music-perth-solo']"), music.perthSolo);
+  renderMusicGrid(document.querySelector("[data-render='music-jasper']"), music.jasper);
+}
+
+// Shared "hide the section if empty" behavior for every music category.
+function toggleMusicSection(container, hasSongs) {
+  const section = container.closest("section");
+  if (section) section.hidden = !hasSongs;
+}
+
+function renderMusicGrid(container, songs) {
+  if (!container) return;
+  const list = songs || [];
+  toggleMusicSection(container, list.length > 0);
+  if (!list.length) return;
+
+  container.innerHTML = "";
+  list.forEach((song) => {
+    container.appendChild(buildMusicCard(song));
+  });
+}
+
+// OSTs are additionally grouped by `series`, in first-seen order, each
+// under its own subheading, so fans can find a series' songs together.
+function renderOstSection(container, songs) {
+  if (!container) return;
+  const list = songs || [];
+  toggleMusicSection(container, list.length > 0);
+  if (!list.length) return;
+
+  const seriesOrder = [];
+  const bySeries = new Map();
+  list.forEach((song) => {
+    const key = song.series || "Other";
+    if (!bySeries.has(key)) {
+      bySeries.set(key, []);
+      seriesOrder.push(key);
+    }
+    bySeries.get(key).push(song);
+  });
+
+  container.innerHTML = "";
+  seriesOrder.forEach((seriesName) => {
+    const group = document.createElement("div");
+    group.className = "music-series-group";
+
+    const heading = document.createElement("h3");
+    heading.className = "music-series-heading";
+    heading.textContent = seriesName;
+    group.appendChild(heading);
+
+    const grid = document.createElement("div");
+    grid.className = "music-grid";
+    bySeries.get(seriesName).forEach((song) => {
+      grid.appendChild(buildMusicCard(song));
+    });
+    group.appendChild(grid);
+
+    container.appendChild(group);
+  });
+}
+
+// Fills an existing cover <div> (card or modal) with an <img> when a
+// cover path is set, falling back to a placeholder icon on a missing
+// or broken image so a bad path never leaves a blank box.
+function fillMusicCover(container, song) {
+  container.innerHTML = "";
+  container.classList.remove("music-card-cover-placeholder");
+
+  if (song.cover) {
+    const img = document.createElement("img");
+    img.src = song.cover;
+    img.alt = song.title ? `${song.title} cover art` : "Song cover art";
+    img.loading = "lazy";
+    img.addEventListener(
+      "error",
+      () => {
+        container.innerHTML = "";
+        container.classList.add("music-card-cover-placeholder");
+      },
+      { once: true }
+    );
+    container.appendChild(img);
+  } else {
+    container.classList.add("music-card-cover-placeholder");
+  }
+}
+
+function buildMusicCoverElement(song, className) {
+  const cover = document.createElement("div");
+  cover.className = className;
+  fillMusicCover(cover, song);
+  return cover;
+}
+
+function musicMetaText(song) {
+  const metaParts = [];
+  if (song.type) metaParts.push(song.type);
+  if (song.series) metaParts.push(song.series);
+  return metaParts.join(" • ");
+}
+
+// The whole card is a <button> so it's keyboard-operable (Enter/Space)
+// for free, and clicking/activating it opens the platform-choice modal
+// instead of jumping straight to one streaming service.
+function buildMusicCard(song) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "card music-card";
+
+  card.appendChild(buildMusicCoverElement(song, "music-card-cover"));
+
+  const body = document.createElement("div");
+  body.className = "music-card-body";
+
+  const title = document.createElement("h3");
+  title.className = "music-card-title";
+  title.textContent = song.title || "Untitled";
+  body.appendChild(title);
+
+  const artist = document.createElement("p");
+  artist.className = "music-card-artist";
+  artist.textContent = song.artist || siteData.site.name;
+  body.appendChild(artist);
+
+  const metaText = musicMetaText(song);
+  if (metaText) {
+    const meta = document.createElement("p");
+    meta.className = "music-card-meta";
+    meta.textContent = metaText;
+    body.appendChild(meta);
+  }
+
+  if (song.release) {
+    const release = document.createElement("p");
+    release.className = "music-card-release";
+    release.textContent = song.release;
+    body.appendChild(release);
+  }
+
+  if (song.note) {
+    const note = document.createElement("p");
+    note.className = "music-card-note";
+    note.textContent = song.note;
+    body.appendChild(note);
+  }
+
+  const hint = document.createElement("span");
+  hint.className = "music-card-hint";
+  hint.textContent = "Stream now →";
+  body.appendChild(hint);
+
+  card.appendChild(body);
+
+  card.addEventListener("click", () => openMusicModal(song, card));
+
+  return card;
+}
+
+/* ==========================================================================
+   Music streaming modal
+   ------------------------------------------------------------------
+   A single modal instance (markup lives once in music.html) is reused
+   for every card — opening it just repopulates its content from the
+   clicked song. Only rendered/queried on pages that have the markup.
+   ========================================================================== */
+
+const musicModalState = {
+  previouslyFocused: null
+};
+
+function getMusicModalEls() {
+  const overlay = document.querySelector("[data-music-modal]");
+  if (!overlay) return null;
+
+  return {
+    overlay,
+    dialog: overlay.querySelector(".music-modal"),
+    closeBtn: overlay.querySelector("[data-music-modal-close]"),
+    cover: overlay.querySelector("[data-music-modal-cover]"),
+    title: overlay.querySelector("[data-music-modal-title]"),
+    artist: overlay.querySelector("[data-music-modal-artist]"),
+    meta: overlay.querySelector("[data-music-modal-meta]"),
+    links: overlay.querySelector("[data-music-modal-links]")
+  };
+}
+
+function initMusicModal() {
+  const els = getMusicModalEls();
+  if (!els) return;
+
+  els.closeBtn.addEventListener("click", closeMusicModal);
+
+  els.overlay.addEventListener("click", (event) => {
+    if (event.target === els.overlay) closeMusicModal();
+  });
+
+  document.addEventListener("keydown", handleMusicModalKeydown);
+}
+
+function openMusicModal(song, triggerEl) {
+  const els = getMusicModalEls();
+  if (!els) return;
+
+  musicModalState.previouslyFocused = triggerEl || document.activeElement;
+
+  fillMusicCover(els.cover, song);
+
+  els.title.textContent = song.title || "Untitled";
+  els.artist.textContent = song.artist || siteData.site.name;
+
+  const metaText = musicMetaText(song);
+  els.meta.textContent = metaText;
+  els.meta.hidden = !metaText;
+
+  els.links.innerHTML = "";
+  const links = song.links || {};
+  const entries = Object.entries(links).filter(([, url]) => !!url);
+
+  if (entries.length) {
+    entries.forEach(([key, url]) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "btn btn-primary btn-block";
+      a.textContent = MUSIC_PLATFORM_LABELS[key] || capitalize(key);
+      els.links.appendChild(a);
+    });
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Streaming links coming soon.";
+    els.links.appendChild(empty);
+  }
+
+  els.overlay.hidden = false;
+  document.body.classList.add("music-modal-open");
+  els.closeBtn.focus();
+}
+
+function closeMusicModal() {
+  const els = getMusicModalEls();
+  if (!els || els.overlay.hidden) return;
+
+  els.overlay.hidden = true;
+  document.body.classList.remove("music-modal-open");
+
+  if (musicModalState.previouslyFocused) {
+    musicModalState.previouslyFocused.focus();
+    musicModalState.previouslyFocused = null;
+  }
+}
+
+function handleMusicModalKeydown(event) {
+  const els = getMusicModalEls();
+  if (!els || els.overlay.hidden) return;
+
+  if (event.key === "Escape") {
+    closeMusicModal();
+    return;
+  }
+
+  if (event.key === "Tab") {
+    const focusables = Array.from(
+      els.overlay.querySelectorAll('a[href], button:not([disabled])')
+    );
+    if (!focusables.length) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+}
+
+/* ==========================================================================
    Campaign Updates / Announcements
    ========================================================================== */
 
@@ -491,6 +798,106 @@ function renderGuides(container) {
     a.innerHTML = `<h3>${guide.label}</h3><p>${guide.description}</p>`;
     container.appendChild(a);
   });
+}
+
+/* ==========================================================================
+   Comment Helper (campaign.html)
+   ------------------------------------------------------------------
+   Generates a comment suggestion entirely client-side from the phrase
+   pools in siteData.commentHelper — nothing is posted anywhere
+   automatically, and no external API is called. The user always edits
+   and copies the suggestion themselves.
+   ========================================================================== */
+
+function generateComment(styleId, lengthId) {
+  const helper = siteData.commentHelper;
+  if (!helper || !helper.phrases) return "";
+
+  if (styleId === "simple") {
+    const lineCounts = { short: 1, medium: 2, longer: 3 };
+    const count = lineCounts[lengthId] || 1;
+    const lines = pickRandomUnique(helper.phrases.simple.lines, count);
+    return lines.join(" ");
+  }
+
+  const pool = helper.phrases[styleId];
+  if (!pool) return "";
+
+  const sentences = [];
+
+  if (lengthId === "medium") {
+    sentences.push(pickRandomItem(pool.openings));
+    const secondCategory = Math.random() < 0.5 ? "observations" : "reactions";
+    sentences.push(pickRandomItem(pool[secondCategory]));
+  } else if (lengthId === "longer") {
+    sentences.push(pickRandomItem(pool.openings));
+    sentences.push(pickRandomItem(pool.observations));
+    sentences.push(pickRandomItem(pool.reactions));
+    sentences.push(pickRandomItem(pool.endings));
+  } else {
+    // "short" (and any unrecognized length) — a single natural sentence.
+    const category = Math.random() < 0.5 ? "openings" : "reactions";
+    sentences.push(pickRandomItem(pool[category]));
+  }
+
+  return sentences.join(" ");
+}
+
+function initCommentHelper() {
+  const styleSelect = document.querySelector("[data-comment-style]");
+  const lengthSelect = document.querySelector("[data-comment-length]");
+  const generateBtn = document.querySelector("[data-comment-generate]");
+  const regenerateBtn = document.querySelector("[data-comment-regenerate]");
+  const copyBtn = document.querySelector("[data-comment-copy]");
+  const resultBox = document.querySelector("[data-comment-result]");
+  const textEl = document.querySelector("[data-comment-text]");
+
+  if (!styleSelect || !lengthSelect || !generateBtn || !resultBox || !textEl) return;
+
+  const helper = siteData.commentHelper;
+  if (!helper) return;
+
+  styleSelect.innerHTML = "";
+  helper.styles.forEach((style) => {
+    const option = document.createElement("option");
+    option.value = style.id;
+    option.textContent = style.label;
+    styleSelect.appendChild(option);
+  });
+
+  lengthSelect.innerHTML = "";
+  helper.lengths.forEach((length) => {
+    const option = document.createElement("option");
+    option.value = length.id;
+    option.textContent = length.label;
+    lengthSelect.appendChild(option);
+  });
+
+  const showGeneratedComment = () => {
+    textEl.textContent = generateComment(styleSelect.value, lengthSelect.value);
+    resultBox.hidden = false;
+  };
+
+  generateBtn.addEventListener("click", showGeneratedComment);
+  if (regenerateBtn) regenerateBtn.addEventListener("click", showGeneratedComment);
+
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      const text = textEl.textContent;
+      if (!text) return;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalLabel = copyBtn.textContent;
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = originalLabel;
+        }, 1500);
+      } catch (error) {
+        console.warn("Clipboard copy failed.", error);
+      }
+    });
+  }
 }
 
 /* ==========================================================================
@@ -543,4 +950,19 @@ function formatNumber(n) {
 
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function pickRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Picks up to n distinct random items (no repeats within one result).
+function pickRandomUnique(arr, n) {
+  const pool = arr.slice();
+  const result = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const index = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(index, 1)[0]);
+  }
+  return result;
 }
