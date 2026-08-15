@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderActiveCampaignSummary();
   renderCampaignHero();
   loadAndRenderGoals();
+  renderTikTokGoals();
   renderPlatforms(document.querySelector("[data-render='platforms']"));
   renderMissions(document.querySelector("[data-render='missions']"));
   renderQuickLinks(document.querySelector("[data-render='quick-links']"));
@@ -147,7 +148,21 @@ function renderActiveCampaignSummary() {
 
   const footer = document.createElement("div");
   footer.className = "campaign-card-footer";
-  footer.appendChild(createLinkOrPlaceholder(c.primaryLink.url, "WATCH / STREAM NOW", "btn btn-primary"));
+  footer.appendChild(
+    createLinkOrPlaceholder(
+      c.primaryLink.url,
+      "STREAM ON YOUTUBE",
+      "btn btn-primary"
+    )
+  );
+
+  footer.appendChild(
+    createLinkOrPlaceholder(
+      c.tiktokLink.url,
+      "STREAM ON TIKTOK",
+      "btn btn-primary"
+    )
+  );
 
   const detailsLink = document.createElement("a");
   detailsLink.href = "campaign.html";
@@ -176,9 +191,24 @@ function renderCampaignHero() {
 
   const ctaSlot = el.querySelector("[data-slot='primary-cta']");
   if (ctaSlot) {
-    ctaSlot.innerHTML = "";
-    ctaSlot.appendChild(createLinkOrPlaceholder(c.primaryLink.url, "▶ STREAM ON YOUTUBE", "btn btn-primary"));
-  }
+  ctaSlot.innerHTML = "";
+
+  ctaSlot.appendChild(
+    createLinkOrPlaceholder(
+      c.primaryLink.url,
+      "▶ STREAM ON YOUTUBE",
+      "btn btn-primary"
+    )
+  );
+
+  ctaSlot.appendChild(
+    createLinkOrPlaceholder(
+      c.tiktokLink.url,
+      "♪ STREAM ON TIKTOK",
+      "btn btn-secondary"
+    )
+  );
+}
 }
 
 /* ==========================================================================
@@ -193,9 +223,70 @@ function renderCampaignHero() {
 
 async function loadAndRenderGoals() {
   const container = document.querySelector("[data-render='goals']");
+  if (!container) return;
+
+  // Render the cards immediately using the fallback values from data.js
+  renderGoals(container, null);
+
+  // Then try to load the real YouTube view count
   const stats = await fetchYoutubeStats();
-  renderGoals(container, stats);
+
+  if (stats) {
+    renderGoals(container, stats);
+  }
+
   renderGoalsMeta(stats);
+}
+
+function renderTikTokGoals() {
+  const container = document.querySelector("[data-render='tiktok-goals']");
+  if (!container) return;
+
+  const goals = siteData.currentCampaign.tiktokGoals;
+
+  if (!goals || !goals.length) {
+    container.innerHTML = '<p class="empty-state">TikTok goals have not been set yet.</p>';
+    return;
+  }
+
+  container.innerHTML = "";
+
+  goals.forEach((goal) => {
+    const current = goal.current;
+    const percent = goal.target > 0
+      ? Math.min(100, (current / goal.target) * 100)
+      : 0;
+
+    const reached = current >= goal.target;
+
+    const card = document.createElement("div");
+    card.className = `card goal-card${reached ? " is-reached" : ""}`;
+
+    card.innerHTML = `
+      <h3>
+        ${goal.label}
+        ${reached ? '<span class="badge badge-reached">Reached</span>' : ""}
+      </h3>
+
+      <div class="goal-values">
+        <span>${formatNumber(current)}</span>
+        <span>${formatNumber(goal.target)}</span>
+      </div>
+
+      <div
+        class="progress-track"
+        role="progressbar"
+        aria-valuenow="${Math.round(percent)}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label="TikTok ${goal.label} progress"
+      >
+        <div class="progress-fill" style="width: ${percent}%;"></div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
 }
 
 async function fetchYoutubeStats() {

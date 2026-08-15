@@ -34,12 +34,19 @@ const siteData = {
       "PerthSanta's upcoming series Heartbound just released its pilot trailer. This is our first big push to help it reach as many eyes as possible — every watch, like, comment, and share genuinely helps.",
     heroMessage:
       "Let's show up for PerthSanta and Heartbound together. Every bit of support counts.",
-    primaryPlatform: "youtube",
+      primaryPlatform: "youtube",
+    
+      primaryPlatforms: ["youtube", "tiktok"],
 
     // The official trailer link has not been provided yet.
     primaryLink: {
       label: "Official Heartbound Pilot Trailer",
-      url: null
+      url: "https://www.youtube.com/watch?v=I1guVkLJ4mU"
+    },
+
+    tiktokLink: {
+      label: "Official Heartbound Pilot Trailer on TikTok",
+      url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397"
     },
 
     // Placeholder milestones — replace target/current with real numbers
@@ -51,42 +58,28 @@ const siteData = {
       { label: "5M Views", target: 5000000, current: 0 }
     ],
 
+    tiktokGoals: [
+      { label: "1M Views", target: 1000000, current: 2700000 },
+      { label: "2M Views", target: 2000000, current: 2700000 },
+      { label: "3M Views", target: 3000000, current: 2700000 },
+      { label: "4M Views", target: 4000000, current: 2700000 }
+    ],
+
     // Platform Support Center cards. `url: null` renders as "Coming soon".
     platforms: [
-      {
-        id: "youtube",
-        name: "YouTube",
-        actions: ["Watch", "Like", "Comment", "Share"],
-        cta: "STREAM NOW",
-        url: null
-      },
       {
         id: "x",
         name: "X / Twitter",
         actions: ["Like", "Repost", "Reply", "Share"],
         cta: "ENGAGE ON X",
-        url: null
+        url: "https://x.com/HeartboundTH"
       },
       {
         id: "instagram",
         name: "Instagram",
-        actions: ["Like", "Comment", "Share", "Story"],
+        actions: ["Like", "Repost", "Comment", "Share"],
         cta: "ENGAGE ON INSTAGRAM",
-        url: null
-      },
-      {
-        id: "tiktok",
-        name: "TikTok",
-        actions: ["Watch", "Like", "Comment", "Share"],
-        cta: "ENGAGE ON TIKTOK",
-        url: null
-      },
-      {
-        id: "facebook",
-        name: "Facebook",
-        actions: ["React", "Comment", "Share"],
-        cta: "ENGAGE ON FACEBOOK",
-        url: null
+        url: "https://www.instagram.com/heartboundth_/"
       }
     ],
 
@@ -103,12 +96,10 @@ const siteData = {
     // Quick Links grid. `icon` is a plain glyph/emoji — swap for a real
     // icon asset later if desired.
     quickLinks: [
-      { label: "Heartbound Pilot Trailer", icon: "▶", url: null },
-      { label: "Official X Post", icon: "𝕏", url: null },
-      { label: "Instagram Post", icon: "◎", url: null },
-      { label: "TikTok Post", icon: "♪", url: null },
-      { label: "YouTube Channel", icon: "▶", url: null },
-      { label: "PerthSanta Official Content", icon: "❤", url: null }
+      { label: "Heartbound Pilot Trailer", icon: "▶", url: "https://www.youtube.com/watch?v=I1guVkLJ4mU" },
+      { label: "Official X Post", icon: "𝕏", url: "https://x.com/GMMTV/status/2078863739143803261" },
+      { label: "Instagram Post", icon: "◎", url: "https://www.instagram.com/reel/Da_ms6PMQtl/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==&igsi=MzRlODBiNWFlZA==" },
+      { label: "TikTok Post", icon: "♪", url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397?is_from_webapp=1&sender_device=pc&web_id=7674032561550607879" }
     ],
 
     // Campaign Updates feed. Add newest entries to the top.

@@ -578,6 +578,16 @@ button:focus-visible,
   color: var(--color-text-faint);
 }
 
+.platform-goals-title {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  font-size: 1.5rem;
+}
+
+.goals-live-note + .platform-goals-title {
+  margin-top: var(--space-6);
+}
+
 /* ==========================================================================
    Mission checklist
    ========================================================================== */
