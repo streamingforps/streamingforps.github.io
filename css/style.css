@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Streaming For PS — base stylesheet
+   PerthSanta Streaming — base stylesheet
    Sections: reset, layout, header/nav, buttons, badges, hero, cards,
    goals/progress, FAQ accordion, footer, utilities, responsive.
    ========================================================================== */
@@ -93,6 +93,14 @@ select:focus-visible,
 
 .section-alt {
   background-color: var(--color-bg-alt);
+}
+
+/* Extra breathing room + a hairline divider where two sections need a
+   clearer boundary than the default background alternation gives them
+   (e.g. Campaign Updates -> PerthSanta Music teaser). */
+.section-boundary {
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
 }
 
 /* ---- Skip link ---- */
@@ -435,6 +443,21 @@ select:focus-visible,
   margin-inline: auto;
 }
 
+music-hero-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.music-note {
+  color: #ff1a1a;
+  font-size: 0.7em;
+  line-height: 1;
+}
+
 .hero-visual {
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-lg);
@@ -547,6 +570,109 @@ select:focus-visible,
 
 .quicklink-card .quicklink-label {
   font-weight: 700;
+}
+
+/* ==========================================================================
+   Streaming Guides cards
+   ------------------------------------------------------------------
+   Uses .card-grid's base layout but overrides column counts with its
+   own breakpoints (4 desktop / 2 tablet / 1 mobile) so other .card-grid
+   sections (platforms, quick links) are unaffected.
+   ========================================================================== */
+
+.guides-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .guides-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1000px) {
+  .guides-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.guide-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  border-top: 3px solid var(--color-accent);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.guide-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent-hover);
+  box-shadow: 0 10px 28px rgba(225, 6, 0, 0.2);
+}
+
+.guide-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+  font-size: 1.15rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.guide-card:hover .guide-card-icon {
+  background: var(--color-accent);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.guide-card-title {
+  color: var(--color-text);
+  font-size: 1.1rem;
+  margin: 0 0 var(--space-2);
+}
+
+.guide-card-desc {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.guide-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.18s ease;
+}
+
+.guide-card:hover .guide-card-cta {
+  color: var(--color-accent-hover);
+}
+
+.guide-card-cta-arrow {
+  display: inline-block;
+  transition: transform 0.18s ease;
+}
+
+.guide-card:hover .guide-card-cta-arrow {
+  transform: translateX(4px);
 }
 
 /* ==========================================================================
@@ -908,32 +1034,389 @@ body.music-modal-open {
 
 .announcement-list {
   list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 700px) {
+  .announcement-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---- Update card ---- */
+.update-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 720px;
-  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.announcement-list li {
+.update-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-border-strong);
+}
+
+/* Newest/most important update gets a stronger accent border. */
+.update-card--featured {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent-soft);
+}
+
+/* Important updates get a red left accent so they stand out from the feed. */
+.update-card--important {
   border-left: 3px solid var(--color-accent);
-  padding-left: var(--space-4);
 }
 
-.announcement-date {
+.update-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.update-card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-strong);
+  white-space: nowrap;
+}
+
+.update-card--milestone .update-card-badge {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  border-color: transparent;
+}
+
+.update-card--goal .update-card-badge {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.update-card--tool .update-card-badge {
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-color: transparent;
+}
+
+.update-card--important .update-card-badge {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.update-card-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.update-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0 0 var(--space-2);
+}
+
+.update-card-message {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.update-card-date {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--color-text-faint);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.update-card-cta {
+  align-self: flex-start;
+  margin-top: var(--space-4);
 }
 
 .empty-state {
   text-align: center;
   color: var(--color-text-faint);
   font-style: italic;
+}
+
+/* ==========================================================================
+   YouTube Streaming Guide (campaign.html)
+   ========================================================================== */
+
+.stream-guide-note {
+  max-width: 720px;
+  margin: 0 auto var(--space-6);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+.stream-guide-note--bottom {
+  margin: var(--space-6) auto 0;
+}
+
+.stream-guide-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 800px) {
+  .stream-guide-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stream-guide-card--playlist {
+    grid-column: 1 / -1;
+  }
+}
+
+.stream-guide-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.stream-guide-card:hover {
+  border-color: var(--color-accent-hover);
+  box-shadow: 0 0 0 1px var(--color-accent-soft), var(--shadow-md);
+}
+
+.stream-guide-card--do {
+  border-top: 3px solid var(--color-accent);
+}
+
+.stream-guide-card--dont {
+  border-top: 3px solid var(--color-border-strong);
+}
+
+.stream-guide-card--playlist {
+  border: 1px solid var(--color-accent);
+  background: linear-gradient(160deg, var(--color-surface), var(--color-surface-alt));
+}
+
+.stream-guide-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.stream-guide-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+  font-size: 1.1rem;
+}
+
+.stream-guide-card-title {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.stream-guide-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+
+.stream-guide-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.stream-guide-item-text {
+  flex: 1;
+}
+
+.stream-guide-list strong {
+  color: var(--color-accent-hover);
+  font-weight: 800;
+}
+
+.stream-guide-item-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.stream-guide-card--dont .stream-guide-item-icon {
+  background: rgba(225, 6, 0, 0.14);
+  color: var(--color-accent-hover);
+}
+
+.stream-guide-cta {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+.stream-guide-playlist-lede {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0 0 var(--space-3);
+}
+
+.stream-guide-playlist-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.stream-guide-playlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.stream-guide-playlist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stream-guide-playlist-name {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stream-guide-playlist-platform {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stream-guide-playlist-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-surface);
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-border-strong);
+  white-space: nowrap;
+}
+
+.stream-guide-reminder {
+  margin-top: var(--space-6);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-6);
+}
+
+.stream-guide-reminder-title {
+  font-size: 1.05rem;
+  margin: 0 0 var(--space-3);
+}
+
+.stream-guide-reminder-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.stream-guide-reminder-list li {
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.stream-guide-reminder-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--color-accent);
+}
+
+.stream-guide-reminder-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent-hover);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.stream-guide-reminder-cta:hover {
+  text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -1085,36 +1568,122 @@ body.music-modal-open {
 }
 
 /* ==========================================================================
-   Guide placeholder pages
+   Individual guide pages (guides/*.html)
+   ------------------------------------------------------------------
+   Shares the .stream-guide-* card system built for the YouTube
+   Streaming Guide on campaign.html, plus a hero icon badge, a few
+   layout modifiers, and subtle per-platform icon accents.
    ========================================================================== */
 
-.guide-outline {
-  list-style: none;
+.guide-hero-icon {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 640px;
-  margin: 0 auto var(--space-6);
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+  font-size: 1.75rem;
+  font-weight: 800;
 }
 
-.guide-outline li {
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
+.guide-hero-icon--spotify {
+  background: rgba(30, 215, 96, 0.14);
+  border-color: rgba(30, 215, 96, 0.4);
+  color: #1ed760;
+}
+
+.guide-hero-icon--instagram {
+  background: rgba(221, 42, 123, 0.14);
+  border-color: rgba(221, 42, 123, 0.4);
+  color: #e1306c;
+}
+
+.guide-hero-icon--tiktok {
+  background: rgba(37, 244, 238, 0.12);
+  border-color: rgba(254, 44, 85, 0.4);
+  color: #25f4ee;
+}
+
+.guide-hero-icon--facebook {
+  background: rgba(24, 119, 242, 0.14);
+  border-color: rgba(24, 119, 242, 0.4);
+  color: #1877f2;
+}
+
+/* Middle "Avoid" card spans full width on guide pages using the
+   How to Support / Engagement Tips / Avoid / Reminder layout. */
+@media (min-width: 800px) {
+  .stream-guide-card--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.stream-guide-card-icon--spotify {
+  background: rgba(30, 215, 96, 0.14);
+  border-color: rgba(30, 215, 96, 0.4);
+  color: #1ed760;
+}
+
+.stream-guide-card-icon--instagram {
+  background: rgba(221, 42, 123, 0.14);
+  border-color: rgba(221, 42, 123, 0.4);
+  color: #e1306c;
+}
+
+.stream-guide-card-icon--tiktok {
+  background: rgba(37, 244, 238, 0.12);
+  border-color: rgba(254, 44, 85, 0.4);
+  color: #25f4ee;
+}
+
+.stream-guide-card-icon--facebook {
+  background: rgba(24, 119, 242, 0.14);
+  border-color: rgba(24, 119, 242, 0.4);
+  color: #1877f2;
+}
+
+.stream-guide-subheading {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.stream-guide-subheading:first-child {
+  margin-top: 0;
+}
+
+.stream-guide-card--single {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.stream-guide-inline-note {
   color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: var(--space-3) 0 0;
 }
 
-.guide-notice {
-  max-width: 640px;
-  margin: 0 auto var(--space-6);
+/* ---- Explore Other Guides (cross-guide navigation) ---- */
+.related-guides {
+  margin-top: var(--space-7);
   text-align: center;
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  font-weight: 600;
+}
+
+.related-guides-title {
+  font-size: 1.3rem;
+  margin-bottom: var(--space-5);
+}
+
+.related-guides-footer {
+  margin-top: var(--space-6);
 }
 
 /* ==========================================================================

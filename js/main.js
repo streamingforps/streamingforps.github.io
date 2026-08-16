@@ -1,5 +1,5 @@
 /*
-  Streaming For PS — shared behavior & rendering
+  PerthSanta Streaming — shared behavior & rendering
   ------------------------------------------------------------------
   Loaded on every page after js/data.js. Each render* function checks
   whether its target container exists before doing anything, so this
@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderActiveCampaignSummary();
   renderCampaignHero();
+  renderYoutubeStreamingGuide();
   loadAndRenderGoals();
   renderTikTokGoals();
   renderPlatforms(document.querySelector("[data-render='platforms']"));
@@ -26,6 +27,14 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAnnouncements(document.querySelector("[data-render='announcements']"));
   renderGuides(document.querySelector("[data-render='guides']"));
   renderFaq(document.querySelector("[data-render='faq']"));
+
+  const relatedGuidesEl = document.querySelector("[data-render='related-guides']");
+  if (relatedGuidesEl) {
+    renderGuides(relatedGuidesEl, {
+      excludeId: relatedGuidesEl.getAttribute("data-current-guide"),
+      relativeToGuides: true
+    });
+  }
 });
 
 /* ==========================================================================
@@ -212,6 +221,70 @@ function renderCampaignHero() {
     )
   );
 }
+}
+
+/* ==========================================================================
+   YouTube Streaming Guide (campaign.html)
+   ------------------------------------------------------------------
+   Fan-community streaming tips. The CTA reuses currentCampaign.primaryLink
+   so it never duplicates the trailer URL, and the playlist list renders
+   from siteData.streamingPlaylists so playlists can be added later without
+   touching campaign.html.
+   ========================================================================== */
+
+function renderYoutubeStreamingGuide() {
+  const ctaSlot = document.querySelector("[data-slot='youtube-guide-cta']");
+  if (ctaSlot) {
+    ctaSlot.innerHTML = "";
+    ctaSlot.appendChild(
+      createLinkOrPlaceholder(
+        siteData.currentCampaign.primaryLink.url,
+        "▶ WATCH THE HEARTBOUND PILOT",
+        "btn btn-primary"
+      )
+    );
+  }
+
+  const playlistList = document.querySelector("[data-render='streaming-playlists']");
+  if (!playlistList) return;
+
+  playlistList.innerHTML = "";
+  siteData.streamingPlaylists.forEach((playlist) => {
+    const li = document.createElement("li");
+    li.className = "stream-guide-playlist-item";
+
+    const info = document.createElement("span");
+    info.className = "stream-guide-playlist-info";
+
+    const name = document.createElement("span");
+    name.className = "stream-guide-playlist-name";
+    name.textContent = playlist.name;
+    info.appendChild(name);
+
+    const platform = document.createElement("span");
+    platform.className = "stream-guide-playlist-platform";
+    platform.textContent = playlist.platform;
+    info.appendChild(platform);
+
+    li.appendChild(info);
+
+    if (playlist.url) {
+      const a = document.createElement("a");
+      a.href = playlist.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "btn btn-secondary btn-sm";
+      a.textContent = "Open Playlist";
+      li.appendChild(a);
+    } else {
+      const badge = document.createElement("span");
+      badge.className = "stream-guide-playlist-badge";
+      badge.textContent = "PLAYLISTS COMING SOON";
+      li.appendChild(badge);
+    }
+
+    playlistList.appendChild(li);
+  });
 }
 
 /* ==========================================================================
@@ -759,7 +832,19 @@ function handleMusicModalKeydown(event) {
 
 /* ==========================================================================
    Campaign Updates / Announcements
+   ------------------------------------------------------------------
+   Each announcement is a typed update card. `type` selects the category
+   badge text/color via ANNOUNCEMENT_TYPES below — add a new type there
+   if you introduce one in js/data.js.
    ========================================================================== */
+
+const ANNOUNCEMENT_TYPES = {
+  milestone: { badge: "MILESTONE", className: "update-card--milestone" },
+  goal: { badge: "NEXT GOAL", className: "update-card--goal" },
+  reminder: { badge: "REMINDER", className: "update-card--reminder" },
+  tool: { badge: "NEW TOOL", className: "update-card--tool" },
+  important: { badge: "IMPORTANT", className: "update-card--important" }
+};
 
 function renderAnnouncements(container) {
   if (!container) return;
@@ -771,12 +856,54 @@ function renderAnnouncements(container) {
   }
 
   container.innerHTML = "";
-  announcements.forEach((item) => {
+  announcements.forEach((item, index) => {
+    const typeInfo = ANNOUNCEMENT_TYPES[item.type] || { badge: item.type ? item.type.toUpperCase() : "UPDATE", className: "" };
+
     const li = document.createElement("li");
-    li.innerHTML = `
-      <span class="announcement-date">${item.date}</span>
-      <span>${item.message}</span>
-    `;
+    li.className = `update-card ${typeInfo.className}`;
+    if (index === 0) li.classList.add("update-card--featured");
+
+    const header = document.createElement("div");
+    header.className = "update-card-header";
+
+    const badge = document.createElement("span");
+    badge.className = "update-card-badge";
+    badge.textContent = typeInfo.badge;
+    header.appendChild(badge);
+
+    const icon = document.createElement("span");
+    icon.className = "update-card-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = item.icon || "";
+    header.appendChild(icon);
+
+    li.appendChild(header);
+
+    const title = document.createElement("h3");
+    title.className = "update-card-title";
+    title.textContent = item.title;
+    li.appendChild(title);
+
+    const message = document.createElement("p");
+    message.className = "update-card-message";
+    message.textContent = item.message;
+    li.appendChild(message);
+
+    if (item.date) {
+      const date = document.createElement("span");
+      date.className = "update-card-date";
+      date.textContent = item.date;
+      li.appendChild(date);
+    }
+
+    if (item.ctaHref) {
+      const cta = document.createElement("a");
+      cta.className = "btn btn-secondary btn-sm update-card-cta";
+      cta.href = item.ctaHref;
+      cta.textContent = item.ctaLabel || "Learn more";
+      li.appendChild(cta);
+    }
+
     container.appendChild(li);
   });
 }
@@ -785,17 +912,39 @@ function renderAnnouncements(container) {
    Streaming Guides hub cards
    ========================================================================== */
 
-function renderGuides(container) {
+function renderGuides(container, options = {}) {
   if (!container) return;
+  const { excludeId = null, relativeToGuides = false } = options;
   container.innerHTML = "";
 
-  siteData.guides.forEach((guide) => {
+  siteData.guides
+    .filter((guide) => guide.id !== excludeId)
+    .forEach((guide) => {
     const a = document.createElement("a");
-    a.href = guide.href;
-    a.className = "card";
-    a.style.textDecoration = "none";
-    a.style.color = "inherit";
-    a.innerHTML = `<h3>${guide.label}</h3><p>${guide.description}</p>`;
+    a.href = relativeToGuides ? guide.href.replace(/^guides\//, "") : guide.href;
+    a.className = "card guide-card";
+
+    const icon = document.createElement("span");
+    icon.className = "guide-card-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = guide.icon || "";
+    a.appendChild(icon);
+
+    const title = document.createElement("h3");
+    title.className = "guide-card-title";
+    title.textContent = guide.label;
+    a.appendChild(title);
+
+    const desc = document.createElement("p");
+    desc.className = "guide-card-desc";
+    desc.textContent = guide.description;
+    a.appendChild(desc);
+
+    const cta = document.createElement("span");
+    cta.className = "guide-card-cta";
+    cta.innerHTML = `Open Guide <span class="guide-card-cta-arrow" aria-hidden="true">→</span>`;
+    a.appendChild(cta);
+
     container.appendChild(a);
   });
 }

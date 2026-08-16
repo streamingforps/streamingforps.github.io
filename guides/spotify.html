@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spotify Guide — Streaming For PS</title>
-  <meta name="description" content="How to support PerthSanta music releases on Spotify." />
+  <title>Spotify Guide — PerthSanta Streaming</title>
+  <meta name="description" content="Fan streaming tips for PerthSanta music and related releases." />
   <link rel="icon" type="image/png" href="../assets/icons/favicon.jpg">
   <link rel="stylesheet" href="../css/variables.css" />
   <link rel="stylesheet" href="../css/style.css" />
@@ -14,7 +14,7 @@
 
   <header class="site-header">
     <div class="container">
-      <a class="site-logo" href="../index.html">Streaming <span>For</span> PS</a>
+      <a class="site-logo" href="../index.html">PerthSanta <span>Streaming</span></a>
 
       <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="primary-navigation" aria-label="Toggle navigation menu">
         <span class="nav-toggle-icon" aria-hidden="true"></span>
@@ -37,23 +37,90 @@
   <main id="main-content">
     <section class="section">
       <div class="container">
+
         <div class="section-heading">
-          <h1>Spotify Guide</h1>
-          <p>Supporting PerthSanta music releases on Spotify.</p>
+          <span class="guide-hero-icon guide-hero-icon--spotify" aria-hidden="true">♫</span>
+          <h1>Spotify Streaming Guide</h1>
+          <p>Fan streaming tips for PerthSanta music and related releases.</p>
         </div>
 
-        <p class="guide-notice">This guide is still being written — full instructions will be added soon.</p>
+        <p class="stream-guide-note">
+          These are fan-community streaming recommendations and are not official platform rules unless explicitly stated otherwise.
+        </p>
 
-        <ul class="guide-outline">
-          <li>Streaming official releases</li>
-          <li>Adding tracks to playlists</li>
-          <li>Following official artist pages</li>
-          <li>Things to avoid</li>
-        </ul>
+        <div class="stream-guide-grid">
 
-        <div style="text-align: center;">
-          <a class="btn btn-secondary" href="../index.html#guides">Back to Streaming Guides</a>
+          <!-- General Tips -->
+          <div class="stream-guide-card stream-guide-card--do">
+            <div class="stream-guide-card-header">
+              <span class="stream-guide-card-icon stream-guide-card-icon--spotify" aria-hidden="true">✓</span>
+              <h3 class="stream-guide-card-title">General Tips</h3>
+            </div>
+
+            <ul class="stream-guide-list">
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Search for the target song <strong>manually</strong> sometimes.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Use playlists that include the target songs.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Keep streaming playlists reasonably <strong>varied</strong> rather than containing only one repeated track.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Mix targeted songs with <strong>filler songs / other artists</strong>.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Interact with Spotify naturally while listening.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">♥</span><span class="stream-guide-item-text"><strong>Like / save</strong> PerthSanta songs you genuinely enjoy.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Share songs and playlists on social media.</span></li>
+            </ul>
+          </div>
+
+          <!-- Active Streaming Tips -->
+          <div class="stream-guide-card stream-guide-card--do">
+            <div class="stream-guide-card-header">
+              <span class="stream-guide-card-icon stream-guide-card-icon--spotify" aria-hidden="true">♫</span>
+              <h3 class="stream-guide-card-title">Active Streaming Tips</h3>
+            </div>
+
+            <ul class="stream-guide-list">
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✕</span><span class="stream-guide-item-text">Avoid <strong>looping</strong> one track continuously.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✕</span><span class="stream-guide-item-text">Avoid repeating the exact same playlist over and over.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Switch between different playlists occasionally.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✓</span><span class="stream-guide-item-text">Include other songs between repeated target songs.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✕</span><span class="stream-guide-item-text">Avoid <strong>muting</strong> the device while actively streaming.</span></li>
+              <li><span class="stream-guide-item-icon" aria-hidden="true">✕</span><span class="stream-guide-item-text">Avoid modified Spotify apps or other unofficial methods.</span></li>
+            </ul>
+
+            <p class="stream-guide-inline-note">
+              These are fan-community recommendations, not officially documented Spotify counting
+              rules — we don&rsquo;t make claims about exact account limits, Premium-stream filtering,
+              volume thresholds, or playlist-hour limits.
+            </p>
+          </div>
+
         </div>
+
+        <div style="text-align: center; margin: var(--space-6) 0;">
+          <a class="btn btn-primary" href="../music.html">EXPLORE PERTHSANTA MUSIC</a>
+        </div>
+
+        <!-- Quick Reminder -->
+        <div class="stream-guide-reminder">
+          <h3 class="stream-guide-reminder-title">Stream Naturally</h3>
+          <ul class="stream-guide-reminder-list">
+            <li>Enjoying the music naturally always matters more than forcing repeat plays.</li>
+          </ul>
+        </div>
+
+        <div class="related-guides">
+          <h2 class="related-guides-title">Explore Other Guides</h2>
+
+          <div
+            class="card-grid guides-grid"
+            data-render="related-guides"
+            data-current-guide="spotify"
+          >
+            <!-- Rendered by js/main.js -->
+          </div>
+
+          <div class="related-guides-footer" style="text-align: center;">
+            <a class="btn btn-secondary" href="../index.html#guides">Back to Streaming Guides</a>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -64,13 +131,13 @@
         <img
           class="footer-brand-avatar"
           src="../assets/images/streaming4ps-profile.jpg"
-          alt="Streaming For PS profile picture"
+          alt="PerthSanta Streaming profile picture"
           width="56"
           height="56"
           loading="lazy"
         >
         <div class="footer-brand-info">
-          <p class="footer-brand-name">Streaming For PS</p>
+          <p class="footer-brand-name">PerthSanta Streaming</p>
           <p class="footer-brand-desc">
             Created to unlock the full streaming potential of PerthSanta and bring fans
             together to support their projects.
@@ -84,13 +151,13 @@
         </div>
       </div>
       <p class="footer-disclaimer">
-        Streaming For PS is an unofficial, fan-run project and is not affiliated with, endorsed by, or operated on behalf of PerthSanta, Heartbound, or any associated network or platform.
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with, endorsed by, or operated on behalf of PerthSanta or any associated network, series, or platform.
       </p>
       <p class="footer-credit">
         Website developed by
         <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
       </p>
-      <p class="footer-meta">&copy; <span data-render="year"></span> Streaming For PS</p>
+      <p class="footer-meta">&copy; <span data-render="year"></span> PerthSanta Streaming</p>
     </div>
   </footer>
 

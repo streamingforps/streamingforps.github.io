@@ -1,4 +1,4 @@
-# Streaming For PS
+# PerthSanta Streaming
 
 A fan-run streaming & support hub for the PerthSanta fandom — one place for fans
 to find the current campaign, streaming guides, goals, and links, without

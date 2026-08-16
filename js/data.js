@@ -1,5 +1,5 @@
 /*
-  Streaming For PS — site data
+  PerthSanta Streaming — site data
   ------------------------------------------------------------------
   This file is the single editable source for everything that changes
   campaign to campaign: goals, links, missions, platform cards, FAQ, etc.
@@ -15,7 +15,7 @@
 
 const siteData = {
   site: {
-    name: "Streaming For PS",
+    name: "PerthSanta Streaming",
     tagline: "Supporting PerthSanta, one stream at a time."
   },
 
@@ -59,10 +59,10 @@ const siteData = {
     ],
 
     tiktokGoals: [
-      { label: "1M Views", target: 1000000, current: 2700000 },
-      { label: "2M Views", target: 2000000, current: 2700000 },
-      { label: "3M Views", target: 3000000, current: 2700000 },
-      { label: "4M Views", target: 4000000, current: 2700000 }
+      { label: "1M Views", target: 1000000, current: 2800000 },
+      { label: "2M Views", target: 2000000, current: 2800000 },
+      { label: "3M Views", target: 3000000, current: 2800000 },
+      { label: "4M Views", target: 4000000, current: 2800000 }
     ],
 
     // Platform Support Center cards. `url: null` renders as "Coming soon".
@@ -102,9 +102,73 @@ const siteData = {
       { label: "TikTok Post", icon: "♪", url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397?is_from_webapp=1&sender_device=pc&web_id=7674032561550607879" }
     ],
 
-    // Campaign Updates feed. Add newest entries to the top.
-    // Example: { date: "2026-08-14", message: "Campaign kicked off!" }
-    announcements: []
+    /*
+      Campaign Updates feed. Add newest entries to the top — the first
+      item in the array is treated as the newest and gets a slightly
+      stronger accent border.
+
+      Each update object shape:
+        {
+          type: "milestone" | "goal" | "reminder" | "tool" | "important",
+          icon: "✓",                // small glyph/emoji shown on the card
+          title: "Update title",
+          message: "Short description shown under the title.",
+          date: null,                // optional, e.g. "2026-08-14"
+          ctaLabel: null,            // optional CTA button text
+          ctaHref: null              // optional CTA button URL — leave both
+                                     // ctaLabel/ctaHref null to render no CTA
+        }
+
+      `type` drives the category badge label/color — see
+      ANNOUNCEMENT_TYPES in js/main.js for the type -> badge text mapping.
+    */
+    announcements: [
+      {
+        type: "milestone",
+        icon: "✓",
+        title: "1M YouTube Views Reached",
+        message: "Thank you for helping Heartbound reach the first major streaming milestone.",
+        date: null,
+        ctaLabel: null,
+        ctaHref: null
+      },
+      {
+        type: "goal",
+        icon: "→",
+        title: "Next Target: 2M Views",
+        message: "Keep streaming and sharing the official Heartbound pilot trailer.",
+        date: null,
+        ctaLabel: null,
+        ctaHref: null
+      },
+      {
+        type: "reminder",
+        icon: "💬",
+        title: "Leave a Genuine Comment",
+        message: "Don't forget to leave a thoughtful comment under the official pilot trailer.",
+        date: null,
+        ctaLabel: null,
+        ctaHref: null
+      },
+      {
+        type: "tool",
+        icon: "✨",
+        title: "Comment Helper Is Now Available",
+        message: "Need inspiration? Generate a comment suggestion and make it your own.",
+        date: null,
+        ctaLabel: "Try Comment Helper",
+        ctaHref: "campaign.html#comment-helper"
+      },
+      {
+        type: "important",
+        icon: "⚠",
+        title: "Use the Official Trailer",
+        message: "Please make sure you're streaming the official GMMTV upload.",
+        date: null,
+        ctaLabel: null,
+        ctaHref: null
+      }
+    ]
   },
 
   // Reserved for a future campaign archive. Not yet displayed anywhere.
@@ -301,44 +365,102 @@ const siteData = {
   },
 
   // Streaming Guides hub — cards on index.html linking to guides/*.html
+  // `icon` is a plain glyph/emoji shown in each guide card's platform badge.
   guides: [
-    { id: "youtube", label: "YouTube Guide", description: "Watching, liking, commenting, and sharing effectively.", href: "guides/youtube.html" },
-    { id: "spotify", label: "Spotify Guide", description: "Supporting music releases and playlists.", href: "guides/spotify.html" },
-    { id: "x", label: "X Engagement Guide", description: "Liking, reposting, and replying on X/Twitter.", href: "guides/x.html" },
-    { id: "instagram", label: "Instagram Engagement Guide", description: "Posts, stories, and comments.", href: "guides/instagram.html" },
-    { id: "tiktok", label: "TikTok Guide", description: "Watching, liking, and duetting/sharing.", href: "guides/tiktok.html" },
-    { id: "facebook", label: "Facebook Guide", description: "Reacting, commenting, and sharing.", href: "guides/facebook.html" }
+    { id: "youtube", label: "YouTube Guide", description: "Watching, liking, commenting, and sharing effectively.", href: "guides/youtube.html", icon: "▶" },
+    { id: "spotify", label: "Spotify Guide", description: "Supporting music releases and playlists.", href: "guides/spotify.html", icon: "♫" },
+    { id: "x", label: "X Engagement Guide", description: "Liking, reposting, and replying on X/Twitter.", href: "guides/x.html", icon: "𝕏" },
+    { id: "instagram", label: "Instagram Engagement Guide", description: "Posts, stories, and comments.", href: "guides/instagram.html", icon: "◎" },
+    { id: "tiktok", label: "TikTok Guide", description: "Watching, liking, and duetting/sharing.", href: "guides/tiktok.html", icon: "♪" },
+    { id: "facebook", label: "Facebook Guide", description: "Reacting, commenting, and sharing.", href: "guides/facebook.html", icon: "f" }
   ],
 
-  // FAQ — placeholder answers, replace with real copy when ready.
+  /*
+    Streaming playlists — used by the "Busy? Use a Playlist" card in the
+    YouTube Streaming Guide on campaign.html, for fans who want to stream
+    passively instead of picking videos themselves.
+
+    Each entry shape:
+      { name: "Playlist name", platform: "YouTube", url: null }
+
+    Leave `url` as `null` until a real playlist link exists — js/main.js
+    renders those entries with a "PLAYLISTS COMING SOON" badge instead of
+    a dead link. Add as many entries as needed; no HTML changes required.
+  */
+  streamingPlaylists: [
+  {
+    name: "Heartbound Streaming Playlist 1",
+    platform: "YouTube",
+    url: "https://t.co/uR3JSYwqAZ"
+  },
+  {
+    name: "Heartbound Streaming Playlist 2",
+    platform: "YouTube",
+    url: "https://t.co/g1KzvHgGeq"
+  },
+  {
+    name: "Heartbound Streaming Playlist 3",
+    platform: "YouTube",
+    url: "https://t.co/Z2bjqNIkX3"
+  },
+  {
+    name: "Heartbound Streaming Playlist 4",
+    platform: "YouTube",
+    url: "https://t.co/OtzV9m8Ht8"
+  },
+  {
+    name: "Heartbound Streaming Playlist 5",
+    platform: "YouTube",
+    url: "https://t.co/L0mqk70f0m"
+  }
+],
+
+  /*
+    FAQ — reflects the current Heartbound pilot trailer campaign and the
+    site's current functionality. When the active campaign changes, revisit
+    the answers that name it directly (currently the 2nd, 3rd, 5th, and 6th
+    entries below).
+  */
   faq: [
     {
-      q: "What is Streaming For PS?",
-      a: "Streaming For PS is a fan-run hub for the PerthSanta fandom — one place to find current campaigns, streaming guides, and links, so you don't have to dig through social media to find out how to help."
+      q: "What is PerthSanta Streaming?",
+      a: "PerthSanta Streaming is a fan-run streaming and support hub for PerthSanta. It brings together current campaigns, official links, streaming goals, music, and platform guides so fans can easily find ways to support Perth and Santa's projects."
     },
     {
       q: "What are we currently supporting?",
-      a: "The current focus is the Heartbound pilot trailer streaming campaign. See the Current Campaign page for details."
+      a: "Our current main campaign is the <strong>Heartbound Pilot Trailer</strong>. The campaign page contains the official streaming links, current YouTube and TikTok goals, support missions, and other useful information."
     },
     {
       q: "Which video should I stream?",
-      a: "Placeholder — the official trailer link will be added here once confirmed."
+      a: "Please stream the <strong>official Heartbound pilot trailer uploaded by GMMTV</strong>. You can find the direct YouTube and TikTok links on the Current Campaign page and in the Quick Links section."
     },
     {
       q: "Where can I find official links?",
-      a: "Official links will be listed on the Current Campaign page and in Quick Links once they're confirmed. Until then, those spots are marked \"Coming soon.\""
+      a: "Official campaign links are available in the <strong>Quick Links</strong> and <strong>Official Heartbound Accounts</strong> sections. We only want to direct fans to official uploads and official accounts."
     },
     {
       q: "How can I help if I only have a few minutes?",
-      a: "Check Today's Support Mission on the Current Campaign page — it's designed to be completed quickly."
+      a: "Check <strong>Today's Support Mission</strong> on the website. Even simple actions such as watching the official trailer, leaving a genuine comment, liking the content, sharing it, or interacting with official Heartbound posts can help support the campaign."
     },
     {
-      q: "Where can I find platform-specific guides?",
-      a: "See the Streaming Guides section for guides organized by platform (YouTube, Spotify, X, Instagram, TikTok, Facebook)."
+      q: "Can I get help writing a YouTube comment?",
+      a: "Yes. The Current Campaign page includes a <strong>Comment Helper</strong> for fans who want to support the pilot trailer but are not sure what to write. It generates comment suggestions that you can edit and make your own before posting."
     },
     {
-      q: "How often are campaigns updated?",
-      a: "Placeholder — update cadence will be described here once decided."
+      q: "Where can I stream PerthSanta music?",
+      a: "Open the <strong>Music</strong> page from the navigation menu. It contains PerthSanta songs, series OSTs, Perth's solo releases, and JASP.ER songs, with available streaming links for platforms such as YouTube and Spotify."
+    },
+    {
+      q: "Are the streaming goals updated automatically?",
+      a: "The <strong>YouTube view count is updated automatically</strong> using live data.<br><br>TikTok goals are currently updated manually, so they may not always reflect the exact latest view count."
+    },
+    {
+      q: "How often is the website updated?",
+      a: "The site is updated whenever there are important campaign changes, new official links, new streaming goals, new releases, or other relevant PerthSanta streaming information."
+    },
+    {
+      q: "Is PerthSanta Streaming an official PerthSanta or GMMTV website?",
+      a: "No. PerthSanta Streaming is an <strong>unofficial fan-run project</strong>. It is not affiliated with, endorsed by, or operated by PerthSanta, GMMTV, Heartbound, or any associated platform."
     }
   ],
 
