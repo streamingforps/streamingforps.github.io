@@ -27,31 +27,60 @@
         PerthSanta <span>Streaming</span>
       </a>
 
-      <button
-        type="button"
-        class="nav-toggle"
-        aria-expanded="false"
-        aria-controls="primary-navigation"
-        aria-label="Toggle navigation menu"
-      >
-        <span class="nav-toggle-icon" aria-hidden="true"></span>
-      </button>
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
 
-      <nav
-        class="main-nav"
-        id="primary-navigation"
-        aria-label="Primary"
-      >
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="campaign.html">Current Campaign</a></li>
-          <li><a href="music.html">Music</a></li>
-          <li><a href="index.html#guides">Streaming Guides</a></li>
-          <li><a href="index.html#platforms">Platforms</a></li>
-          <li><a href="index.html#goals">Goals</a></li>
-          <li><a href="index.html#faq">FAQ / Important Info</a></li>
-        </ul>
-      </nav>
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="campaign.html">Current Campaign</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li><a href="index.html#platforms">Platforms</a></li>
+            <li><a href="index.html#goals">Goals</a></li>
+            <li><a href="index.html#faq">FAQ / Important Info</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -104,6 +133,7 @@
             src="assets/images/homepage.jpg"
             alt="Heartbound"
             class="campaign-image"
+            data-field="homepage-campaign-image"
           />
         </div>
 
@@ -327,7 +357,7 @@
 
     <!-- PerthSanta Music teaser -->
     <section
-      class="section section-boundary"
+      class="section"
       aria-labelledby="music-teaser-heading"
     >
       <div class="container">
@@ -353,7 +383,7 @@
 
     <!-- FAQ -->
     <section
-      class="section"
+      class="section section-boundary"
       id="faq"
       aria-labelledby="faq-heading"
     >
@@ -424,10 +454,12 @@
         &copy; <span data-render="year"></span> PerthSanta Streaming
       </p>
 
+
     </div>
   </footer>
 
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
+  <script type="module" src="js/firestore-content.js"></script>
 </body>
 </html>

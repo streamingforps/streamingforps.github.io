@@ -95,9 +95,11 @@ select:focus-visible,
   background-color: var(--color-bg-alt);
 }
 
-/* Extra breathing room + a hairline divider where two sections need a
-   clearer boundary than the default background alternation gives them
-   (e.g. Campaign Updates -> PerthSanta Music teaser). */
+/* Extra breathing room + a hairline divider where a section needs a
+   clearer boundary from whatever comes before it than the default
+   background alternation gives it (e.g. FAQ, separating it from the
+   PerthSanta Music teaser above). Apply to the section that should have
+   the divider ABOVE it, not the one above the divider. */
 .section-boundary {
   margin-top: var(--space-5);
   border-top: 1px solid var(--color-border);
@@ -170,6 +172,15 @@ select:focus-visible,
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* Groups the nav toggle, main nav, and settings menu as one right-aligned
+   cluster so the settings icon sits immediately after the nav rather than
+   floating in the middle of the header's leftover space. */
+.header-right {
+  display: flex;
+  align-items: center;
   gap: var(--space-4);
 }
 
@@ -257,6 +268,70 @@ select:focus-visible,
 .main-nav a[aria-current="page"] {
   color: var(--color-text);
   border-bottom-color: var(--color-accent);
+}
+
+/* ---- Site settings menu (header, far right) ----
+   Deliberately subtle — a convenience shortcut to the admin console,
+   not a security measure. The admin console is protected by Firebase
+   Auth + Firestore rules regardless of whether this menu exists. */
+.site-settings {
+  position: relative;
+}
+
+.site-settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-faint);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.site-settings-toggle:hover,
+.site-settings-toggle[aria-expanded="true"] {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.site-settings-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.site-settings-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 170px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+  z-index: 200;
+}
+
+.site-settings-item {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.site-settings-item:hover,
+.site-settings-item:focus-visible {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
 }
 
 /* ==========================================================================

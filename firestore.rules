@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// PerthSanta Streaming — Firestore Security Rules
+// ------------------------------------------------------------------
+// This file is not read by the browser at runtime; it's the source of
+// truth deployed via the Firebase Console (or `firebase deploy` with
+// the Firebase CLI). Kept in the repo for reference/version control.
+//
+// Public reads everywhere (the site's content is public). Writes are
+// restricted to the single admin UID — this is the actual security
+// boundary for the admin console, not anything in the frontend code.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read: if true;
+
+      allow write: if request.auth != null
+                   && request.auth.uid == "Y5r0wou7RITpiLjlitGZpnMfMiC2";
+    }
+  }
+}

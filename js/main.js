@@ -7,13 +7,22 @@
   guides/*.html page without errors.
 */
 
-document.addEventListener("DOMContentLoaded", () => {
-  initMobileNav();
-  highlightActiveNavLink();
-  setFooterYear();
-  initFaqAccordion();
-  initCommentHelper();
+/*
+  renderAllContent() renders every piece of siteData-driven content on
+  whichever page is currently loaded (every render* function already
+  no-ops if its target container isn't present, so this is safe to call
+  on any page). It runs once on DOMContentLoaded like before, and is
+  exposed on window so js/firestore-content.js can call it again after
+  merging admin-managed content from Firestore on top of siteData —
+  the page repaints with live data the moment it arrives, and simply
+  keeps showing the js/data.js fallback forever if it never does.
 
+  This function must stay render-only (safe to call more than once).
+  One-time event wiring (nav toggle, FAQ accordion, comment helper,
+  music modal) lives in the DOMContentLoaded handler below instead —
+  calling those a second time would attach duplicate event listeners.
+*/
+function renderAllContent() {
   renderActiveCampaignSummary();
   renderCampaignHero();
   renderYoutubeStreamingGuide();
@@ -23,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderMissions(document.querySelector("[data-render='missions']"));
   renderQuickLinks(document.querySelector("[data-render='quick-links']"));
   renderMusicSections();
-  initMusicModal();
   renderAnnouncements(document.querySelector("[data-render='announcements']"));
   renderGuides(document.querySelector("[data-render='guides']"));
   renderFaq(document.querySelector("[data-render='faq']"));
@@ -35,6 +43,19 @@ document.addEventListener("DOMContentLoaded", () => {
       relativeToGuides: true
     });
   }
+}
+window.renderAllContent = renderAllContent;
+
+document.addEventListener("DOMContentLoaded", () => {
+  initMobileNav();
+  highlightActiveNavLink();
+  setFooterYear();
+  initFaqAccordion();
+  initCommentHelper();
+  initMusicModal();
+  initSiteSettingsMenu();
+
+  renderAllContent();
 });
 
 /* ==========================================================================
@@ -63,6 +84,56 @@ function initMobileNav() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeNav();
+  });
+}
+
+/*
+  Header settings menu (gear icon, far right) — a small popover with a
+  single "Admin console" link. This is a convenience shortcut only; it
+  implies nothing about security, which is enforced entirely by Firebase
+  Auth + Firestore rules on admin.html itself.
+*/
+function initSiteSettingsMenu() {
+  const toggle = document.querySelector(".site-settings-toggle");
+  const menu = document.querySelector(".site-settings-menu");
+  if (!toggle || !menu) return;
+
+  const isOpen = () => !menu.hidden;
+
+  const closeMenu = () => {
+    menu.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+  };
+
+  const openMenu = () => {
+    menu.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+  };
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (isOpen()) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!isOpen()) return;
+    if (toggle.contains(event.target) || menu.contains(event.target)) return;
+    closeMenu();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isOpen()) {
+      closeMenu();
+      toggle.focus();
+    }
+  });
+
+  menu.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", closeMenu);
   });
 }
 
@@ -319,6 +390,7 @@ function renderTikTokGoals() {
   if (!container) return;
 
   const goals = siteData.currentCampaign.tiktokGoals;
+  const current = siteData.currentCampaign.tiktokCurrentViews || 0;
 
   if (!goals || !goals.length) {
     container.innerHTML = '<p class="empty-state">TikTok goals have not been set yet.</p>';
@@ -328,7 +400,6 @@ function renderTikTokGoals() {
   container.innerHTML = "";
 
   goals.forEach((goal) => {
-    const current = goal.current;
     const percent = goal.target > 0
       ? Math.min(100, (current / goal.target) * 100)
       : 0;

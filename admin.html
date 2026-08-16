@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Admin — PerthSanta Streaming</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <link rel="icon" type="image/png" href="assets/icons/favicon.jpg" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+
+<body class="admin-body">
+
+  <!-- Shown while we check whether a session already exists -->
+  <div id="admin-loading" class="admin-loading">
+    <p>Checking session…</p>
+  </div>
+
+  <!-- Login screen -->
+  <div id="admin-login" class="admin-login" hidden>
+    <form id="login-form" class="admin-login-card" novalidate>
+      <h1>Streaming For PS Admin</h1>
+      <p class="admin-login-sub">Sign in to manage site content.</p>
+
+      <label for="login-email">Email</label>
+      <input
+        type="email"
+        id="login-email"
+        name="email"
+        autocomplete="username"
+        required
+      />
+
+      <label for="login-password">Password</label>
+      <input
+        type="password"
+        id="login-password"
+        name="password"
+        autocomplete="current-password"
+        required
+      />
+
+      <button type="submit" class="btn btn-primary" id="login-submit">
+        Login
+      </button>
+
+      <p class="admin-status" id="login-status" role="alert" hidden></p>
+    </form>
+  </div>
+
+  <!-- Dashboard (hidden until an authorized session is confirmed) -->
+  <div id="admin-dashboard" class="admin-dashboard" hidden>
+
+    <header class="admin-topbar">
+      <span class="admin-topbar-title">PerthSanta Streaming <strong>Admin</strong></span>
+      <div class="admin-topbar-right">
+        <span class="admin-user-email" id="admin-user-email"></span>
+        <button type="button" class="btn btn-secondary btn-sm" id="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <div class="admin-layout">
+
+      <nav class="admin-nav" aria-label="Admin sections">
+        <button type="button" class="admin-nav-btn is-active" data-panel="home">Dashboard</button>
+        <button type="button" class="admin-nav-btn" data-panel="campaign">Current Campaign</button>
+        <button type="button" class="admin-nav-btn" data-panel="tiktok-views">TikTok Views</button>
+        <button type="button" class="admin-nav-btn" data-panel="goals">Streaming Goals</button>
+        <button type="button" class="admin-nav-btn" data-panel="updates">Campaign Updates</button>
+        <button type="button" class="admin-nav-btn" data-panel="music">Music</button>
+        <button type="button" class="admin-nav-btn" data-panel="faq">FAQ</button>
+        <button type="button" class="admin-nav-btn" data-panel="quicklinks">Quick Links</button>
+        <button type="button" class="admin-nav-btn" data-panel="platforms">Official Accounts</button>
+        <button type="button" class="admin-nav-btn" data-panel="missions">Support Mission</button>
+        <button type="button" class="admin-nav-btn" data-panel="site-settings">Site Settings</button>
+        <button type="button" class="admin-nav-btn" data-panel="comment-helper">Comment Helper</button>
+      </nav>
+
+      <main class="admin-main">
+
+        <!-- Dashboard home -->
+        <section class="admin-panel is-active" data-panel="home">
+          <h2>Dashboard</h2>
+          <div class="admin-card-grid" id="dashboard-cards">
+            <!-- Rendered by js/admin.js -->
+          </div>
+        </section>
+
+        <!-- Current Campaign -->
+        <section class="admin-panel" data-panel="campaign">
+          <h2>Current Campaign</h2>
+          <form id="campaign-form" class="admin-form" novalidate>
+            <label for="campaign-title">Title</label>
+            <input type="text" id="campaign-title" required />
+
+            <label for="campaign-subtitle">Subtitle</label>
+            <input type="text" id="campaign-subtitle" required />
+
+            <label for="campaign-description">Description</label>
+            <textarea id="campaign-description" rows="4"></textarea>
+
+            <label for="campaign-hero-message">Hero message</label>
+            <textarea id="campaign-hero-message" rows="2"></textarea>
+
+            <label for="campaign-status">Status</label>
+            <select id="campaign-status">
+              <option value="active">Active</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ended">Ended</option>
+            </select>
+
+            <label for="campaign-youtube-label">YouTube link label</label>
+            <input type="text" id="campaign-youtube-label" />
+
+            <label for="campaign-youtube-url">YouTube trailer URL</label>
+            <input type="url" id="campaign-youtube-url" placeholder="https://www.youtube.com/watch?v=..." />
+
+            <label for="campaign-tiktok-label">TikTok link label</label>
+            <input type="text" id="campaign-tiktok-label" />
+
+            <label for="campaign-tiktok-url">TikTok trailer URL</label>
+            <input type="url" id="campaign-tiktok-url" placeholder="https://www.tiktok.com/@.../video/..." />
+
+            <button type="submit" class="btn btn-primary" id="campaign-save">Save Campaign</button>
+            <p class="admin-status" id="campaign-status-msg" role="status" hidden></p>
+          </form>
+        </section>
+
+        <!-- TikTok Views -->
+        <section class="admin-panel" data-panel="tiktok-views">
+          <h2>TikTok Current Views</h2>
+          <form id="tiktok-views-form" class="admin-form admin-form-narrow" novalidate>
+            <label for="tiktok-views-input">TikTok Current Views</label>
+            <input type="number" id="tiktok-views-input" min="0" step="1" inputmode="numeric" required />
+
+            <p class="admin-meta">Last updated: <span id="tiktok-views-updated">Never</span></p>
+
+            <button type="submit" class="btn btn-primary" id="tiktok-views-save">Save New View Count</button>
+            <p class="admin-status" id="tiktok-views-status" role="status" hidden></p>
+          </form>
+        </section>
+
+        <!-- Streaming Goals -->
+        <section class="admin-panel" data-panel="goals">
+          <h2>Streaming Goals</h2>
+
+          <div class="admin-subsection">
+            <h3>YouTube Milestones</h3>
+            <p class="admin-hint">
+              The current YouTube view count is automatic (data/youtube-stats.json) and can't be
+              edited here — only milestone targets below.
+            </p>
+            <div class="admin-list" id="youtube-goals-list"></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="youtube-goal-add">+ Add Milestone</button>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn-primary" id="youtube-goals-save">Save YouTube Milestones</button>
+              <p class="admin-status" id="youtube-goals-status" role="status" hidden></p>
+            </div>
+          </div>
+
+          <div class="admin-subsection">
+            <h3>TikTok Milestones</h3>
+            <p class="admin-hint">
+              The current TikTok view count comes from the TikTok Views panel, not from here.
+            </p>
+            <div class="admin-list" id="tiktok-goals-list"></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="tiktok-goal-add">+ Add Milestone</button>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn-primary" id="tiktok-goals-save">Save TikTok Milestones</button>
+              <p class="admin-status" id="tiktok-goals-status" role="status" hidden></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Campaign Updates -->
+        <section class="admin-panel" data-panel="updates">
+          <h2>Campaign Updates</h2>
+          <p class="admin-hint">The first item in the list is shown as the newest update on the site.</p>
+          <div class="admin-list" id="updates-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="update-add">+ Add Update</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="updates-save">Save Updates</button>
+            <p class="admin-status" id="updates-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Music -->
+        <section class="admin-panel" data-panel="music">
+          <h2>Music</h2>
+          <div class="admin-tabs-sub" id="music-category-tabs">
+            <button type="button" class="admin-subtab is-active" data-music-cat="osts">OST</button>
+            <button type="button" class="admin-subtab" data-music-cat="perthsanta">PerthSanta</button>
+            <button type="button" class="admin-subtab" data-music-cat="perthSolo">Perth Solo</button>
+            <button type="button" class="admin-subtab" data-music-cat="jasper">JASP.ER</button>
+          </div>
+          <div class="admin-list" id="music-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="music-add">+ Add Song</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="music-save">Save Music</button>
+            <p class="admin-status" id="music-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="admin-panel" data-panel="faq">
+          <h2>FAQ</h2>
+          <div class="admin-list" id="faq-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="faq-add">+ Add Question</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="faq-save">Save FAQ</button>
+            <p class="admin-status" id="faq-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Quick Links -->
+        <section class="admin-panel" data-panel="quicklinks">
+          <h2>Quick Links</h2>
+          <div class="admin-list" id="quicklinks-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="quicklink-add">+ Add Link</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="quicklinks-save">Save Quick Links</button>
+            <p class="admin-status" id="quicklinks-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Official Accounts / Platforms -->
+        <section class="admin-panel" data-panel="platforms">
+          <h2>Official Accounts</h2>
+          <div class="admin-list" id="platforms-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="platform-add">+ Add Account</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="platforms-save">Save Accounts</button>
+            <p class="admin-status" id="platforms-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Today's Support Mission -->
+        <section class="admin-panel" data-panel="missions">
+          <h2>Today's Support Mission</h2>
+          <div class="admin-list" id="missions-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="mission-add">+ Add Mission Step</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="missions-save">Save Missions</button>
+            <p class="admin-status" id="missions-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Site Settings -->
+        <section class="admin-panel" data-panel="site-settings">
+          <h2>Site Settings</h2>
+          <form id="site-settings-form" class="admin-form" novalidate>
+            <label for="setting-homepage-image">Homepage campaign image path</label>
+            <input type="text" id="setting-homepage-image" placeholder="assets/images/homepage.jpg" />
+
+            <label for="setting-campaign-image">Campaign page image path</label>
+            <input type="text" id="setting-campaign-image" placeholder="assets/images/heartbound.jpg" />
+
+            <label for="setting-profile-image">Profile image path</label>
+            <input type="text" id="setting-profile-image" placeholder="assets/images/streaming4ps-profile.jpg" />
+
+            <label for="setting-footer-url">Footer account URL</label>
+            <input type="url" id="setting-footer-url" placeholder="https://x.com/Streaming4PS" />
+
+            <label for="setting-footer-desc">Footer description</label>
+            <textarea id="setting-footer-desc" rows="3"></textarea>
+
+            <button type="submit" class="btn btn-primary" id="site-settings-save">Save Site Settings</button>
+            <p class="admin-status" id="site-settings-status" role="status" hidden></p>
+          </form>
+        </section>
+
+        <!-- Comment Helper -->
+        <section class="admin-panel" data-panel="comment-helper">
+          <h2>Comment Helper</h2>
+          <p class="admin-hint">
+            Edit phrases within each existing style/pool. Adding a brand-new style category isn't
+            supported here yet.
+          </p>
+          <div class="admin-tabs-sub" id="comment-style-tabs"></div>
+          <div class="admin-tabs-sub" id="comment-pool-tabs"></div>
+          <div class="admin-list" id="comment-phrases-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="comment-phrase-add">+ Add Phrase</button>
+          <div class="admin-form-actions">
+            <button type="button" class="btn btn-primary" id="comment-helper-save">Save Comment Helper</button>
+            <p class="admin-status" id="comment-helper-status" role="status" hidden></p>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!--
+    js/data.js is loaded here purely so js/admin.js can read its real
+    fallback shapes (e.g. the full Comment Helper phrase banks) as a
+    single source of truth, instead of duplicating that content by
+    hand in the admin console. It is never written to — Firestore is
+    always the source of truth for anything actually saved here.
+  -->
+  <script src="js/data.js"></script>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

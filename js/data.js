@@ -59,11 +59,18 @@ const siteData = {
     ],
 
     tiktokGoals: [
-      { label: "1M Views", target: 1000000, current: 2800000 },
-      { label: "2M Views", target: 2000000, current: 2800000 },
-      { label: "3M Views", target: 3000000, current: 2800000 },
-      { label: "4M Views", target: 4000000, current: 2800000 }
+      { label: "1M Views", target: 1000000 },
+      { label: "2M Views", target: 2000000 },
+      { label: "3M Views", target: 3000000 },
+      { label: "4M Views", target: 4000000 }
     ],
+
+    // Single shared "current" value for every TikTok goal card above —
+    // replaces the old per-goal `current` field so the number only needs
+    // updating in one place. The admin console's "TikTok Views" panel
+    // manages this same value in Firestore (stats/tiktok.currentViews);
+    // this is only the fallback used when Firestore is unavailable.
+    tiktokCurrentViews: 2800000,
 
     // Platform Support Center cards. `url: null` renders as "Coming soon".
     platforms: [
