@@ -1107,7 +1107,7 @@ body.music-modal-open {
    Announcements
    ========================================================================== */
 
-.announcement-list {
+.announcement-grid {
   list-style: none;
   display: grid;
   grid-template-columns: 1fr;
@@ -1117,13 +1117,12 @@ body.music-modal-open {
 }
 
 @media (min-width: 700px) {
-  .announcement-list {
+  .announcement-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* ---- Update card ---- */
-.update-card {
+.announcement-card {
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
@@ -1133,23 +1132,12 @@ body.music-modal-open {
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.update-card:hover {
+.announcement-card:hover {
   transform: translateY(-4px);
   border-color: var(--color-border-strong);
 }
 
-/* Newest/most important update gets a stronger accent border. */
-.update-card--featured {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent-soft);
-}
-
-/* Important updates get a red left accent so they stand out from the feed. */
-.update-card--important {
-  border-left: 3px solid var(--color-accent);
-}
-
-.update-card-header {
+.announcement-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1157,7 +1145,7 @@ body.music-modal-open {
   margin-bottom: var(--space-3);
 }
 
-.update-card-badge {
+.announcement-badge {
   display: inline-flex;
   align-items: center;
   padding: var(--space-1) var(--space-3);
@@ -1166,57 +1154,28 @@ body.music-modal-open {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-accent-hover);
+  border: 1px solid var(--color-accent-soft);
   white-space: nowrap;
 }
 
-.update-card--milestone .update-card-badge {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
-  border-color: transparent;
+.announcement-card-date {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
-.update-card--goal .update-card-badge {
-  background: transparent;
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
-.update-card--tool .update-card-badge {
-  background: var(--color-text);
-  color: var(--color-bg);
-  border-color: transparent;
-}
-
-.update-card--important .update-card-badge {
-  background: var(--color-accent);
-  color: #fff;
-  border-color: transparent;
-}
-
-.update-card-icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border-strong);
-  font-size: 1.05rem;
-  line-height: 1;
-}
-
-.update-card-title {
+.announcement-card-title {
   font-size: 1.05rem;
   font-weight: 800;
   margin: 0 0 var(--space-2);
 }
 
-.update-card-message {
+.announcement-card-message {
   color: var(--color-text-muted);
   font-size: 0.92rem;
   line-height: 1.55;
@@ -1224,17 +1183,7 @@ body.music-modal-open {
   flex-grow: 1;
 }
 
-.update-card-date {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--color-text-faint);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: var(--space-3);
-}
-
-.update-card-cta {
+.announcement-card-cta {
   align-self: flex-start;
   margin-top: var(--space-4);
 }

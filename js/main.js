@@ -902,75 +902,71 @@ function handleMusicModalKeydown(event) {
 }
 
 /* ==========================================================================
-   Campaign Updates / Announcements
+   Announcements
    ------------------------------------------------------------------
-   Each announcement is a typed update card. `type` selects the category
-   badge text/color via ANNOUNCEMENT_TYPES below — add a new type there
-   if you introduce one in js/data.js.
+   A general, site-wide updates feed (siteData.announcements) — not
+   scoped to the current campaign. Always rendered newest-first by
+   `date`, regardless of the order items are stored in.
    ========================================================================== */
 
-const ANNOUNCEMENT_TYPES = {
-  milestone: { badge: "MILESTONE", className: "update-card--milestone" },
-  goal: { badge: "NEXT GOAL", className: "update-card--goal" },
-  reminder: { badge: "REMINDER", className: "update-card--reminder" },
-  tool: { badge: "NEW TOOL", className: "update-card--tool" },
-  important: { badge: "IMPORTANT", className: "update-card--important" }
-};
+const ANNOUNCEMENT_CATEGORIES = ["Heartbound", "Music", "JASP.ER", "Streaming", "Campaign", "General"];
+
+function formatAnnouncementDate(dateStr) {
+  if (!dateStr) return "";
+  const parsed = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(parsed);
+}
 
 function renderAnnouncements(container) {
   if (!container) return;
-  const announcements = siteData.currentCampaign.announcements;
+  const announcements = (siteData.announcements || [])
+    .slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   if (!announcements.length) {
-    container.innerHTML = '<p class="empty-state">No updates yet — check back soon.</p>';
+    container.innerHTML = '<p class="empty-state">No announcements yet — check back soon.</p>';
     return;
   }
 
   container.innerHTML = "";
-  announcements.forEach((item, index) => {
-    const typeInfo = ANNOUNCEMENT_TYPES[item.type] || { badge: item.type ? item.type.toUpperCase() : "UPDATE", className: "" };
-
+  announcements.forEach((item) => {
     const li = document.createElement("li");
-    li.className = `update-card ${typeInfo.className}`;
-    if (index === 0) li.classList.add("update-card--featured");
+    li.className = "announcement-card";
 
     const header = document.createElement("div");
-    header.className = "update-card-header";
+    header.className = "announcement-card-header";
 
     const badge = document.createElement("span");
-    badge.className = "update-card-badge";
-    badge.textContent = typeInfo.badge;
+    badge.className = "announcement-badge";
+    badge.textContent = (item.category || "General").toUpperCase();
     header.appendChild(badge);
 
-    const icon = document.createElement("span");
-    icon.className = "update-card-icon";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = item.icon || "";
-    header.appendChild(icon);
+    if (item.date) {
+      const date = document.createElement("span");
+      date.className = "announcement-card-date";
+      date.textContent = formatAnnouncementDate(item.date);
+      header.appendChild(date);
+    }
 
     li.appendChild(header);
 
     const title = document.createElement("h3");
-    title.className = "update-card-title";
+    title.className = "announcement-card-title";
     title.textContent = item.title;
     li.appendChild(title);
 
     const message = document.createElement("p");
-    message.className = "update-card-message";
+    message.className = "announcement-card-message";
     message.textContent = item.message;
     li.appendChild(message);
 
-    if (item.date) {
-      const date = document.createElement("span");
-      date.className = "update-card-date";
-      date.textContent = item.date;
-      li.appendChild(date);
-    }
-
-    if (item.ctaHref) {
+    if (item.url) {
       const cta = document.createElement("a");
-      cta.className = "btn btn-secondary btn-sm update-card-cta";
-      cta.href = item.ctaHref;
+      cta.className = "btn btn-secondary btn-sm announcement-card-cta";
+      cta.href = item.url;
+      cta.target = "_blank";
+      cta.rel = "noopener noreferrer";
       cta.textContent = item.ctaLabel || "Learn more";
       li.appendChild(cta);
     }

@@ -113,7 +113,7 @@ async function applyFirestoreOverrides() {
     campaignGoals,
     campaignTiktokGoals,
     statsTiktok,
-    contentUpdates,
+    contentAnnouncements,
     contentMissions,
     contentQuickLinks,
     contentPlatforms,
@@ -126,7 +126,7 @@ async function applyFirestoreOverrides() {
     fetchDoc(db, "campaign/goals"),
     fetchDoc(db, "campaign/tiktokGoals"),
     fetchDoc(db, "stats/tiktok"),
-    fetchDoc(db, "content/updates"),
+    fetchDoc(db, "content/announcements"),
     fetchDoc(db, "content/missions"),
     fetchDoc(db, "content/quickLinks"),
     fetchDoc(db, "content/platforms"),
@@ -167,8 +167,8 @@ async function applyFirestoreOverrides() {
     c.tiktokCurrentViews = statsTiktok.currentViews;
   }
 
-  if (contentUpdates && Array.isArray(contentUpdates.items)) {
-    c.announcements = contentUpdates.items;
+  if (contentAnnouncements && Array.isArray(contentAnnouncements.items)) {
+    siteData.announcements = contentAnnouncements.items;
   }
 
   if (contentMissions && Array.isArray(contentMissions.items)) {

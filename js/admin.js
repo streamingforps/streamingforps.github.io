@@ -74,7 +74,7 @@ const FALLBACK_DATA = {
   tiktokCurrentViews: fallbackCampaign.tiktokCurrentViews || 0,
   youtubeGoals: (fallbackCampaign.goals || []).map((g) => ({ label: g.label, target: g.target })),
   tiktokGoals: (fallbackCampaign.tiktokGoals || []).map((g) => ({ label: g.label, target: g.target })),
-  updates: fallbackCampaign.announcements || [],
+  announcements: hasSiteData ? siteData.announcements || [] : [],
   missions: fallbackCampaign.missions || [],
   quickLinks: fallbackCampaign.quickLinks || [],
   platforms: fallbackCampaign.platforms || [],
@@ -435,37 +435,37 @@ const tiktokGoalsPanel = createArrayPanel({
 });
 
 /* ==========================================================================
-   Campaign Updates
+   Announcements — general, site-wide feed (not campaign-scoped)
    ========================================================================== */
 
-const updatesPanel = createArrayPanel({
-  listEl: $("#updates-list"),
-  addBtn: $("#update-add"),
-  saveBtn: $("#updates-save"),
-  statusEl: $("#updates-status"),
-  docPath: "content/updates",
-  fallback: FALLBACK_DATA.updates,
+const ANNOUNCEMENT_CATEGORIES = ["Heartbound", "Music", "JASP.ER", "Streaming", "Campaign", "General"];
+
+const announcementsPanel = createArrayPanel({
+  listEl: $("#announcements-list"),
+  addBtn: $("#announcement-add"),
+  saveBtn: $("#announcements-save"),
+  statusEl: $("#announcements-status"),
+  docPath: "content/announcements",
+  fallback: FALLBACK_DATA.announcements,
   itemType: "object",
   twoColumn: true,
   fields: [
-    { key: "type", label: "Type", type: "select", options: ["milestone", "goal", "reminder", "tool", "important"], required: true },
-    { key: "icon", label: "Icon", type: "text", placeholder: "✓" },
+    { key: "date", label: "Date (YYYY-MM-DD)", type: "text", required: true, placeholder: "2026-08-17" },
+    { key: "category", label: "Category", type: "select", options: ANNOUNCEMENT_CATEGORIES, required: true },
     { key: "title", label: "Title", type: "text", required: true },
     { key: "message", label: "Message", type: "textarea", required: true },
-    { key: "date", label: "Date (optional, e.g. 2026-08-14)", type: "text" },
-    { key: "ctaLabel", label: "CTA label (optional)", type: "text" },
-    { key: "ctaHref", label: "CTA link (optional)", type: "text" }
+    { key: "url", label: "URL (optional)", type: "url" },
+    { key: "ctaLabel", label: "CTA label (optional)", type: "text" }
   ],
-  newItem: () => ({ type: "milestone", icon: "✓", title: "", message: "", date: null, ctaLabel: null, ctaHref: null }),
+  newItem: () => ({ date: "", category: "General", title: "", message: "", url: null, ctaLabel: null }),
   buildSaveData: (items) => ({
-    items: items.map((u) => ({
-      type: u.type,
-      icon: u.icon || "",
-      title: u.title.trim(),
-      message: u.message.trim(),
-      date: isNonEmptyString(u.date) ? u.date.trim() : null,
-      ctaLabel: isNonEmptyString(u.ctaLabel) ? u.ctaLabel.trim() : null,
-      ctaHref: isNonEmptyString(u.ctaHref) ? u.ctaHref.trim() : null
+    items: items.map((a) => ({
+      date: a.date.trim(),
+      category: a.category,
+      title: a.title.trim(),
+      message: a.message.trim(),
+      url: isNonEmptyString(a.url) ? a.url.trim() : null,
+      ctaLabel: isNonEmptyString(a.ctaLabel) ? a.ctaLabel.trim() : null
     }))
   })
 });
@@ -932,10 +932,10 @@ function initSiteSettingsPanel() {
    ========================================================================== */
 
 async function loadDashboard() {
-  const [campaign, tiktokStats, updates, music, faq] = await Promise.all([
+  const [campaign, tiktokStats, announcements, music, faq] = await Promise.all([
     loadDocOr("campaign/current", FALLBACK_DATA.campaign),
     loadDocOr("stats/tiktok", { currentViews: FALLBACK_DATA.tiktokCurrentViews, updatedAt: null }),
-    loadDocOr("content/updates", { items: FALLBACK_DATA.updates }),
+    loadDocOr("content/announcements", { items: FALLBACK_DATA.announcements }),
     loadDocOr("content/music", FALLBACK_DATA.music),
     loadDocOr("content/faq", { items: FALLBACK_DATA.faq })
   ]);
@@ -959,10 +959,10 @@ async function loadDashboard() {
       panel: "tiktok-views"
     },
     {
-      title: "Campaign Updates",
-      lines: [`${(updates.items || []).length} update(s)`],
-      button: "Manage Updates",
-      panel: "updates"
+      title: "Announcements",
+      lines: [`${(announcements.items || []).length} announcement(s)`],
+      button: "Manage Announcements",
+      panel: "announcements"
     },
     {
       title: "Music",
@@ -1008,7 +1008,7 @@ async function loadAllPanels() {
     loadTiktokViewsPanel(),
     youtubeGoalsPanel.load(),
     tiktokGoalsPanel.load(),
-    updatesPanel.load(),
+    announcementsPanel.load(),
     faqPanel.load(),
     quickLinksPanel.load(),
     platformsPanel.load(),

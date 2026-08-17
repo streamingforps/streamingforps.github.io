@@ -107,79 +107,95 @@ const siteData = {
       { label: "Official X Post", icon: "𝕏", url: "https://x.com/GMMTV/status/2078863739143803261" },
       { label: "Instagram Post", icon: "◎", url: "https://www.instagram.com/reel/Da_ms6PMQtl/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==&igsi=MzRlODBiNWFlZA==" },
       { label: "TikTok Post", icon: "♪", url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397?is_from_webapp=1&sender_device=pc&web_id=7674032561550607879" }
-    ],
-
-    /*
-      Campaign Updates feed. Add newest entries to the top — the first
-      item in the array is treated as the newest and gets a slightly
-      stronger accent border.
-
-      Each update object shape:
-        {
-          type: "milestone" | "goal" | "reminder" | "tool" | "important",
-          icon: "✓",                // small glyph/emoji shown on the card
-          title: "Update title",
-          message: "Short description shown under the title.",
-          date: null,                // optional, e.g. "2026-08-14"
-          ctaLabel: null,            // optional CTA button text
-          ctaHref: null              // optional CTA button URL — leave both
-                                     // ctaLabel/ctaHref null to render no CTA
-        }
-
-      `type` drives the category badge label/color — see
-      ANNOUNCEMENT_TYPES in js/main.js for the type -> badge text mapping.
-    */
-    announcements: [
-      {
-        type: "milestone",
-        icon: "✓",
-        title: "1M YouTube Views Reached",
-        message: "Thank you for helping Heartbound reach the first major streaming milestone.",
-        date: null,
-        ctaLabel: null,
-        ctaHref: null
-      },
-      {
-        type: "goal",
-        icon: "→",
-        title: "Next Target: 2M Views",
-        message: "Keep streaming and sharing the official Heartbound pilot trailer.",
-        date: null,
-        ctaLabel: null,
-        ctaHref: null
-      },
-      {
-        type: "reminder",
-        icon: "💬",
-        title: "Leave a Genuine Comment",
-        message: "Don't forget to leave a thoughtful comment under the official pilot trailer.",
-        date: null,
-        ctaLabel: null,
-        ctaHref: null
-      },
-      {
-        type: "tool",
-        icon: "✨",
-        title: "Comment Helper Is Now Available",
-        message: "Need inspiration? Generate a comment suggestion and make it your own.",
-        date: null,
-        ctaLabel: "Try Comment Helper",
-        ctaHref: "campaign.html#comment-helper"
-      },
-      {
-        type: "important",
-        icon: "⚠",
-        title: "Use the Official Trailer",
-        message: "Please make sure you're streaming the official GMMTV upload.",
-        date: null,
-        ctaLabel: null,
-        ctaHref: null
-      }
     ]
   },
 
   // Reserved for a future campaign archive. Not yet displayed anywhere.
   pastCampaigns: [],
+
+  /*
+    Announcements — a general, site-wide updates feed shown in the
+    Announcements section on index.html. Unlike currentCampaign, this is
+    NOT scoped to a single campaign — use it for Heartbound news, music
+    releases, JASP.ER news, streaming campaigns, milestones, and general
+    site updates alike.
+
+    Rendered newest-first by `date`, so items can be added in any order
+    here — no need to keep the array itself sorted.
+
+    Each announcement object shape:
+      {
+        date: "2026-08-17",     // required, "YYYY-MM-DD"
+        category: "JASP.ER",    // required — one of "Heartbound" | "Music" |
+                                 // "JASP.ER" | "Streaming" | "Campaign" |
+                                 // "General" (see ANNOUNCEMENT_CATEGORIES
+                                 // in js/main.js)
+        title: "Announcement title",
+        message: "Short description shown under the title.",
+        url: null,               // optional — leave null to render no CTA
+        ctaLabel: null           // optional CTA button text (only shown
+                                 // when `url` is set; defaults to
+                                 // "Learn more" when left null)
+      }
+  */
+  announcements: [
+    {
+      date: "2026-08-17",
+      category: "JASP.ER",
+      title: "JASP.ER Comeback — \"WISH\"",
+      message: "A new JASP.ER comeback has been announced with the upcoming song \"WISH\".",
+      url: null,
+      ctaLabel: null
+    },
+    {
+      date: "2026-08-14",
+      category: "Heartbound",
+      title: "Heartbound Pilot Trailer Is Out!",
+      message: "The official Heartbound pilot trailer is now available. Watch, stream, comment, and share to support PerthSanta.",
+      url: "https://www.youtube.com/watch?v=I1guVkLJ4mU",
+      ctaLabel: "Watch Trailer"
+    },
+    {
+      date: "2026-08-10",
+      category: "Campaign",
+      title: "Comment Helper Is Now Available",
+      message: "Need inspiration? Generate a comment suggestion and make it your own.",
+      url: "campaign.html#comment-helper",
+      ctaLabel: "Try Comment Helper"
+    },
+    {
+      date: "2026-08-07",
+      category: "Streaming",
+      title: "Next Target: 2M Views",
+      message: "Keep streaming and sharing the official Heartbound pilot trailer.",
+      url: null,
+      ctaLabel: null
+    },
+    {
+      date: "2026-08-05",
+      category: "Streaming",
+      title: "1M YouTube Views Reached",
+      message: "Thank you for helping Heartbound reach the first major streaming milestone.",
+      url: null,
+      ctaLabel: null
+    },
+    {
+      date: "2026-08-03",
+      category: "Campaign",
+      title: "Leave a Genuine Comment",
+      message: "Don't forget to leave a thoughtful comment under the official pilot trailer.",
+      url: null,
+      ctaLabel: null
+    },
+    {
+      date: "2026-08-01",
+      category: "Campaign",
+      title: "Use the Official Trailer",
+      message: "Please make sure you're streaming the official GMMTV upload, not a reupload or clip.",
+      url: null,
+      ctaLabel: null
+    }
+  ],
 
   /*
     PerthSanta Music — a permanent hub for songs/OSTs, independent of
