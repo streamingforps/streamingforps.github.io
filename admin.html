@@ -73,6 +73,7 @@
         <button type="button" class="admin-nav-btn" data-panel="goals">Streaming Goals</button>
         <button type="button" class="admin-nav-btn" data-panel="announcements">Announcements</button>
         <button type="button" class="admin-nav-btn" data-panel="music">Music</button>
+        <button type="button" class="admin-nav-btn" data-panel="trending">Trending</button>
         <button type="button" class="admin-nav-btn" data-panel="faq">FAQ</button>
         <button type="button" class="admin-nav-btn" data-panel="quicklinks">Quick Links</button>
         <button type="button" class="admin-nav-btn" data-panel="platforms">Official Accounts</button>
@@ -203,6 +204,83 @@
           <div class="admin-form-actions">
             <button type="button" class="btn btn-primary" id="music-save">Save Music</button>
             <p class="admin-status" id="music-status" role="status" hidden></p>
+          </div>
+        </section>
+
+        <!-- Trending -->
+        <section class="admin-panel" data-panel="trending">
+          <h2>Trending</h2>
+          <p class="admin-hint">
+            Manage the current event and phrase library for each Trending category. The public
+            page never posts automatically — it only generates text fans can copy, edit, and post
+            themselves.
+          </p>
+
+          <div class="admin-tabs-sub" id="trending-category-tabs">
+            <button type="button" class="admin-subtab is-active" data-trending-cat="perthsanta">PerthSanta</button>
+            <button type="button" class="admin-subtab" data-trending-cat="perth">Perth</button>
+            <button type="button" class="admin-subtab" data-trending-cat="santa">Santa</button>
+          </div>
+
+          <div class="admin-subsection">
+            <h3>Current Event</h3>
+            <form id="trending-config-form" class="admin-form" novalidate>
+              <label for="trending-event-name">Event name</label>
+              <input type="text" id="trending-event-name" placeholder="XPENG L03 Unveiling Event" />
+
+              <label for="trending-keyword">Keyword</label>
+              <textarea id="trending-keyword" rows="2" placeholder="PERTHSANTA UNVEILING XPENG"></textarea>
+
+              <label for="trending-hashtags">Hashtags (comma-separated)</label>
+              <input type="text" id="trending-hashtags" placeholder="#THENEWXPENGL03" />
+
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="trending-active" />
+                Active (shown as the current event on the public page)
+              </label>
+
+              <button type="submit" class="btn btn-primary" id="trending-config-save">Save Event</button>
+              <p class="admin-status" id="trending-config-status" role="status" hidden></p>
+            </form>
+          </div>
+
+          <div class="admin-subsection">
+            <h3>Phrase Library</h3>
+            <p class="admin-meta"><span id="trending-phrase-count">0</span> phrases</p>
+
+            <div class="admin-trending-phrase-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="trending-csv-toggle">Upload CSV</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="trending-add-toggle">+ Add Phrase</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="trending-manage-toggle">Manage Phrases</button>
+            </div>
+
+            <div class="admin-csv-upload" id="trending-csv-panel" hidden>
+              <label for="trending-csv-file">
+                CSV file — one quoted post per line (an optional leading <code>text</code> header is fine)
+              </label>
+              <input type="file" id="trending-csv-file" accept=".csv,text/csv" />
+
+              <div class="admin-csv-mode">
+                <label><input type="radio" name="trending-csv-mode" value="add" checked /> Add to current phrase library</label>
+                <label><input type="radio" name="trending-csv-mode" value="replace" /> Replace current phrase library</label>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-sm" id="trending-csv-import">Import CSV</button>
+              <p class="admin-status" id="trending-csv-status" role="status" hidden></p>
+            </div>
+
+            <div class="admin-add-phrase" id="trending-add-panel" hidden>
+              <textarea id="trending-phrase-add-input" rows="2" placeholder="Write a new supportive phrase…"></textarea>
+              <button type="button" class="btn btn-primary btn-sm" id="trending-phrase-add-save">Save Phrase</button>
+              <p class="admin-status" id="trending-add-status" role="status" hidden></p>
+            </div>
+
+            <div class="admin-manage-phrases" id="trending-manage-panel" hidden>
+              <input type="text" id="trending-phrase-search" placeholder="Search phrases…" />
+              <div class="admin-list" id="trending-phrase-list"></div>
+              <button type="button" class="btn btn-secondary btn-sm" id="trending-phrase-show-more" hidden>Show 100 more</button>
+              <p class="admin-status" id="trending-manage-status" role="status" hidden></p>
+            </div>
           </div>
         </section>
 

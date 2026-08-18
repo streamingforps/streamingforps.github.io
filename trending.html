@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Trending — PerthSanta Streaming</title>
+
+  <meta
+    name="description"
+    content="Generate a supportive PerthSanta, Perth, or Santa post for the current X/Twitter trending event, then copy and share it yourself."
+  />
+
+  <link rel="icon" type="image/png" href="assets/icons/favicon.jpg" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        PerthSanta <span>Streaming</span>
+      </a>
+
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
+
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="campaign.html">Current Campaign</a></li>
+            <li><a href="trending.html">Trending</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li><a href="index.html#platforms">Platforms</a></li>
+            <li><a href="index.html#goals">Goals</a></li>
+            <li><a href="index.html#faq">FAQ / Important Info</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- Trending Hero -->
+    <section class="trending-hero">
+      <div class="container">
+        <p class="hero-eyebrow">
+          Join the Conversation
+        </p>
+
+        <h1 class="trending-hero-title">
+          TRENDING
+        </h1>
+
+        <p class="hero-lede">
+          Generate a supportive post for the current event, make it your own, then share it on X.
+        </p>
+      </div>
+    </section>
+
+    <!-- Trending Generator -->
+    <section
+      class="section"
+      aria-labelledby="trending-heading"
+    >
+      <div class="container">
+
+        <div class="trending-tabs" role="tablist" aria-label="Trending category">
+          <button
+            type="button"
+            class="trending-tab is-active"
+            data-trending-tab="perthsanta"
+            role="tab"
+            aria-selected="true"
+          >PerthSanta</button>
+          <button
+            type="button"
+            class="trending-tab"
+            data-trending-tab="perth"
+            role="tab"
+            aria-selected="false"
+          >Perth</button>
+          <button
+            type="button"
+            class="trending-tab"
+            data-trending-tab="santa"
+            role="tab"
+            aria-selected="false"
+          >Santa</button>
+        </div>
+
+        <!-- PerthSanta -->
+        <div class="trending-panel" data-trending-panel="perthsanta">
+          <div class="section-heading">
+            <h2 id="trending-heading">PerthSanta</h2>
+            <p data-trending-blurb>
+              Need a little help cheering for PerthSanta? Generate a fan post for the current event,
+              make it your own if you'd like, then copy it and join the conversation on X.
+            </p>
+          </div>
+
+          <div class="trending-event-tag" data-trending-event-tag hidden>
+            <span class="badge badge-active">Current event</span>
+            <span class="trending-event-name" data-trending-event-name></span>
+          </div>
+
+          <div class="trending-generator" data-trending-generator hidden>
+            <textarea
+              class="trending-textarea"
+              data-trending-textarea
+              rows="6"
+              aria-label="Generated PerthSanta post"
+            ></textarea>
+
+            <p class="trending-char-count" data-trending-char-count>0 / 280</p>
+
+            <p class="trending-edit-hint">
+              Feel free to edit the generated post and make it your own before sharing.
+            </p>
+
+            <div class="trending-actions">
+              <button type="button" class="btn btn-primary" data-trending-generate>Generate Post</button>
+              <button type="button" class="btn btn-secondary" data-trending-copy>Copy Post</button>
+            </div>
+
+            <p class="admin-status" data-trending-warning role="alert" hidden></p>
+          </div>
+
+          <p class="trending-empty-state" data-trending-inactive hidden>
+            No active PerthSanta trend right now. Check back for the next event!
+          </p>
+
+          <p class="trending-empty-state" data-trending-unavailable hidden>
+            We couldn't load post ideas for PerthSanta right now. Please try again in a bit.
+          </p>
+        </div>
+
+        <!-- Perth -->
+        <div class="trending-panel" data-trending-panel="perth" hidden>
+          <div class="section-heading">
+            <h2>Perth</h2>
+            <p data-trending-blurb>
+              Need a little help cheering for Perth? Generate a fan post for the current event,
+              make it your own if you'd like, then copy it and join the conversation on X.
+            </p>
+          </div>
+
+          <div class="trending-event-tag" data-trending-event-tag hidden>
+            <span class="badge badge-active">Current event</span>
+            <span class="trending-event-name" data-trending-event-name></span>
+          </div>
+
+          <div class="trending-generator" data-trending-generator hidden>
+            <textarea
+              class="trending-textarea"
+              data-trending-textarea
+              rows="6"
+              aria-label="Generated Perth post"
+            ></textarea>
+
+            <p class="trending-char-count" data-trending-char-count>0 / 280</p>
+
+            <p class="trending-edit-hint">
+              Feel free to edit the generated post and make it your own before sharing.
+            </p>
+
+            <div class="trending-actions">
+              <button type="button" class="btn btn-primary" data-trending-generate>Generate Post</button>
+              <button type="button" class="btn btn-secondary" data-trending-copy>Copy Post</button>
+            </div>
+
+            <p class="admin-status" data-trending-warning role="alert" hidden></p>
+          </div>
+
+          <p class="trending-empty-state" data-trending-inactive hidden>
+            No active Perth trend right now. Check back for the next event!
+          </p>
+
+          <p class="trending-empty-state" data-trending-unavailable hidden>
+            We couldn't load post ideas for Perth right now. Please try again in a bit.
+          </p>
+        </div>
+
+        <!-- Santa -->
+        <div class="trending-panel" data-trending-panel="santa" hidden>
+          <div class="section-heading">
+            <h2>Santa</h2>
+            <p data-trending-blurb>
+              Need a little help cheering for Santa? Generate a fan post for the current event,
+              make it your own if you'd like, then copy it and join the conversation on X.
+            </p>
+          </div>
+
+          <div class="trending-event-tag" data-trending-event-tag hidden>
+            <span class="badge badge-active">Current event</span>
+            <span class="trending-event-name" data-trending-event-name></span>
+          </div>
+
+          <div class="trending-generator" data-trending-generator hidden>
+            <textarea
+              class="trending-textarea"
+              data-trending-textarea
+              rows="6"
+              aria-label="Generated Santa post"
+            ></textarea>
+
+            <p class="trending-char-count" data-trending-char-count>0 / 280</p>
+
+            <p class="trending-edit-hint">
+              Feel free to edit the generated post and make it your own before sharing.
+            </p>
+
+            <div class="trending-actions">
+              <button type="button" class="btn btn-primary" data-trending-generate>Generate Post</button>
+              <button type="button" class="btn btn-secondary" data-trending-copy>Copy Post</button>
+            </div>
+
+            <p class="admin-status" data-trending-warning role="alert" hidden></p>
+          </div>
+
+          <p class="trending-empty-state" data-trending-inactive hidden>
+            No active Santa trend right now. Check back for the next event!
+          </p>
+
+          <p class="trending-empty-state" data-trending-unavailable hidden>
+            We couldn't load post ideas for Santa right now. Please try again in a bit.
+          </p>
+        </div>
+
+        <p class="trending-disclaimer">
+          This tool only generates text for you to copy — it never posts to X automatically.
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="PerthSanta Streaming profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">PerthSanta Streaming</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, Heartbound, or any associated
+        network or platform.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> PerthSanta Streaming
+      </p>
+
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script type="module" src="js/trending.js"></script>
+</body>
+</html>

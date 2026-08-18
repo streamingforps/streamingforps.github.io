@@ -37,7 +37,14 @@ import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  getDocs,
+  getCountFromServer,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import { firebaseConfig, ADMIN_UID } from "./firebase-config.js";
@@ -81,6 +88,13 @@ const FALLBACK_DATA = {
   faq: hasSiteData ? siteData.faq || [] : [],
   music: hasSiteData ? siteData.music || { osts: [], perthsanta: [], perthSolo: [], jasper: [] } : { osts: [], perthsanta: [], perthSolo: [], jasper: [] },
   commentHelper: hasSiteData ? siteData.commentHelper || { styles: [], lengths: [], phrases: {} } : { styles: [], lengths: [], phrases: {} },
+  trending: hasSiteData && siteData.trending
+    ? siteData.trending
+    : {
+        perthsanta: { eventName: "", keyword: "", hashtags: [], active: false },
+        perth: { eventName: "", keyword: "", hashtags: [], active: false },
+        santa: { eventName: "", keyword: "", hashtags: [], active: false }
+      },
   siteSettings: {
     homepageCampaignImage: "assets/images/homepage.jpg",
     campaignPageImage: "assets/images/heartbound.jpg",
@@ -928,19 +942,458 @@ function initSiteSettingsPanel() {
 }
 
 /* ==========================================================================
+   Trending (public post generator) — per-category event config + Firestore
+   subcollection phrase libraries.
+   ------------------------------------------------------------------
+   Unlike the public page (js/trending.js), which deliberately never fetches
+   a whole phrase collection (it could grow into the hundreds/thousands and
+   the public page can see real event-day traffic), the admin console IS
+   allowed to load a full category's phrase list on demand — only the site
+   owner uses this console, and a full fetch is what makes an accurate
+   count, search, and CSV replace/add practical here.
+   ========================================================================== */
+
+const TRENDING_CATEGORIES = ["perthsanta", "perth", "santa"];
+const TRENDING_PHRASE_PAGE_SIZE = 100;
+const TRENDING_BATCH_CHUNK_SIZE = 450; // stays under Firestore's 500-op batch cap
+
+let activeTrendingCategory = "perthsanta";
+const trendingPhraseCache = {}; // category -> { items: [{id,text,enabled,randomKey}], loaded }
+let trendingPhraseSearchTerm = "";
+let trendingPhraseVisibleCount = TRENDING_PHRASE_PAGE_SIZE;
+
+function trendingPhrasesPath(category) {
+  return `trendingPhrases/${category}/phrases`;
+}
+
+function normalizePhraseKey(text) {
+  return (text || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function loadTrendingConfigForCategory(category) {
+  const config = await loadDocOr(`trending/${category}`, FALLBACK_DATA.trending[category]);
+  $("#trending-event-name").value = config.eventName || "";
+  $("#trending-keyword").value = config.keyword || "";
+  $("#trending-hashtags").value = (config.hashtags || []).join(", ");
+  $("#trending-active").checked = !!config.active;
+}
+
+async function refreshTrendingPhraseCount(category) {
+  const countEl = $("#trending-phrase-count");
+  try {
+    const snap = await getCountFromServer(collection(db, trendingPhrasesPath(category)));
+    countEl.textContent = snap.data().count;
+  } catch (error) {
+    console.error(error);
+    countEl.textContent = "—";
+  }
+}
+
+function initTrendingConfigForm() {
+  $("#trending-config-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const eventName = $("#trending-event-name").value.trim();
+    const keyword = $("#trending-keyword").value.trim();
+    const hashtags = $("#trending-hashtags")
+      .value.split(",")
+      .map((h) => h.trim())
+      .filter(Boolean);
+    const active = $("#trending-active").checked;
+
+    withSaving($("#trending-config-save"), $("#trending-config-status"), "Saving…", async () => {
+      await setDoc(doc(db, `trending/${activeTrendingCategory}`), {
+        eventName,
+        keyword,
+        hashtags,
+        active,
+        updatedAt: serverTimestamp()
+      });
+    });
+  });
+}
+
+function collapseAllTrendingSubPanels() {
+  $("#trending-csv-panel").hidden = true;
+  $("#trending-add-panel").hidden = true;
+  $("#trending-manage-panel").hidden = true;
+}
+
+function toggleTrendingSubPanel(panelEl) {
+  const willShow = panelEl.hidden;
+  collapseAllTrendingSubPanels();
+  panelEl.hidden = !willShow;
+}
+
+async function ensureTrendingPhraseCacheLoaded(category) {
+  if (trendingPhraseCache[category] && trendingPhraseCache[category].loaded) {
+    return trendingPhraseCache[category];
+  }
+  const snap = await getDocs(collection(db, trendingPhrasesPath(category)));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  trendingPhraseCache[category] = { items, loaded: true };
+  return trendingPhraseCache[category];
+}
+
+function renderTrendingPhraseList() {
+  const listEl = $("#trending-phrase-list");
+  const showMoreBtn = $("#trending-phrase-show-more");
+  const cache = trendingPhraseCache[activeTrendingCategory];
+  listEl.innerHTML = "";
+
+  if (!cache) return;
+
+  const term = trendingPhraseSearchTerm.trim().toLowerCase();
+  const filtered = term ? cache.items.filter((p) => (p.text || "").toLowerCase().includes(term)) : cache.items;
+
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No phrases found.";
+    listEl.appendChild(empty);
+    showMoreBtn.hidden = true;
+    return;
+  }
+
+  const visible = filtered.slice(0, trendingPhraseVisibleCount);
+
+  visible.forEach((phrase) => {
+    const row = document.createElement("div");
+    row.className = "admin-phrase-row";
+
+    const textArea = document.createElement("textarea");
+    textArea.rows = 2;
+    textArea.value = phrase.text || "";
+    row.appendChild(textArea);
+
+    const actions = document.createElement("div");
+    actions.className = "admin-phrase-row-actions";
+
+    const enabledLabel = document.createElement("label");
+    enabledLabel.className = "admin-checkbox-label";
+    const enabledCheckbox = document.createElement("input");
+    enabledCheckbox.type = "checkbox";
+    enabledCheckbox.checked = phrase.enabled !== false;
+    enabledCheckbox.addEventListener("change", () => {
+      updateDoc(doc(db, trendingPhrasesPath(activeTrendingCategory), phrase.id), {
+        enabled: enabledCheckbox.checked
+      })
+        .then(() => {
+          phrase.enabled = enabledCheckbox.checked;
+        })
+        .catch((error) => {
+          console.error(error);
+          enabledCheckbox.checked = !enabledCheckbox.checked;
+          window.alert(`Couldn't update: ${error.message || "unknown error"}`);
+        });
+    });
+    enabledLabel.append(enabledCheckbox, " Enabled");
+    actions.appendChild(enabledLabel);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn btn-secondary btn-sm";
+    saveBtn.textContent = "Save";
+    saveBtn.addEventListener("click", async () => {
+      const newText = textArea.value.trim();
+      if (!newText) {
+        window.alert("Phrase text can't be empty.");
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        await updateDoc(doc(db, trendingPhrasesPath(activeTrendingCategory), phrase.id), { text: newText });
+        phrase.text = newText;
+      } catch (error) {
+        console.error(error);
+        window.alert(`Couldn't save: ${error.message || "unknown error"}`);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+    actions.appendChild(saveBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "admin-delete-btn";
+    deleteBtn.textContent = "✕";
+    deleteBtn.setAttribute("aria-label", "Delete phrase");
+    deleteBtn.addEventListener("click", async () => {
+      if (!confirmDelete("Delete this phrase? This can't be undone.")) return;
+      try {
+        await deleteDoc(doc(db, trendingPhrasesPath(activeTrendingCategory), phrase.id));
+        const cache2 = trendingPhraseCache[activeTrendingCategory];
+        cache2.items = cache2.items.filter((p) => p.id !== phrase.id);
+        renderTrendingPhraseList();
+        refreshTrendingPhraseCount(activeTrendingCategory);
+      } catch (error) {
+        console.error(error);
+        window.alert(`Couldn't delete: ${error.message || "unknown error"}`);
+      }
+    });
+    actions.appendChild(deleteBtn);
+
+    row.appendChild(actions);
+    listEl.appendChild(row);
+  });
+
+  showMoreBtn.hidden = filtered.length <= trendingPhraseVisibleCount;
+}
+
+function initTrendingPhraseManagement() {
+  $("#trending-csv-toggle").addEventListener("click", () => toggleTrendingSubPanel($("#trending-csv-panel")));
+  $("#trending-add-toggle").addEventListener("click", () => toggleTrendingSubPanel($("#trending-add-panel")));
+
+  $("#trending-manage-toggle").addEventListener("click", async () => {
+    toggleTrendingSubPanel($("#trending-manage-panel"));
+    if (!$("#trending-manage-panel").hidden) {
+      setStatus($("#trending-manage-status"), "Loading phrases…", "pending");
+      await ensureTrendingPhraseCacheLoaded(activeTrendingCategory);
+      setStatus($("#trending-manage-status"), "", null);
+      trendingPhraseVisibleCount = TRENDING_PHRASE_PAGE_SIZE;
+      renderTrendingPhraseList();
+    }
+  });
+
+  $("#trending-phrase-search").addEventListener("input", (event) => {
+    trendingPhraseSearchTerm = event.target.value;
+    trendingPhraseVisibleCount = TRENDING_PHRASE_PAGE_SIZE;
+    renderTrendingPhraseList();
+  });
+
+  $("#trending-phrase-show-more").addEventListener("click", () => {
+    trendingPhraseVisibleCount += TRENDING_PHRASE_PAGE_SIZE;
+    renderTrendingPhraseList();
+  });
+
+  $("#trending-phrase-add-save").addEventListener("click", () => {
+    const input = $("#trending-phrase-add-input");
+    const text = input.value.trim();
+    if (!text) {
+      setStatus($("#trending-add-status"), "Enter phrase text first.", "error");
+      return;
+    }
+
+    withSaving($("#trending-phrase-add-save"), $("#trending-add-status"), "Saving…", async () => {
+      const category = activeTrendingCategory;
+      const randomKey = Math.random();
+      const ref = await addDoc(collection(db, trendingPhrasesPath(category)), {
+        text,
+        enabled: true,
+        randomKey,
+        createdAt: serverTimestamp()
+      });
+      input.value = "";
+      await refreshTrendingPhraseCount(category);
+
+      const cache = trendingPhraseCache[category];
+      if (cache && cache.loaded) {
+        cache.items.push({ id: ref.id, text, enabled: true, randomKey });
+        if (!$("#trending-manage-panel").hidden) renderTrendingPhraseList();
+      }
+    });
+  });
+}
+
+// Recognizes and skips an optional leading "text" header line (quoted or
+// bare, case-insensitive) — the site owner's normal CSV export includes one.
+function parseTrendingCsv(rawText) {
+  const text = rawText.replace(/^﻿/, "");
+  const lines = text.split(/\r\n|\r|\n/);
+  const rows = [];
+  let invalidCount = 0;
+  let sawContentRow = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    let value = line;
+    if (line.length >= 2 && line.startsWith('"') && line.endsWith('"')) {
+      value = line.slice(1, -1).replace(/""/g, '"');
+    }
+    value = value.trim();
+
+    if (!sawContentRow && value.toLowerCase() === "text") {
+      sawContentRow = true; // header row — skip, not invalid
+      continue;
+    }
+    sawContentRow = true;
+
+    if (!value) {
+      invalidCount++;
+      continue;
+    }
+    rows.push(value);
+  }
+
+  return { rows, invalidCount };
+}
+
+async function chunkedBatchWrite(refsAndData) {
+  for (let i = 0; i < refsAndData.length; i += TRENDING_BATCH_CHUNK_SIZE) {
+    const batch = writeBatch(db);
+    refsAndData.slice(i, i + TRENDING_BATCH_CHUNK_SIZE).forEach(({ ref, data }) => batch.set(ref, data));
+    await batch.commit();
+  }
+}
+
+async function chunkedBatchDelete(refs) {
+  for (let i = 0; i < refs.length; i += TRENDING_BATCH_CHUNK_SIZE) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + TRENDING_BATCH_CHUNK_SIZE).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
+function initTrendingCsvImport() {
+  $("#trending-csv-import").addEventListener("click", () => {
+    const fileInput = $("#trending-csv-file");
+    const file = fileInput.files && fileInput.files[0];
+    const modeInput = document.querySelector('input[name="trending-csv-mode"]:checked');
+    const mode = modeInput ? modeInput.value : "add";
+
+    if (!file) {
+      setStatus($("#trending-csv-status"), "Choose a CSV file first.", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+      setStatus($("#trending-csv-status"), "Couldn't read that file.", "error");
+    };
+    reader.onload = async () => {
+      const importBtn = $("#trending-csv-import");
+      const category = activeTrendingCategory;
+      importBtn.disabled = true;
+      setStatus($("#trending-csv-status"), "Importing…", "pending");
+
+      try {
+        const { rows, invalidCount } = parseTrendingCsv(String(reader.result));
+
+        // Dedupe within the CSV batch itself (case/whitespace-insensitive).
+        const seen = new Map();
+        rows.forEach((rowText) => {
+          const key = normalizePhraseKey(rowText);
+          if (!seen.has(key)) seen.set(key, rowText);
+        });
+        let candidates = Array.from(seen.values());
+        let duplicateCount = rows.length - candidates.length;
+
+        if (mode === "replace") {
+          const cache = await ensureTrendingPhraseCacheLoaded(category);
+          const existingCount = cache.items.length;
+          const confirmed = window.confirm(
+            `Replace the entire ${TRENDING_CATEGORY_LABELS[category]} phrase library? This will ` +
+              `permanently delete ${existingCount} existing phrase(s) and cannot be undone.`
+          );
+          if (!confirmed) {
+            setStatus($("#trending-csv-status"), "Import cancelled.", null);
+            return;
+          }
+          await chunkedBatchDelete(cache.items.map((p) => doc(db, trendingPhrasesPath(category), p.id)));
+        } else {
+          const cache = await ensureTrendingPhraseCacheLoaded(category);
+          const existingKeys = new Set(cache.items.map((p) => normalizePhraseKey(p.text)));
+          const before = candidates.length;
+          candidates = candidates.filter((rowText) => !existingKeys.has(normalizePhraseKey(rowText)));
+          duplicateCount += before - candidates.length;
+        }
+
+        const refsAndData = candidates.map((rowText) => ({
+          ref: doc(collection(db, trendingPhrasesPath(category))),
+          data: { text: rowText, enabled: true, randomKey: Math.random(), createdAt: serverTimestamp() }
+        }));
+
+        await chunkedBatchWrite(refsAndData);
+
+        // Re-fetch fresh from Firestore so the cache matches server truth
+        // after a bulk write, rather than hand-patching hundreds of items.
+        trendingPhraseCache[category] = null;
+        await ensureTrendingPhraseCacheLoaded(category);
+        if (!$("#trending-manage-panel").hidden) renderTrendingPhraseList();
+        await refreshTrendingPhraseCount(category);
+
+        fileInput.value = "";
+        setStatus(
+          $("#trending-csv-status"),
+          `Imported: ${refsAndData.length} / Duplicates skipped: ${duplicateCount} / Invalid rows skipped: ${invalidCount}`,
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+        setStatus($("#trending-csv-status"), `Couldn't import: ${error.message || "unknown error"}`, "error");
+      } finally {
+        importBtn.disabled = false;
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function initTrendingCategoryTabs() {
+  document.querySelectorAll("#trending-category-tabs .admin-subtab").forEach((tab) => {
+    tab.addEventListener("click", async () => {
+      document.querySelectorAll("#trending-category-tabs .admin-subtab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+
+      activeTrendingCategory = tab.getAttribute("data-trending-cat");
+      trendingPhraseSearchTerm = "";
+      trendingPhraseVisibleCount = TRENDING_PHRASE_PAGE_SIZE;
+      $("#trending-phrase-search").value = "";
+      $("#trending-phrase-add-input").value = "";
+      $("#trending-csv-file").value = "";
+      collapseAllTrendingSubPanels();
+      [
+        "trending-config-status",
+        "trending-csv-status",
+        "trending-add-status",
+        "trending-manage-status"
+      ].forEach((id) => setStatus($(`#${id}`), "", null));
+
+      await loadTrendingConfigForCategory(activeTrendingCategory);
+      await refreshTrendingPhraseCount(activeTrendingCategory);
+    });
+  });
+}
+
+function initTrendingPanel() {
+  initTrendingCategoryTabs();
+  initTrendingConfigForm();
+  initTrendingPhraseManagement();
+  initTrendingCsvImport();
+}
+
+async function loadTrendingPanel() {
+  await loadTrendingConfigForCategory(activeTrendingCategory);
+  await refreshTrendingPhraseCount(activeTrendingCategory);
+}
+
+/* ==========================================================================
    Dashboard summary cards
    ========================================================================== */
 
+const TRENDING_CATEGORY_LABELS = { perthsanta: "PerthSanta", perth: "Perth", santa: "Santa" };
+
 async function loadDashboard() {
-  const [campaign, tiktokStats, announcements, music, faq] = await Promise.all([
+  const [campaign, tiktokStats, announcements, music, faq, trendingPerthsanta, trendingPerth, trendingSanta] = await Promise.all([
     loadDocOr("campaign/current", FALLBACK_DATA.campaign),
     loadDocOr("stats/tiktok", { currentViews: FALLBACK_DATA.tiktokCurrentViews, updatedAt: null }),
     loadDocOr("content/announcements", { items: FALLBACK_DATA.announcements }),
     loadDocOr("content/music", FALLBACK_DATA.music),
-    loadDocOr("content/faq", { items: FALLBACK_DATA.faq })
+    loadDocOr("content/faq", { items: FALLBACK_DATA.faq }),
+    loadDocOr("trending/perthsanta", FALLBACK_DATA.trending.perthsanta),
+    loadDocOr("trending/perth", FALLBACK_DATA.trending.perth),
+    loadDocOr("trending/santa", FALLBACK_DATA.trending.santa)
   ]);
 
   const musicCount = MUSIC_CATEGORIES.reduce((sum, cat) => sum + (music[cat] ? music[cat].length : 0), 0);
+
+  const trendingByCategory = { perthsanta: trendingPerthsanta, perth: trendingPerth, santa: trendingSanta };
+  const trendingLines = TRENDING_CATEGORIES.map((cat) => {
+    const t = trendingByCategory[cat];
+    return `${TRENDING_CATEGORY_LABELS[cat]}: ${t && t.active ? (t.eventName || "Active") : "No event"}`;
+  });
 
   const cards = [
     {
@@ -975,6 +1428,12 @@ async function loadDashboard() {
       lines: [`${(faq.items || []).length} question(s)`],
       button: "Manage FAQ",
       panel: "faq"
+    },
+    {
+      title: "Trending",
+      lines: trendingLines,
+      button: "Manage Trending",
+      panel: "trending"
     }
   ];
 
@@ -1015,7 +1474,8 @@ async function loadAllPanels() {
     missionsPanel.load(),
     loadMusicPanel(),
     loadCommentHelperPanel(),
-    loadSiteSettingsPanel()
+    loadSiteSettingsPanel(),
+    loadTrendingPanel()
   ]);
 }
 
@@ -1098,4 +1558,5 @@ initTiktokViewsPanel();
 initMusicPanel();
 initCommentHelperPanel();
 initSiteSettingsPanel();
+initTrendingPanel();
 initAuth();

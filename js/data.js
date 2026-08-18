@@ -533,7 +533,15 @@ const siteData = {
           "The Heartbound trailer just dropped and my excitement is through the roof.",
           "I clicked on this the second it showed up and wow.",
           "This trailer had me hyped from the very first second.",
-          "Not me refreshing my feed all day waiting for this trailer."
+          "Not me refreshing my feed all day waiting for this trailer.",
+          "I knew I was excited for Heartbound, but this trailer raised it to another level.",
+          "The second this started, I knew I was in trouble in the best way.",
+          "Heartbound really came in and demanded all my attention.",
+          "I was already excited, but now I genuinely need this series immediately.",
+          "This trailer gave me exactly the kind of energy I wanted.",
+          "I opened this casually and somehow ended up fully invested.",
+          "Everything about this trailer made me even more excited for the series.",
+          "I was not prepared for how much fun this trailer would be to watch."
         ],
         observations: [
           "The pacing already feels so promising for a pilot.",
@@ -541,7 +549,15 @@ const siteData = {
           "The music choice fits the mood perfectly.",
           "You can tell so much care went into every scene.",
           "The energy in this trailer is unmatched.",
-          "Even the smallest details in this trailer are exciting."
+          "Even the smallest details in this trailer are exciting.",
+          "The visuals make every scene feel even more exciting.",
+          "The editing keeps the whole trailer moving so well.",
+          "There's never a dull moment in this trailer.",
+          "The atmosphere changes so smoothly from scene to scene.",
+          "The trailer gives just enough without revealing too much.",
+          "The soundtrack adds so much energy to every moment.",
+          "The production already looks incredibly polished.",
+          "Every new scene gives me another reason to be excited."
         ],
         reactions: [
           "I literally can't stop smiling.",
@@ -549,7 +565,15 @@ const siteData = {
           "I'm buzzing with excitement for this series.",
           "This is exactly the kind of energy I was hoping for.",
           "I felt my whole mood lift watching this.",
-          "I am so ready for this show."
+          "I am so ready for this show.",
+          "I need the full series now.",
+          "This completely exceeded my expectations.",
+          "I already know I'm going to be obsessed with this.",
+          "I haven't stopped thinking about it since I watched.",
+          "This got me even more impatient for the series.",
+          "I'm genuinely so hyped after watching this.",
+          "This trailer gave me such a rush.",
+          "I'm already ready to rewatch every scene."
         ],
         endings: [
           "Bring on the full series already!",
@@ -557,7 +581,15 @@ const siteData = {
           "So proud of everyone involved in this project.",
           "This is going to be a fun ride.",
           "Let's go, Heartbound!",
-          "I'll be here for every single episode."
+          "I'll be here for every single episode.",
+          "Heartbound, I'm ready for you.",
+          "This series cannot come soon enough.",
+          "I'll definitely be following this one from beginning to end.",
+          "Please give us the full series soon!",
+          "I'm so ready to support Heartbound all the way.",
+          "This is definitely staying on my watch list.",
+          "The countdown to Heartbound officially starts now.",
+          "Can't wait to experience the whole series."
         ]
       },
 
@@ -568,7 +600,15 @@ const siteData = {
           "I got a little emotional watching this, not going to lie.",
           "There's something about this trailer that really moved me.",
           "I didn't think a pilot trailer could make me feel this much.",
-          "This trailer sat with me long after it ended."
+          "This trailer sat with me long after it ended.",
+          "Something about this trailer feels incredibly warm and personal.",
+          "I wasn't ready for how tender some of these moments would feel.",
+          "This trailer has such a soft emotional pull to it.",
+          "I came here expecting excitement and somehow ended up emotional.",
+          "There's a feeling in this trailer that's hard to put into words.",
+          "This felt surprisingly intimate for such a short trailer.",
+          "I could already feel the emotional weight of the story.",
+          "The emotions here caught me completely off guard."
         ],
         observations: [
           "The quiet moments say just as much as the big ones.",
@@ -576,7 +616,15 @@ const siteData = {
           "Even without much dialogue, the emotion comes through clearly.",
           "The way the story is framed already feels heartfelt.",
           "Small expressions carry so much weight in this trailer.",
-          "The tone feels sincere in a way that's hard to fake."
+          "The tone feels sincere in a way that's hard to fake.",
+          "The softer scenes really stayed with me.",
+          "The emotions feel understated instead of exaggerated.",
+          "The silences between the characters say so much.",
+          "There's something very human about these little moments.",
+          "The emotional tone feels beautifully balanced.",
+          "The expressions make the scenes feel very personal.",
+          "The trailer lets the emotions breathe instead of rushing them.",
+          "Some of the smallest moments are the ones that hit the hardest."
         ],
         reactions: [
           "I felt that in my chest.",
@@ -584,7 +632,15 @@ const siteData = {
           "I needed a moment after watching that.",
           "That was more touching than I was prepared for.",
           "I felt genuinely moved.",
-          "That stayed with me a little longer than usual."
+          "That stayed with me a little longer than usual.",
+          "I felt unexpectedly attached already.",
+          "This left me with such a warm feeling.",
+          "I genuinely felt something watching this.",
+          "That was quietly powerful.",
+          "I think this story is going to hurt me in the best way.",
+          "I wasn't prepared to care this much already.",
+          "That emotional tone really got to me.",
+          "I can already tell this series is going to make me feel a lot."
         ],
         endings: [
           "Really looking forward to seeing this story unfold.",
@@ -592,7 +648,15 @@ const siteData = {
           "This already feels special.",
           "Excited to see where this story goes.",
           "Wishing everyone involved so much success.",
-          "This is shaping up to be something meaningful."
+          "This is shaping up to be something meaningful.",
+          "I hope the full series keeps this same emotional honesty.",
+          "I'm really looking forward to experiencing this story properly.",
+          "This feels like a story worth getting attached to.",
+          "I can't wait to see these emotions develop further.",
+          "I'm already emotionally invested.",
+          "I hope Heartbound gets all the love it deserves.",
+          "This feels like the beginning of something really special.",
+          "I'm ready for whatever emotional journey this series brings."
         ]
       },
 
@@ -603,7 +667,15 @@ const siteData = {
           "This trailer is such a proud moment for the whole team.",
           "I'm so happy to see this project come together.",
           "This feels like a well-deserved moment for everyone involved.",
-          "Seeing this trailer finally out there is such a proud feeling."
+          "Seeing this trailer finally out there is such a proud feeling.",
+          "It's really satisfying to see Heartbound finally reaching this point.",
+          "This feels like such an exciting milestone for everyone involved.",
+          "Seeing the finished trailer makes all the anticipation feel worth it.",
+          "What a beautiful moment for the cast and team behind Heartbound.",
+          "It's amazing seeing this project finally come to life.",
+          "This trailer really makes me appreciate all the work behind the scenes.",
+          "It's such a good feeling seeing this project out in the world.",
+          "This is the kind of release that makes you proud to support a project."
         ],
         observations: [
           "You can tell how much effort went into this.",
@@ -611,7 +683,15 @@ const siteData = {
           "The quality here really speaks for itself.",
           "This is the result of a lot of hard work paying off.",
           "The whole team should be proud of this.",
-          "It's clear a lot of heart went into making this."
+          "It's clear a lot of heart went into making this.",
+          "The amount of effort behind every detail really shows.",
+          "The production team clearly gave this project a lot of care.",
+          "Everyone involved brought something valuable to this trailer.",
+          "The final result feels polished and thoughtfully made.",
+          "The teamwork behind this really comes through.",
+          "You can see the dedication in both the performances and production.",
+          "This looks like a project everyone involved believed in.",
+          "The care behind the production is visible from beginning to end."
         ],
         reactions: [
           "I'm genuinely proud of this project.",
@@ -619,7 +699,15 @@ const siteData = {
           "I feel proud just watching this.",
           "This deserves so much recognition.",
           "I'm rooting for this project's success.",
-          "This is something to be proud of."
+          "This is something to be proud of.",
+          "This makes supporting Heartbound feel even more rewarding.",
+          "I'm so happy seeing this project get its moment.",
+          "This deserves to reach a huge audience.",
+          "I'm proud to be here supporting it from the beginning.",
+          "It's wonderful seeing everyone's hard work come together.",
+          "This makes me want to support the project even more.",
+          "I'm genuinely happy for the whole team.",
+          "This feels like such a meaningful achievement."
         ],
         endings: [
           "Congratulations to everyone involved.",
@@ -627,7 +715,15 @@ const siteData = {
           "Here's to Heartbound's success.",
           "So happy to be cheering this on.",
           "Wishing the whole team continued success.",
-          "Proud to support this from the start."
+          "Proud to support this from the start.",
+          "Here's hoping Heartbound reaches even more people.",
+          "Wishing the cast and crew nothing but success.",
+          "I'm excited to keep supporting everyone involved.",
+          "May this be the start of something huge for Heartbound.",
+          "Sending all my support to the entire team.",
+          "I hope everyone involved gets the recognition they deserve.",
+          "Looking forward to celebrating many more Heartbound milestones.",
+          "Let's keep giving this project all the support we can."
         ]
       },
 
@@ -638,7 +734,15 @@ const siteData = {
           "The performances here already feel so natural.",
           "Even in a short trailer, the acting really shines.",
           "The expressions in this trailer say so much.",
-          "This trailer shows real skill from the cast."
+          "This trailer shows real skill from the cast.",
+          "The performances caught my attention immediately.",
+          "There's already so much nuance in the acting here.",
+          "The cast is giving us a lot even in these short scenes.",
+          "I'm really enjoying how grounded the performances feel.",
+          "The acting already gives the characters a lot of personality.",
+          "The performances make the trailer feel much more immersive.",
+          "I'm impressed by how expressive everyone is without overdoing it.",
+          "The cast really sells the emotion of these scenes."
         ],
         observations: [
           "The subtle expressions carry a lot of emotion.",
@@ -646,7 +750,15 @@ const siteData = {
           "Small reactions in this trailer feel very genuine.",
           "The body language alone tells a story.",
           "The timing in these scenes feels really well done.",
-          "Every glance and pause feels intentional."
+          "Every glance and pause feels intentional.",
+          "The facial expressions are doing so much storytelling.",
+          "The emotional shifts feel very believable.",
+          "The actors make the quieter moments feel just as important.",
+          "The chemistry between performance and direction is really strong.",
+          "The reactions feel spontaneous rather than staged.",
+          "The characters already feel distinct through the acting alone.",
+          "The emotional beats land because the performances feel restrained.",
+          "The little details in the acting make the scenes feel lived-in."
         ],
         reactions: [
           "Perth and Santa are both doing so well here.",
@@ -654,7 +766,15 @@ const siteData = {
           "I'm impressed by the performances already.",
           "This is some really solid acting for a pilot.",
           "The cast is clearly putting in the work.",
-          "I can already tell the acting will be a highlight."
+          "I can already tell the acting will be a highlight.",
+          "I'm already curious to see what these actors do with full episodes.",
+          "The performances made these characters immediately interesting to me.",
+          "I really enjoyed how believable the interactions felt.",
+          "This cast already has my attention.",
+          "The acting makes me want to know these characters better.",
+          "I'm really impressed with what we've seen so far.",
+          "The performances add so much depth to the trailer.",
+          "I can already see a lot of potential in these characters."
         ],
         endings: [
           "Excited to see more of these performances.",
@@ -662,7 +782,15 @@ const siteData = {
           "Great work from the whole cast.",
           "Looking forward to seeing this talent shine further.",
           "This bodes really well for the full series.",
-          "Really well acted for a pilot trailer."
+          "Really well acted for a pilot trailer.",
+          "I'm excited to see how these performances grow over the series.",
+          "Can't wait to see more character-driven scenes.",
+          "I'm looking forward to seeing everyone get more room to shine.",
+          "This cast looks ready to deliver something memorable.",
+          "I'm excited to see the deeper emotional scenes later on.",
+          "The performances already make me confident about the series.",
+          "Can't wait to watch these characters fully come to life.",
+          "I'm definitely watching for the performances as much as the story."
         ]
       },
 
@@ -673,7 +801,15 @@ const siteData = {
           "You can feel the connection between Perth and Santa right away.",
           "The dynamic between these two is already so easy to watch.",
           "Perth and Santa's chemistry is exactly what I was hoping for.",
-          "There's a natural spark between Perth and Santa in this trailer."
+          "There's a natural spark between Perth and Santa in this trailer.",
+          "Perth and Santa feel completely at ease with each other on screen.",
+          "The connection between Perth and Santa comes through immediately.",
+          "Their scenes together have such an effortless energy.",
+          "There's something very natural about the way Perth and Santa interact.",
+          "Their dynamic already feels incredibly easy and believable.",
+          "Perth and Santa make even the small moments between them interesting.",
+          "The chemistry here feels warm, playful, and completely natural.",
+          "The moment they're on screen together, the energy changes."
         ],
         observations: [
           "Their timing together feels really natural.",
@@ -681,7 +817,15 @@ const siteData = {
           "The way they play off each other is really enjoyable.",
           "Their chemistry doesn't feel forced at all.",
           "You can tell they have a real connection on screen.",
-          "Their scenes together already feel comfortable and real."
+          "Their scenes together already feel comfortable and real.",
+          "The eye contact between them adds so much to the scenes.",
+          "Their reactions to each other feel spontaneous and real.",
+          "The smallest gestures between them make the dynamic believable.",
+          "They have such an easy rhythm when they're acting together.",
+          "Their scenes feel natural instead of overly performed.",
+          "The chemistry works even when neither of them is saying much.",
+          "They bounce off each other really well.",
+          "Their body language makes their connection feel convincing."
         ],
         reactions: [
           "I'm already invested in their dynamic.",
@@ -689,7 +833,15 @@ const siteData = {
           "I love watching them together on screen.",
           "This pairing works so well.",
           "Their scenes are already a highlight for me.",
-          "I can't get enough of their chemistry."
+          "I can't get enough of their chemistry.",
+          "I could watch their interactions all day.",
+          "Their dynamic is already one of my favorite parts of the trailer.",
+          "They make it very easy to care about their relationship.",
+          "I'm completely sold on this pairing.",
+          "The chemistry makes me even more excited for the story.",
+          "I already want more scenes of them together.",
+          "Their connection feels so easy to believe.",
+          "I'm definitely invested in seeing where their relationship goes."
         ],
         endings: [
           "Can't wait to see more of their story together.",
@@ -697,7 +849,15 @@ const siteData = {
           "Perth and Santa are such a great match for this.",
           "Looking forward to more scenes with the two of them.",
           "This duo is going to be so much fun to watch.",
-          "So here for this pairing."
+          "So here for this pairing.",
+          "I'm ready to watch their relationship unfold properly.",
+          "Can't wait to see all the different sides of their dynamic.",
+          "Their chemistry is going to make this such a fun watch.",
+          "I'm so curious to see how their relationship develops.",
+          "This pairing already feels like one of Heartbound's biggest strengths.",
+          "I can't wait for more quiet moments between these two.",
+          "They really make this story feel alive.",
+          "I'm excited to see what the full series brings for them."
         ]
       },
 
@@ -708,7 +868,15 @@ const siteData = {
           "This trailer sets up a story I'm genuinely interested in.",
           "The premise shown in this trailer already has my attention.",
           "There's a lot of story potential packed into this short trailer.",
-          "I'm already invested in the story after just this trailer."
+          "I'm already invested in the story after just this trailer.",
+          "This trailer gives just enough story to make me want answers.",
+          "The world of Heartbound already feels like it has a lot going on.",
+          "I'm really interested in the direction this story seems to be heading.",
+          "The setup feels familiar enough to pull me in but fresh enough to keep me curious.",
+          "This trailer immediately made me want to understand these characters better.",
+          "The story hints here are doing exactly what a good trailer should.",
+          "There's clearly a much bigger story waiting behind these scenes.",
+          "The premise already feels like it could go in some really interesting directions."
         ],
         observations: [
           "The setup leaves just enough to keep me curious.",
@@ -716,7 +884,15 @@ const siteData = {
           "The world being built already feels layered and interesting.",
           "The narrative hints are doing their job — I'm curious.",
           "It's a good sign when a trailer leaves you with questions.",
-          "The story pacing in this trailer feels well thought out."
+          "The story pacing in this trailer feels well thought out.",
+          "The trailer balances character moments and plot hints really well.",
+          "There are enough unanswered questions to keep things interesting.",
+          "The relationships seem closely tied to the larger story.",
+          "The trailer gives us clues without spelling everything out.",
+          "The setup feels like it has room for both emotional and dramatic moments.",
+          "The characters already seem to have more going on beneath the surface.",
+          "The world feels bigger than what we've been shown so far.",
+          "The story looks like it could develop in several unexpected directions."
         ],
         reactions: [
           "I want to know more about where this is headed.",
@@ -724,7 +900,15 @@ const siteData = {
           "I'm intrigued by the direction this seems to be taking.",
           "This premise has a lot of promise.",
           "I'm curious how this story develops over the series.",
-          "This trailer left me wanting the full story."
+          "This trailer left me wanting the full story.",
+          "I'm already trying to figure out what happens next.",
+          "The trailer definitely succeeded in making me curious.",
+          "I want to understand these characters and their history.",
+          "I'm already wondering how all these pieces will connect.",
+          "This feels like the kind of story that will be fun to theorize about.",
+          "I need more context immediately.",
+          "I'm genuinely curious about the conflicts being hinted at.",
+          "The story has already given me plenty to think about."
         ],
         endings: [
           "Can't wait to see this story unfold.",
@@ -732,7 +916,15 @@ const siteData = {
           "Excited to see where the writers take this.",
           "This story already has my attention for the long run.",
           "Looking forward to watching this develop episode by episode.",
-          "I'm in for the whole story."
+          "I'm in for the whole story.",
+          "I'm excited to uncover the story one episode at a time.",
+          "Can't wait to find out what all these hints actually mean.",
+          "I'm ready to see how all of this connects.",
+          "Definitely looking forward to learning more about these characters.",
+          "I hope the full series explores all these story threads.",
+          "I'm excited to see what surprises the story has in store.",
+          "This has definitely convinced me to follow the series.",
+          "I want the next chapter already."
         ]
       },
 
@@ -749,9 +941,79 @@ const siteData = {
           "This is going to be so good.",
           "So proud of this project.",
           "Already hooked!",
-          "Can't stop watching this trailer."
+          "Can't stop watching this trailer.",
+          "This trailer has me so excited!",
+          "Heartbound already looks amazing.",
+          "PerthSanta did so well here!",
+          "I need the full series immediately.",
+          "This looks incredibly promising.",
+          "Already obsessed with Heartbound.",
+          "The chemistry is everything!",
+          "Such a beautiful trailer.",
+          "The acting already looks so good.",
+          "Heartbound has my full attention.",
+          "I can't wait to see more!",
+          "This deserves so much love.",
+          "Everything about this looks so promising.",
+          "Perth and Santa look amazing together.",
+          "This trailer made me even more excited.",
+          "I'm officially ready for Heartbound.",
+          "The visuals are stunning!",
+          "I already love the atmosphere.",
+          "This cast looks incredible.",
+          "The story already has me curious.",
+          "So much potential in this series!",
+          "I'm definitely watching Heartbound.",
+          "This trailer was worth the wait.",
+          "I love the energy of this!",
+          "Already waiting for episode one.",
+          "This looks like it's going to be special.",
+          "Heartbound, you have my attention.",
+          "Such a strong first look at the series.",
+          "I can't wait to meet these characters properly.",
+          "Sending all my support to Heartbound!",
+          "PerthSanta are shining here.",
+          "This is such an exciting start.",
+          "The whole trailer feels so polished.",
+          "I'm ready for this story.",
+          "This trailer made my day.",
+          "Absolutely here for Heartbound!"
         ]
       }
+    }
+  },
+
+  /*
+    Trending (trending.html) — per-category (PerthSanta / Perth / Santa)
+    current-event configuration only. This is a local fallback for when
+    Firestore's trending/{category} docs are slow/unavailable; it does
+    NOT include phrase libraries — those live entirely in Firestore
+    (trendingPhrases/{category}/phrases/{id}) since they can grow into
+    the hundreds/thousands and don't belong duplicated in a JS file. If
+    Firestore phrases can't load, js/trending.js shows a friendly
+    "couldn't load post ideas" message instead of falling back here.
+
+    hashtags are stored as full literal tokens (e.g. "#Example") — no
+    "#" is prepended at render time.
+  */
+  trending: {
+    perthsanta: {
+      eventName: "",
+      keyword: "",
+      hashtags: [],
+      active: false
+    },
+    perth: {
+      eventName: "",
+      keyword: "",
+      hashtags: [],
+      active: false
+    },
+    santa: {
+      eventName: "",
+      keyword: "",
+      hashtags: [],
+      active: false
     }
   }
 };
