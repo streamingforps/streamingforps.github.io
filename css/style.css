@@ -1443,6 +1443,357 @@ body.music-modal-open {
   text-decoration: underline;
 }
 
+.stream-guide-reminder-list--engaged li::before {
+  color: var(--color-engaged);
+}
+
+/* ==========================================================================
+   YouTube Guide — Public Views / Engaged Views (Aug 24, 2026 update)
+   ========================================================================== */
+
+.stream-guide-updated-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-3);
+  padding: var(--space-1) var(--space-4);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stream-guide-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 720px;
+  margin: 0 auto var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.stream-guide-info-banner-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--color-accent-hover);
+  line-height: 1.4;
+}
+
+.stream-guide-info-banner p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.stream-guide-card--engaged {
+  border-top: 3px solid var(--color-engaged);
+  margin-top: var(--space-6);
+}
+
+.stream-guide-card-icon--engaged {
+  background: var(--color-engaged-soft);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: var(--color-engaged-hover);
+}
+
+.stream-guide-card--engaged .stream-guide-list strong {
+  color: var(--color-engaged-hover);
+}
+
+.stream-guide-card--engaged .stream-guide-item-icon {
+  background: var(--color-engaged-soft);
+  color: var(--color-engaged);
+}
+
+.stream-guide-card-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.stream-guide-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.stream-guide-callout-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.stream-guide-callout-eq {
+  opacity: 0.6;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.stream-guide-callout--public {
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+}
+
+.stream-guide-callout--engaged {
+  background: var(--color-engaged-soft);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: var(--color-engaged-hover);
+}
+
+.stream-guide-compare {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin: var(--space-6) 0;
+}
+
+@media (min-width: 700px) {
+  .stream-guide-compare {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stream-guide-compare-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+}
+
+.stream-guide-compare-card--public {
+  border-top: 3px solid var(--color-accent);
+}
+
+.stream-guide-compare-card--engaged {
+  border-top: 3px solid var(--color-engaged);
+}
+
+.stream-guide-compare-title {
+  margin: 0 0 var(--space-4);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.stream-guide-compare-card--public .stream-guide-compare-title {
+  color: var(--color-accent-hover);
+}
+
+.stream-guide-compare-card--engaged .stream-guide-compare-title {
+  color: var(--color-engaged-hover);
+}
+
+.stream-guide-compare-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.stream-guide-compare-list li {
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.stream-guide-compare-card--public .stream-guide-compare-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--color-accent);
+}
+
+.stream-guide-compare-card--engaged .stream-guide-compare-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--color-engaged);
+}
+
+/* ---- Quick "at a glance" comparison (very short, top-of-page) ---- */
+
+.stream-guide-quick-compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 560px;
+  margin: 0 auto var(--space-6);
+}
+
+.stream-guide-quick-compare-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.stream-guide-quick-compare-icon {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+}
+
+.stream-guide-quick-compare-row--public {
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+  color: var(--color-accent-hover);
+}
+
+.stream-guide-quick-compare-row--engaged {
+  background: var(--color-engaged-soft);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: var(--color-engaged-hover);
+}
+
+/* ---- Quick guide heading (short question above a numbered step flow) ---- */
+
+.stream-guide-quick-title {
+  text-align: center;
+  font-size: 1.1rem;
+  margin: var(--space-6) 0 var(--space-4);
+}
+
+/* ---- Numbered step flow (quick guides) ---- */
+
+.stream-guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+
+.stream-guide-step {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.stream-guide-step-number {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  border: 1px solid rgba(225, 6, 0, 0.35);
+}
+
+.stream-guide-steps--engaged .stream-guide-step-number {
+  background: var(--color-engaged-soft);
+  color: var(--color-engaged-hover);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.stream-guide-step-body {
+  flex: 1;
+}
+
+.stream-guide-step-title {
+  margin: 0 0 2px;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.stream-guide-step-text {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.stream-guide-step-arrow {
+  display: none;
+}
+
+/* Horizontal layout for quick guides on wide viewports (full guide page
+   only — compact campaign cards stay vertical since their column is narrow). */
+@media (min-width: 900px) {
+  .stream-guide-steps--wide {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .stream-guide-steps--wide .stream-guide-step {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .stream-guide-steps--wide .stream-guide-step-number {
+    margin-bottom: var(--space-2);
+  }
+
+  .stream-guide-steps--wide .stream-guide-step-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--color-text-faint);
+    font-size: 1.3rem;
+  }
+}
+
+.stream-guide-scenario {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.stream-guide-scenario-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
 /* ==========================================================================
    Comment Helper (campaign.html)
    ========================================================================== */

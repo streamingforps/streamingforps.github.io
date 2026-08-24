@@ -38,6 +38,13 @@
   /* ---- Color: focus ring (accessibility) ---- */
   --color-focus: #ff8a80;
 
+  /* ---- Color: engaged-view accent (violet) ----
+     Used only on the YouTube guide's "Engaged Views" section, to sit
+     alongside the brand red ("Public Views") as a second, related accent. */
+  --color-engaged: #a855f7;
+  --color-engaged-hover: #c084fc;
+  --color-engaged-soft: rgba(168, 85, 247, 0.16);
+
   /* ---- Typography ---- */
   --font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-display: var(--font-body);
