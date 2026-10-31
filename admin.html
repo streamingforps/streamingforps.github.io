@@ -68,18 +68,14 @@
 
       <nav class="admin-nav" aria-label="Admin sections">
         <button type="button" class="admin-nav-btn is-active" data-panel="home">Dashboard</button>
-        <button type="button" class="admin-nav-btn" data-panel="campaign">Current Campaign</button>
-        <button type="button" class="admin-nav-btn" data-panel="tiktok-views">TikTok Views</button>
-        <button type="button" class="admin-nav-btn" data-panel="goals">Streaming Goals</button>
+        <button type="button" class="admin-nav-btn" data-panel="campaigns">Campaigns</button>
+        <button type="button" class="admin-nav-btn" data-panel="tiktok-views">TikTok Views (Heartbound)</button>
+        <button type="button" class="admin-nav-btn" data-panel="goals">Streaming Goals (Heartbound)</button>
         <button type="button" class="admin-nav-btn" data-panel="announcements">Announcements</button>
         <button type="button" class="admin-nav-btn" data-panel="music">Music</button>
         <button type="button" class="admin-nav-btn" data-panel="trending">Trending</button>
         <button type="button" class="admin-nav-btn" data-panel="faq">FAQ</button>
-        <button type="button" class="admin-nav-btn" data-panel="quicklinks">Quick Links</button>
-        <button type="button" class="admin-nav-btn" data-panel="platforms">Official Accounts</button>
-        <button type="button" class="admin-nav-btn" data-panel="missions">Support Mission</button>
         <button type="button" class="admin-nav-btn" data-panel="site-settings">Site Settings</button>
-        <button type="button" class="admin-nav-btn" data-panel="comment-helper">Comment Helper</button>
       </nav>
 
       <main class="admin-main">
@@ -92,49 +88,284 @@
           </div>
         </section>
 
-        <!-- Current Campaign -->
-        <section class="admin-panel" data-panel="campaign">
-          <h2>Current Campaign</h2>
-          <form id="campaign-form" class="admin-form" novalidate>
-            <label for="campaign-title">Title</label>
-            <input type="text" id="campaign-title" required />
+        <!-- Campaigns (Campaign Manager) -->
+        <section class="admin-panel" data-panel="campaigns">
+          <h2>Campaigns</h2>
+          <p class="admin-hint">
+            Manage every campaign — current, upcoming, and previous. Multiple campaigns may be
+            Current at once; only one should normally be Featured (marking a new one Featured
+            automatically un-features the previous one).
+          </p>
 
-            <label for="campaign-subtitle">Subtitle</label>
-            <input type="text" id="campaign-subtitle" required />
+          <div class="admin-subsection" id="campaign-migrate-banner" hidden>
+            <h3>Migrate Heartbound to the New Campaign System</h3>
+            <p class="admin-hint">
+              This will create <code>campaigns/heartbound</code> from Heartbound's current live data
+              (identity, goals, TikTok views, missions, quick links, and official accounts).
+              Heartbound will remain <strong>Current</strong> and <strong>Featured</strong>. The
+              following will NOT change: YouTube automatic stats, TikTok stats, streaming goals, or
+              the public website's appearance.
+            </p>
+            <button type="button" class="btn btn-primary" id="campaign-migrate-btn">Migrate Heartbound to Firestore</button>
+            <p class="admin-status" id="campaign-migrate-status" role="status" hidden></p>
+          </div>
 
-            <label for="campaign-description">Description</label>
-            <textarea id="campaign-description" rows="4"></textarea>
+          <div class="admin-list" id="campaigns-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="campaign-add-btn">+ Add Campaign</button>
 
-            <label for="campaign-hero-message">Hero message</label>
-            <textarea id="campaign-hero-message" rows="2"></textarea>
+          <div class="admin-subsection" id="campaign-editor" hidden>
+            <h3 id="campaign-editor-title">Add Campaign</h3>
+            <form id="campaign-editor-form" class="admin-form" novalidate>
 
-            <label for="campaign-status">Status</label>
-            <select id="campaign-status">
-              <option value="active">Active</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="ended">Ended</option>
-            </select>
+              <label for="ce-id">Campaign ID / slug (lowercase, numbers, dashes only — can't change after creating)</label>
+              <input type="text" id="ce-id" placeholder="new-pilot-a" />
 
-            <label for="campaign-youtube-label">YouTube link label</label>
-            <input type="text" id="campaign-youtube-label" />
+              <label for="ce-title">Title</label>
+              <input type="text" id="ce-title" required />
 
-            <label for="campaign-youtube-url">YouTube trailer URL</label>
-            <input type="url" id="campaign-youtube-url" placeholder="https://www.youtube.com/watch?v=..." />
+              <label for="ce-subtitle">Subtitle</label>
+              <input type="text" id="ce-subtitle" />
 
-            <label for="campaign-tiktok-label">TikTok link label</label>
-            <input type="text" id="campaign-tiktok-label" />
+              <label for="ce-type">Campaign type</label>
+              <input type="text" id="ce-type" placeholder="Pilot Trailer / Official Trailer / Series / OST / Music / Other" />
 
-            <label for="campaign-tiktok-url">TikTok trailer URL</label>
-            <input type="url" id="campaign-tiktok-url" placeholder="https://www.tiktok.com/@.../video/..." />
+              <label for="ce-status">Status</label>
+              <select id="ce-status">
+                <option value="current">Current</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="previous">Previous</option>
+              </select>
 
-            <button type="submit" class="btn btn-primary" id="campaign-save">Save Campaign</button>
-            <p class="admin-status" id="campaign-status-msg" role="status" hidden></p>
-          </form>
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="ce-featured" />
+                Featured (the big homepage card — only one campaign should normally be featured)
+              </label>
+
+              <label for="ce-order">Display order (lower number = higher priority)</label>
+              <input type="number" id="ce-order" step="1" />
+
+              <label for="ce-image">Image path</label>
+              <input type="text" id="ce-image" placeholder="assets/images/example.jpg — leave blank for a placeholder" />
+
+              <label for="ce-description">Description</label>
+              <textarea id="ce-description" rows="3"></textarea>
+
+              <label for="ce-hero-message">Hero message</label>
+              <textarea id="ce-hero-message" rows="2"></textarea>
+
+              <label for="ce-start-date">Start date (YYYY-MM-DD, optional)</label>
+              <input type="text" id="ce-start-date" placeholder="2026-11-03" />
+
+              <label for="ce-end-date">End date (YYYY-MM-DD, optional)</label>
+              <input type="text" id="ce-end-date" />
+
+              <div class="admin-subsection">
+                <h3>Official Links</h3>
+                <label for="ce-link-youtube-label">YouTube link label</label>
+                <input type="text" id="ce-link-youtube-label" />
+                <label for="ce-link-youtube-url">YouTube URL</label>
+                <input type="url" id="ce-link-youtube-url" placeholder="https://www.youtube.com/watch?v=..." />
+
+                <label for="ce-link-tiktok-label">TikTok link label</label>
+                <input type="text" id="ce-link-tiktok-label" />
+                <label for="ce-link-tiktok-url">TikTok URL</label>
+                <input type="url" id="ce-link-tiktok-url" placeholder="https://www.tiktok.com/@.../video/..." />
+
+                <label for="ce-link-instagram-url">Instagram URL</label>
+                <input type="url" id="ce-link-instagram-url" />
+
+                <label for="ce-link-x-url">X URL</label>
+                <input type="url" id="ce-link-x-url" />
+              </div>
+
+              <div class="admin-subsection">
+                <h3>YouTube Goals</h3>
+                <div class="admin-list" id="ce-yt-goals-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="ce-yt-goal-add">+ Add Milestone</button>
+              </div>
+
+              <div class="admin-subsection">
+                <h3>TikTok Goals</h3>
+                <div class="admin-list" id="ce-tt-goals-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="ce-tt-goal-add">+ Add Milestone</button>
+              </div>
+
+              <div class="admin-subsection">
+                <h3>Stats Sources</h3>
+                <p class="admin-hint">
+                  Only used once automatic stats are extended to this campaign — safe to leave blank for now.
+                </p>
+                <label for="ce-youtube-video-id">YouTube video ID</label>
+                <input type="text" id="ce-youtube-video-id" placeholder="I1guVkLJ4mU" />
+
+                <label for="ce-youtube-stats-source">YouTube stats source (JSON file path)</label>
+                <input type="text" id="ce-youtube-stats-source" placeholder="data/youtube-stats.json" />
+
+                <label for="ce-tiktok-current-views">TikTok current views</label>
+                <input type="number" id="ce-tiktok-current-views" min="0" step="1" />
+              </div>
+
+              <div class="admin-subsection">
+                <h3>Official Accounts</h3>
+                <div class="admin-list" id="ce-platforms-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="ce-platform-add">+ Add Account</button>
+              </div>
+
+              <div class="admin-subsection">
+                <h3>Today's Support Mission</h3>
+                <div class="admin-list" id="ce-missions-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="ce-mission-add">+ Add Mission Step</button>
+              </div>
+
+              <div class="admin-subsection">
+                <h3>Quick Links</h3>
+                <div class="admin-list" id="ce-quicklinks-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="ce-quicklink-add">+ Add Link</button>
+              </div>
+
+              <div class="admin-subsection">
+                <h3>Optional campaign.html Modules</h3>
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" id="ce-feature-youtube-guide" />
+                  YouTube Streaming Guide
+                </label>
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" id="ce-feature-playlists" />
+                  Playlists
+                </label>
+                <label class="admin-checkbox-label">
+                  <input type="checkbox" id="ce-feature-comment-helper" />
+                  Comment Helper
+                </label>
+              </div>
+
+              <label for="ce-notes">Notes (internal only, not shown publicly)</label>
+              <textarea id="ce-notes" rows="2"></textarea>
+
+              <div class="admin-form-actions">
+                <button type="submit" class="btn btn-primary" id="campaign-editor-save">Save Campaign</button>
+                <button type="button" class="btn btn-secondary" id="campaign-editor-cancel">Cancel</button>
+                <p class="admin-status" id="campaign-editor-status" role="status" hidden></p>
+              </div>
+            </form>
+          </div>
+
+          <!-- Comment Helper manager — opened per-campaign via the [Comment
+               Helper] button on each row above. Config + phrase library for
+               whichever campaign is currently open (#comment-helper-manager-title). -->
+          <div class="admin-subsection" id="comment-helper-manager" hidden>
+            <div class="admin-item-toolbar">
+              <h3 id="comment-helper-manager-title">Comment Helper</h3>
+              <button type="button" class="btn btn-secondary btn-sm" id="comment-helper-manager-close">Close</button>
+            </div>
+
+            <form id="comment-helper-config-form" class="admin-form" novalidate>
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="chm-enabled" />
+                Enabled (shown on the public campaign page)
+              </label>
+
+              <label for="chm-title">Title</label>
+              <input type="text" id="chm-title" />
+
+              <label for="chm-description">Description</label>
+              <textarea id="chm-description" rows="2"></textarea>
+
+              <label for="chm-button-label">Generate button label</label>
+              <input type="text" id="chm-button-label" />
+
+              <label for="chm-copy-label">Copy button label</label>
+              <input type="text" id="chm-copy-label" />
+
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="chm-allow-editing" />
+                Allow fans to edit the generated comment before copying
+              </label>
+
+              <div class="admin-form-actions">
+                <button type="submit" class="btn btn-primary" id="comment-helper-config-save">Save Settings</button>
+                <p class="admin-status" id="comment-helper-config-status" role="status" hidden></p>
+              </div>
+            </form>
+
+            <div class="admin-subsection" id="comment-helper-migrate-banner" hidden>
+              <h3>Migrate Heartbound Comment Helper</h3>
+              <p class="admin-hint">
+                Legacy template system detected. This builds a large set of complete comments from
+                Heartbound's old style/length generator and uploads them as a flat phrase library.
+                The old local template data will not be deleted.
+              </p>
+              <button type="button" class="btn btn-primary" id="comment-helper-migrate-btn">Migrate Heartbound Comments</button>
+              <p class="admin-status" id="comment-helper-migrate-status" role="status" hidden></p>
+            </div>
+
+            <div class="admin-subsection">
+              <h3>Phrase Library</h3>
+              <p class="admin-meta">
+                <span id="comment-helper-phrase-total">0</span> total ·
+                <span id="comment-helper-phrase-enabled">0</span> enabled ·
+                <span id="comment-helper-phrase-disabled">0</span> disabled
+              </p>
+
+              <div class="admin-trending-phrase-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="comment-helper-csv-toggle">Upload CSV</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="comment-helper-add-toggle">+ Add Phrase</button>
+              </div>
+
+              <div class="admin-csv-upload" id="comment-helper-csv-panel" hidden>
+                <label for="comment-helper-csv-file">
+                  CSV file — one quoted comment per line (an optional leading <code>text</code> header is fine)
+                </label>
+                <input type="file" id="comment-helper-csv-file" accept=".csv,text/csv" />
+
+                <div class="admin-csv-mode">
+                  <label><input type="radio" name="comment-helper-csv-mode" value="add" checked /> Add to current library</label>
+                  <label><input type="radio" name="comment-helper-csv-mode" value="replace" /> Replace current library</label>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-sm" id="comment-helper-csv-preview">Preview Import</button>
+                <p class="admin-status" id="comment-helper-csv-status" role="status" hidden></p>
+
+                <div class="admin-csv-preview" id="comment-helper-csv-preview-panel" hidden>
+                  <p id="comment-helper-csv-preview-summary"></p>
+                  <div class="admin-form-actions">
+                    <button type="button" class="btn btn-primary" id="comment-helper-csv-import">Import</button>
+                    <button type="button" class="btn btn-secondary" id="comment-helper-csv-cancel">Cancel</button>
+                  </div>
+                  <p class="admin-meta" id="comment-helper-csv-progress" hidden></p>
+                </div>
+              </div>
+
+              <div class="admin-add-phrase" id="comment-helper-add-panel" hidden>
+                <textarea id="comment-helper-phrase-add-input" rows="2" placeholder="Write a new complete comment…"></textarea>
+                <button type="button" class="btn btn-primary btn-sm" id="comment-helper-phrase-add-save">Save Phrase</button>
+                <p class="admin-status" id="comment-helper-add-status" role="status" hidden></p>
+              </div>
+
+              <div class="admin-manage-phrases">
+                <input type="text" id="comment-helper-phrase-search" placeholder="Search phrases…" />
+                <div class="admin-tabs-sub" id="comment-helper-filter-tabs">
+                  <button type="button" class="admin-subtab is-active" data-comment-helper-filter="all">All</button>
+                  <button type="button" class="admin-subtab" data-comment-helper-filter="enabled">Enabled</button>
+                  <button type="button" class="admin-subtab" data-comment-helper-filter="disabled">Disabled</button>
+                </div>
+
+                <div class="admin-list" id="comment-helper-phrase-list"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="comment-helper-phrase-show-more" hidden>Show 100 more</button>
+                <p class="admin-status" id="comment-helper-manage-status" role="status" hidden></p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- TikTok Views -->
+        <!-- TikTok Views (Heartbound — legacy compatibility, see Campaigns panel) -->
         <section class="admin-panel" data-panel="tiktok-views">
-          <h2>TikTok Current Views</h2>
+          <h2>TikTok Current Views (Heartbound)</h2>
+          <p class="admin-hint">
+            Temporary compatibility panel — this value still feeds Heartbound's TikTok goal cards
+            directly (<code>stats/tiktok</code>) until that's generalized per-campaign. Other
+            campaigns set their TikTok view count in Campaign Manager instead.
+          </p>
           <form id="tiktok-views-form" class="admin-form admin-form-narrow" novalidate>
             <label for="tiktok-views-input">TikTok Current Views</label>
             <input type="number" id="tiktok-views-input" min="0" step="1" inputmode="numeric" required />
@@ -146,9 +377,14 @@
           </form>
         </section>
 
-        <!-- Streaming Goals -->
+        <!-- Streaming Goals (Heartbound — legacy compatibility, see Campaigns panel) -->
         <section class="admin-panel" data-panel="goals">
-          <h2>Streaming Goals</h2>
+          <h2>Streaming Goals (Heartbound)</h2>
+          <p class="admin-hint">
+            Temporary compatibility panel — these targets still feed Heartbound's goal cards
+            directly (<code>campaign/goals</code>, <code>campaign/tiktokGoals</code>) until that's
+            generalized per-campaign. Other campaigns set their goals in Campaign Manager instead.
+          </p>
 
           <div class="admin-subsection">
             <h3>YouTube Milestones</h3>
@@ -295,39 +531,6 @@
           </div>
         </section>
 
-        <!-- Quick Links -->
-        <section class="admin-panel" data-panel="quicklinks">
-          <h2>Quick Links</h2>
-          <div class="admin-list" id="quicklinks-list"></div>
-          <button type="button" class="btn btn-secondary btn-sm" id="quicklink-add">+ Add Link</button>
-          <div class="admin-form-actions">
-            <button type="button" class="btn btn-primary" id="quicklinks-save">Save Quick Links</button>
-            <p class="admin-status" id="quicklinks-status" role="status" hidden></p>
-          </div>
-        </section>
-
-        <!-- Official Accounts / Platforms -->
-        <section class="admin-panel" data-panel="platforms">
-          <h2>Official Accounts</h2>
-          <div class="admin-list" id="platforms-list"></div>
-          <button type="button" class="btn btn-secondary btn-sm" id="platform-add">+ Add Account</button>
-          <div class="admin-form-actions">
-            <button type="button" class="btn btn-primary" id="platforms-save">Save Accounts</button>
-            <p class="admin-status" id="platforms-status" role="status" hidden></p>
-          </div>
-        </section>
-
-        <!-- Today's Support Mission -->
-        <section class="admin-panel" data-panel="missions">
-          <h2>Today's Support Mission</h2>
-          <div class="admin-list" id="missions-list"></div>
-          <button type="button" class="btn btn-secondary btn-sm" id="mission-add">+ Add Mission Step</button>
-          <div class="admin-form-actions">
-            <button type="button" class="btn btn-primary" id="missions-save">Save Missions</button>
-            <p class="admin-status" id="missions-status" role="status" hidden></p>
-          </div>
-        </section>
-
         <!-- Site Settings -->
         <section class="admin-panel" data-panel="site-settings">
           <h2>Site Settings</h2>
@@ -350,23 +553,6 @@
             <button type="submit" class="btn btn-primary" id="site-settings-save">Save Site Settings</button>
             <p class="admin-status" id="site-settings-status" role="status" hidden></p>
           </form>
-        </section>
-
-        <!-- Comment Helper -->
-        <section class="admin-panel" data-panel="comment-helper">
-          <h2>Comment Helper</h2>
-          <p class="admin-hint">
-            Edit phrases within each existing style/pool. Adding a brand-new style category isn't
-            supported here yet.
-          </p>
-          <div class="admin-tabs-sub" id="comment-style-tabs"></div>
-          <div class="admin-tabs-sub" id="comment-pool-tabs"></div>
-          <div class="admin-list" id="comment-phrases-list"></div>
-          <button type="button" class="btn btn-secondary btn-sm" id="comment-phrase-add">+ Add Phrase</button>
-          <div class="admin-form-actions">
-            <button type="button" class="btn btn-primary" id="comment-helper-save">Save Comment Helper</button>
-            <p class="admin-status" id="comment-helper-status" role="status" hidden></p>
-          </div>
         </section>
 
       </main>

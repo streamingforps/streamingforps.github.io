@@ -46,12 +46,12 @@
         >
           <ul>
             <li><a href="index.html">Home</a></li>
-            <li><a href="campaign.html">Current Campaign</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html">All Campaigns</a></li>
             <li><a href="trending.html">Trending</a></li>
             <li><a href="music.html">Music</a></li>
             <li><a href="index.html#guides">Streaming Guides</a></li>
             <li><a href="index.html#platforms">Platforms</a></li>
-            <li><a href="index.html#goals">Goals</a></li>
             <li><a href="index.html#faq">FAQ / Important Info</a></li>
           </ul>
         </nav>
@@ -89,6 +89,15 @@
 
   <main id="main-content">
 
+    <!-- Shown instead of everything below when ?id= doesn't match a known campaign -->
+    <div data-render="campaign-not-found" hidden>
+      <div class="container" style="text-align: center; padding-block: var(--space-8);">
+        <h1>Campaign Not Found</h1>
+        <p>We couldn't find a campaign with id &ldquo;<span data-field="not-found-id"></span>&rdquo;.</p>
+        <a class="btn btn-primary" href="campaigns.html">View All Campaigns</a>
+      </div>
+    </div>
+
     <!-- Campaign Hero -->
     <section class="hero" data-render="campaign-hero">
       <div class="container">
@@ -118,27 +127,25 @@
             class="hero-actions"
             data-slot="primary-cta"
           >
-            <!-- Primary CTA buttons rendered by js/main.js -->
+            <!-- Primary CTA buttons rendered by js/campaigns.js -->
           </div>
         </div>
 
-        <div class="campaign-visual">
-          <img
-            src="assets/images/heartbound.jpg"
-            alt="Heartbound"
-            class="campaign-image"
-            data-field="campaign-page-image"
-          />
+        <div class="campaign-visual" data-campaign-image>
+          <!-- Rendered by js/campaigns.js — exactly one <img> OR one placeholder, never both -->
         </div>
 
       </div>
     </section>
 
-    <!-- Streaming Goals -->
+    <!-- Streaming Goals — whole section hides when the campaign has no
+         goals at all; each group hides independently when its own
+         platform's goals are empty -->
     <section
       class="section section-alt"
       id="goals"
       aria-labelledby="goals-heading"
+      data-campaign-section="goals"
     >
       <div class="container">
 
@@ -148,46 +155,52 @@
           </h2>
 
           <p>
-            Help Heartbound reach the next milestone on every streaming platform.
+            Help this campaign reach the next milestone on every streaming platform.
           </p>
         </div>
 
         <!-- YouTube Goals -->
-        <h3 class="platform-goals-title">
-          YouTube Goals
-        </h3>
+        <div data-goals-group="youtube">
+          <h3 class="platform-goals-title">
+            YouTube Goals
+          </h3>
 
-        <div
-          class="card-grid"
-          data-render="goals"
-        >
-          <!-- YouTube goals rendered by js/main.js -->
+          <div
+            class="card-grid"
+            data-render="goals"
+          >
+            <!-- Rendered by js/campaigns.js -->
+          </div>
+
+          <p class="goals-live-note">
+            YouTube views updated automatically
+            <span data-field="goals-updated-at"></span>
+          </p>
         </div>
 
-        <p class="goals-live-note">
-          YouTube views updated automatically
-          <span data-field="goals-updated-at"></span>
-        </p>
-
         <!-- TikTok Goals -->
-        <h3 class="platform-goals-title">
-          TikTok Goals
-        </h3>
+        <div data-goals-group="tiktok">
+          <h3 class="platform-goals-title">
+            TikTok Goals
+          </h3>
 
-        <div
-          class="card-grid"
-          data-render="tiktok-goals"
-        >
-          <!-- TikTok goals rendered by js/main.js -->
+          <div
+            class="card-grid"
+            data-render="tiktok-goals"
+          >
+            <!-- Rendered by js/campaigns.js -->
+          </div>
         </div>
 
       </div>
     </section>
 
-    <!-- YouTube Streaming Guide -->
+    <!-- YouTube Streaming Guide — optional module, shown only when this
+         campaign's features.youtubeGuide is true -->
     <section
       class="section"
       aria-labelledby="youtube-guide-heading"
+      data-feature="youtubeGuide"
     >
       <div class="container">
 
@@ -212,7 +225,7 @@
         </p>
 
         <div data-slot="youtube-guide-cta" class="stream-guide-cta" style="text-align: center; padding-top: 0; margin-bottom: var(--space-6);">
-          <!-- CTA rendered by js/main.js, using currentCampaign.primaryLink -->
+          <!-- CTA rendered by js/campaigns.js, using the resolved campaign's links.youtube -->
         </div>
 
         <div class="stream-guide-compare">
@@ -297,8 +310,9 @@
 
         </div>
 
-        <!-- Busy? Use a Playlist -->
-        <div class="stream-guide-card stream-guide-card--playlist stream-guide-card--single">
+        <!-- Busy? Use a Playlist — optional module, shown only when this
+             campaign's features.playlists is true -->
+        <div class="stream-guide-card stream-guide-card--playlist stream-guide-card--single" data-feature="playlists">
           <div class="stream-guide-card-header">
             <span class="stream-guide-card-icon" aria-hidden="true">☰</span>
             <h3 class="stream-guide-card-title">Busy? Use a Playlist</h3>
@@ -340,43 +354,29 @@
       </div>
     </section>
 
-    <!-- Comment Helper -->
+    <!-- Comment Helper — optional module, shown only when this campaign's
+         features.commentHelper is true -->
     <section
       class="section"
       id="comment-helper"
       aria-labelledby="comment-helper-heading"
+      data-feature="commentHelper"
     >
       <div class="container">
 
         <div class="section-heading">
-          <h2 id="comment-helper-heading">
+          <h2 id="comment-helper-heading" data-comment-helper-title>
             Comment Helper
           </h2>
 
-          <p>
-            Not sure what to write? Generate a genuine comment idea for the
-            Heartbound pilot trailer, then edit it and make it yours before posting.
+          <p data-comment-helper-description>
+            Need an idea? Generate a comment you can personalize.
           </p>
         </div>
 
         <div class="comment-helper" data-comment-helper>
 
           <div class="comment-helper-controls">
-
-            <div class="comment-helper-field">
-              <label for="comment-style">Comment style</label>
-              <select id="comment-style" data-comment-style>
-                <!-- Rendered by js/main.js -->
-              </select>
-            </div>
-
-            <div class="comment-helper-field">
-              <label for="comment-length">Length</label>
-              <select id="comment-length" data-comment-length>
-                <!-- Rendered by js/main.js -->
-              </select>
-            </div>
-
             <button
               type="button"
               class="btn btn-primary"
@@ -384,18 +384,21 @@
             >
               Generate Comment
             </button>
-
           </div>
+
+          <p class="empty-state" data-comment-helper-empty hidden></p>
 
           <div
             class="comment-helper-result"
             data-comment-result
             hidden
           >
-            <p
+            <textarea
               class="comment-helper-text"
               data-comment-text
-            ></p>
+              rows="3"
+              aria-label="Generated comment"
+            ></textarea>
 
             <div class="comment-helper-actions">
               <button
@@ -411,7 +414,7 @@
                 class="btn btn-primary"
                 data-comment-copy
               >
-                Copy Comment
+                Copy
               </button>
             </div>
 
@@ -435,11 +438,11 @@
 
         <div class="section-heading">
           <h2 id="platforms-heading">
-            Official Heartbound Accounts
+            Official Accounts
           </h2>
 
           <p>
-            Every platform where you can help support Heartbound.
+            Every platform where you can help support this campaign.
           </p>
         </div>
 
@@ -447,7 +450,7 @@
           class="card-grid"
           data-render="platforms"
         >
-          <!-- Rendered by js/main.js -->
+          <!-- Rendered by js/campaigns.js -->
         </div>
 
       </div>
@@ -474,7 +477,7 @@
           class="mission-list"
           data-render="missions"
         >
-          <!-- Rendered by js/main.js -->
+          <!-- Rendered by js/campaigns.js -->
         </ol>
 
       </div>
@@ -501,7 +504,7 @@
           class="card-grid"
           data-render="quick-links"
         >
-          <!-- Rendered by js/main.js -->
+          <!-- Rendered by js/campaigns.js -->
         </div>
 
       </div>
@@ -539,8 +542,8 @@
 
       <p class="footer-disclaimer">
         PerthSanta Streaming is an unofficial, fan-run project and is not affiliated
-        with, endorsed by, or operated on behalf of PerthSanta, Heartbound, or
-        any associated network or platform.
+        with, endorsed by, or operated on behalf of PerthSanta, or any associated
+        network, platform, or production.
       </p>
 
       <p class="footer-credit">
@@ -558,6 +561,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
   <script type="module" src="js/firestore-content.js"></script>
 </body>
 </html>

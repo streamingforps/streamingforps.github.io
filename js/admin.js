@@ -66,28 +66,24 @@ const db = getFirestore(app);
    ========================================================================== */
 
 const hasSiteData = typeof siteData !== "undefined";
-const fallbackCampaign = hasSiteData ? siteData.currentCampaign : {};
+const fallbackCampaigns = hasSiteData && Array.isArray(siteData.campaigns) ? siteData.campaigns : [];
+const fallbackHeartbound = fallbackCampaigns.find((c) => c.id === "heartbound") || {};
 
 const FALLBACK_DATA = {
-  campaign: {
-    title: fallbackCampaign.title || "",
-    subtitle: fallbackCampaign.subtitle || "",
-    description: fallbackCampaign.description || "",
-    heroMessage: fallbackCampaign.heroMessage || "",
-    status: fallbackCampaign.status || "active",
-    primaryLink: fallbackCampaign.primaryLink || { label: "", url: "" },
-    tiktokLink: fallbackCampaign.tiktokLink || { label: "", url: "" }
-  },
-  tiktokCurrentViews: fallbackCampaign.tiktokCurrentViews || 0,
-  youtubeGoals: (fallbackCampaign.goals || []).map((g) => ({ label: g.label, target: g.target })),
-  tiktokGoals: (fallbackCampaign.tiktokGoals || []).map((g) => ({ label: g.label, target: g.target })),
+  // Full campaign objects (data.js shape) — seeds the Campaign Manager list
+  // for any campaign that doesn't have a live campaigns/{id} doc yet.
+  campaigns: fallbackCampaigns,
+  tiktokCurrentViews: (fallbackHeartbound.stats && fallbackHeartbound.stats.tiktokCurrentViews) || 0,
+  youtubeGoals: (fallbackHeartbound.goals && fallbackHeartbound.goals.youtube) || [],
+  tiktokGoals: (fallbackHeartbound.goals && fallbackHeartbound.goals.tiktok) || [],
   announcements: hasSiteData ? siteData.announcements || [] : [],
-  missions: fallbackCampaign.missions || [],
-  quickLinks: fallbackCampaign.quickLinks || [],
-  platforms: fallbackCampaign.platforms || [],
   faq: hasSiteData ? siteData.faq || [] : [],
   music: hasSiteData ? siteData.music || { osts: [], perthsanta: [], perthSolo: [], jasper: [] } : { osts: [], perthsanta: [], perthSolo: [], jasper: [] },
-  commentHelper: hasSiteData ? siteData.commentHelper || { styles: [], lengths: [], phrases: {} } : { styles: [], lengths: [], phrases: {} },
+  // Heartbound's old style/length comment-template banks — used ONLY by the
+  // "Migrate Heartbound Comment Helper" action to pre-bake a flat phrase
+  // library; never shown as an editable form on its own anymore.
+  commentHelperLegacyTemplates: hasSiteData ? siteData.commentHelperLegacyTemplates || { styles: [], lengths: [], phrases: {} } : { styles: [], lengths: [], phrases: {} },
+  commentHelperFallback: hasSiteData ? siteData.commentHelperFallback || { heartbound: [] } : { heartbound: [] },
   trending: hasSiteData && siteData.trending
     ? siteData.trending
     : {
@@ -320,6 +316,32 @@ function createArrayPanel(config) {
               optionEl.textContent = opt;
               control.appendChild(optionEl);
             });
+          } else if (field.type === "checkboxes") {
+            // item[field.key] is an array of selected option strings, not a
+            // scalar — handled entirely separately from the generic
+            // value/input-listener wiring below.
+            control = document.createElement("div");
+            control.className = "admin-checkbox-group";
+            const selected = Array.isArray(item[field.key]) ? item[field.key] : [];
+            field.options.forEach((opt) => {
+              const optLabel = document.createElement("label");
+              optLabel.className = "admin-checkbox-label";
+
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.checked = selected.includes(opt);
+              checkbox.addEventListener("change", () => {
+                const current = Array.isArray(item[field.key]) ? item[field.key].slice() : [];
+                const idx = current.indexOf(opt);
+                if (checkbox.checked && idx === -1) current.push(opt);
+                if (!checkbox.checked && idx !== -1) current.splice(idx, 1);
+                item[field.key] = current;
+              });
+
+              optLabel.appendChild(checkbox);
+              optLabel.appendChild(document.createTextNode(` ${opt}`));
+              control.appendChild(optLabel);
+            });
           } else {
             control = document.createElement("input");
             control.type = field.type === "number" ? "number" : field.type === "url" ? "url" : "text";
@@ -329,12 +351,14 @@ function createArrayPanel(config) {
             }
           }
 
-          if (field.placeholder) control.placeholder = field.placeholder;
-          control.value = item[field.key] === null || item[field.key] === undefined ? "" : item[field.key];
+          if (field.type !== "checkboxes") {
+            if (field.placeholder) control.placeholder = field.placeholder;
+            control.value = item[field.key] === null || item[field.key] === undefined ? "" : item[field.key];
 
-          control.addEventListener("input", () => {
-            item[field.key] = control.value;
-          });
+            control.addEventListener("input", () => {
+              item[field.key] = control.value;
+            });
+          }
 
           wrap.appendChild(control);
           grid.appendChild(wrap);
@@ -358,6 +382,14 @@ function createArrayPanel(config) {
     for (const item of items) {
       for (const field of fields) {
         const value = item[field.key];
+
+        if (field.type === "checkboxes") {
+          if (field.required && (!Array.isArray(value) || value.length === 0)) {
+            return field.requiredMessage || `Select at least one option for "${field.label}" on every item.`;
+          }
+          continue;
+        }
+
         if (field.required && !isNonEmptyString(String(value ?? ""))) {
           return `"${field.label}" is required on every item.`;
         }
@@ -465,17 +497,36 @@ const announcementsPanel = createArrayPanel({
   twoColumn: true,
   fields: [
     { key: "date", label: "Date (YYYY-MM-DD)", type: "text", required: true, placeholder: "2026-08-17" },
-    { key: "category", label: "Category", type: "select", options: ANNOUNCEMENT_CATEGORIES, required: true },
+    {
+      key: "categories",
+      label: "Categories",
+      type: "checkboxes",
+      options: ANNOUNCEMENT_CATEGORIES,
+      required: true,
+      requiredMessage: "Select at least one category."
+    },
     { key: "title", label: "Title", type: "text", required: true },
     { key: "message", label: "Message", type: "textarea", required: true },
     { key: "url", label: "URL (optional)", type: "url" },
     { key: "ctaLabel", label: "CTA label (optional)", type: "text" }
   ],
-  newItem: () => ({ date: "", category: "General", title: "", message: "", url: null, ctaLabel: null }),
+  newItem: () => ({ date: "", categories: [], title: "", message: "", url: null, ctaLabel: null }),
+  // Loading an announcement that still uses the old single `category`
+  // field normalizes it into `categories: [...]` so the checkboxes render
+  // correctly; saving always writes the new array form only (the old
+  // `category` property is never written back).
+  extractItems: (data) => (data.items || FALLBACK_DATA.announcements).map((a) => ({
+    date: a.date || "",
+    categories: Array.isArray(a.categories) ? a.categories.slice() : (a.category ? [a.category] : []),
+    title: a.title || "",
+    message: a.message || "",
+    url: a.url || null,
+    ctaLabel: a.ctaLabel || null
+  })),
   buildSaveData: (items) => ({
     items: items.map((a) => ({
       date: a.date.trim(),
-      category: a.category,
+      categories: Array.from(new Set((a.categories || []).filter(Boolean))),
       title: a.title.trim(),
       message: a.message.trim(),
       url: isNonEmptyString(a.url) ? a.url.trim() : null,
@@ -504,85 +555,6 @@ const faqPanel = createArrayPanel({
   buildSaveData: (items) => ({
     items: items.map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
   })
-});
-
-/* ==========================================================================
-   Quick Links
-   ========================================================================== */
-
-const quickLinksPanel = createArrayPanel({
-  listEl: $("#quicklinks-list"),
-  addBtn: $("#quicklink-add"),
-  saveBtn: $("#quicklinks-save"),
-  statusEl: $("#quicklinks-status"),
-  docPath: "content/quickLinks",
-  fallback: FALLBACK_DATA.quickLinks,
-  itemType: "object",
-  twoColumn: true,
-  fields: [
-    { key: "label", label: "Label", type: "text", required: true },
-    { key: "icon", label: "Icon / glyph", type: "text", required: true, placeholder: "▶" },
-    { key: "url", label: "URL", type: "url", required: true }
-  ],
-  newItem: () => ({ label: "", icon: "▶", url: "" }),
-  buildSaveData: (items) => ({
-    items: items.map((l) => ({ label: l.label.trim(), icon: l.icon.trim(), url: l.url.trim() }))
-  })
-});
-
-/* ==========================================================================
-   Official Accounts / Platforms
-   ========================================================================== */
-
-const platformsPanel = createArrayPanel({
-  listEl: $("#platforms-list"),
-  addBtn: $("#platform-add"),
-  saveBtn: $("#platforms-save"),
-  statusEl: $("#platforms-status"),
-  docPath: "content/platforms",
-  fallback: FALLBACK_DATA.platforms,
-  itemType: "object",
-  twoColumn: true,
-  fields: [
-    { key: "id", label: "ID (unique slug, e.g. x)", type: "text", required: true },
-    { key: "name", label: "Platform name", type: "text", required: true },
-    { key: "actionsText", label: "Action labels (comma-separated)", type: "text", placeholder: "Like, Repost, Reply, Share" },
-    { key: "cta", label: "CTA text", type: "text", required: true },
-    { key: "url", label: "URL", type: "url", required: true }
-  ],
-  newItem: () => ({ id: "", name: "", actionsText: "", cta: "", url: "" }),
-  buildSaveData: (items) => ({
-    items: items.map((p) => ({
-      id: p.id.trim(),
-      name: p.name.trim(),
-      actions: (p.actionsText || "").split(",").map((a) => a.trim()).filter(Boolean),
-      cta: p.cta.trim(),
-      url: p.url.trim()
-    }))
-  }),
-  extractItems: (data) => (data.items || FALLBACK_DATA.platforms).map((p) => ({
-    id: p.id,
-    name: p.name,
-    actionsText: (p.actions || []).join(", "),
-    cta: p.cta,
-    url: p.url
-  }))
-});
-
-/* ==========================================================================
-   Today's Support Mission
-   ========================================================================== */
-
-const missionsPanel = createArrayPanel({
-  listEl: $("#missions-list"),
-  addBtn: $("#mission-add"),
-  saveBtn: $("#missions-save"),
-  statusEl: $("#missions-status"),
-  docPath: "content/missions",
-  fallback: FALLBACK_DATA.missions,
-  itemType: "string",
-  newItem: () => "",
-  buildSaveData: (items) => ({ items: items.map((m) => m.trim()) })
 });
 
 /* ==========================================================================
@@ -697,182 +669,1227 @@ async function loadMusicPanel() {
 }
 
 /* ==========================================================================
-   Comment Helper (style -> phrase pool -> list of phrase strings)
+   Campaign Manager
+   ------------------------------------------------------------------
+   campaigns/{id} is canonical for every campaign. This panel shows the
+   union of live Firestore docs and any data.js fallback campaign that
+   doesn't have a live doc yet (shown with limited quick-actions until
+   it's actually saved once). Heartbound gets one extra, explicit action
+   — "Migrate Heartbound to Firestore" — since its pre-migration identity
+   comes from several older docs (campaign/current, campaign/goals,
+   campaign/tiktokGoals, stats/tiktok, content/missions, content/quickLinks,
+   content/platforms) that need consolidating into one new doc.
+
+   The nested YouTube Goals / TikTok Goals / Official Accounts / Support
+   Mission / Quick Links editors below reuse createArrayPanel exactly like
+   the rest of the admin console, just scoped to whichever campaign is
+   currently open in the editor instead of writing straight to Firestore —
+   their values are folded into the single campaign doc on Save.
    ========================================================================== */
 
-let commentHelperData = clone(FALLBACK_DATA.commentHelper);
-let activeCommentStyle = null;
-let activeCommentPool = null;
+const CAMPAIGN_STATUSES = ["current", "upcoming", "previous"];
+const LEGACY_HEARTBOUND_STATUS_MAP = { active: "current", upcoming: "upcoming", ended: "previous" };
 
-const commentPhrasesPanel = createArrayPanel({
-  listEl: $("#comment-phrases-list"),
-  addBtn: $("#comment-phrase-add"),
+let campaignsCache = [];
+let editingCampaignId = null; // null while the "Add Campaign" form is open
+
+const campaignYoutubeGoalsEditor = createArrayPanel({
+  listEl: $("#ce-yt-goals-list"),
+  addBtn: $("#ce-yt-goal-add"),
   saveBtn: null,
-  statusEl: $("#comment-helper-status"),
-  docPath: "content/commentHelper",
+  statusEl: null,
+  docPath: null,
+  fallback: [],
+  itemType: "object",
+  twoColumn: true,
+  fields: [
+    { key: "label", label: "Label", type: "text", required: true, placeholder: "1M Views" },
+    { key: "target", label: "Target", type: "number", required: true }
+  ],
+  newItem: () => ({ label: "", target: 0 })
+});
+
+const campaignTiktokGoalsEditor = createArrayPanel({
+  listEl: $("#ce-tt-goals-list"),
+  addBtn: $("#ce-tt-goal-add"),
+  saveBtn: null,
+  statusEl: null,
+  docPath: null,
+  fallback: [],
+  itemType: "object",
+  twoColumn: true,
+  fields: [
+    { key: "label", label: "Label", type: "text", required: true, placeholder: "1M Views" },
+    { key: "target", label: "Target", type: "number", required: true }
+  ],
+  newItem: () => ({ label: "", target: 0 })
+});
+
+const campaignPlatformsEditor = createArrayPanel({
+  listEl: $("#ce-platforms-list"),
+  addBtn: $("#ce-platform-add"),
+  saveBtn: null,
+  statusEl: null,
+  docPath: null,
+  fallback: [],
+  itemType: "object",
+  twoColumn: true,
+  fields: [
+    { key: "id", label: "ID (unique slug, e.g. x)", type: "text", required: true },
+    { key: "name", label: "Platform name", type: "text", required: true },
+    { key: "actionsText", label: "Action labels (comma-separated)", type: "text", placeholder: "Like, Repost, Reply, Share" },
+    { key: "cta", label: "CTA text", type: "text", required: true },
+    { key: "url", label: "URL", type: "url", required: true }
+  ],
+  newItem: () => ({ id: "", name: "", actionsText: "", cta: "", url: "" })
+});
+
+const campaignMissionsEditor = createArrayPanel({
+  listEl: $("#ce-missions-list"),
+  addBtn: $("#ce-mission-add"),
+  saveBtn: null,
+  statusEl: null,
+  docPath: null,
   fallback: [],
   itemType: "string",
   newItem: () => ""
 });
 
-function poolsForStyle(styleId) {
-  return styleId === "simple" ? ["lines"] : ["openings", "observations", "reactions", "endings"];
+const campaignQuickLinksEditor = createArrayPanel({
+  listEl: $("#ce-quicklinks-list"),
+  addBtn: $("#ce-quicklink-add"),
+  saveBtn: null,
+  statusEl: null,
+  docPath: null,
+  fallback: [],
+  itemType: "object",
+  twoColumn: true,
+  fields: [
+    { key: "label", label: "Label", type: "text", required: true },
+    { key: "icon", label: "Icon / glyph", type: "text", required: true, placeholder: "▶" },
+    { key: "url", label: "URL", type: "url", required: true }
+  ],
+  newItem: () => ({ label: "", icon: "▶", url: "" })
+});
+
+async function getLiveCampaignDocs() {
+  try {
+    const snap = await getDocs(collection(db, "campaigns"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
-function renderCommentStyleTabs() {
-  const wrap = $("#comment-style-tabs");
-  wrap.innerHTML = "";
-  (commentHelperData.styles || []).forEach((style) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `admin-subtab${style.id === activeCommentStyle ? " is-active" : ""}`;
-    btn.textContent = style.label;
-    btn.addEventListener("click", () => {
-      persistActivePool();
-      activeCommentStyle = style.id;
-      activeCommentPool = poolsForStyle(style.id)[0];
-      renderCommentStyleTabs();
-      renderCommentPoolTabs();
-      renderCommentPool();
-    });
-    wrap.appendChild(btn);
+async function loadCampaignsPanel() {
+  const liveDocs = await getLiveCampaignDocs();
+  const liveById = new Map(liveDocs.map((d) => [d.id, d]));
+
+  const merged = FALLBACK_DATA.campaigns.map((fallback) => {
+    const live = liveById.get(fallback.id);
+    return live ? { ...fallback, ...live, _inFirestore: true } : { ...fallback, _inFirestore: false };
   });
-}
-
-function renderCommentPoolTabs() {
-  const wrap = $("#comment-pool-tabs");
-  wrap.innerHTML = "";
-  if (!activeCommentStyle) return;
-
-  poolsForStyle(activeCommentStyle).forEach((poolKey) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `admin-subtab${poolKey === activeCommentPool ? " is-active" : ""}`;
-    btn.textContent = poolKey;
-    btn.addEventListener("click", () => {
-      persistActivePool();
-      activeCommentPool = poolKey;
-      renderCommentPoolTabs();
-      renderCommentPool();
-    });
-    wrap.appendChild(btn);
+  liveById.forEach((docData, id) => {
+    if (!merged.some((c) => c.id === id)) merged.push({ ...docData, id, _inFirestore: true });
   });
+
+  campaignsCache = merged;
+  renderCampaignsList();
+  updateMigrationBanner();
 }
 
-function persistActivePool() {
-  if (!activeCommentStyle || !activeCommentPool) return;
-  const pool = commentPhrasesPanel.getItems().slice();
-  if (!commentHelperData.phrases[activeCommentStyle]) commentHelperData.phrases[activeCommentStyle] = {};
-  commentHelperData.phrases[activeCommentStyle][activeCommentPool] = pool;
+function updateMigrationBanner() {
+  const heartbound = campaignsCache.find((c) => c.id === "heartbound");
+  $("#campaign-migrate-banner").hidden = !(heartbound && !heartbound._inFirestore);
 }
 
-function renderCommentPool() {
-  if (!activeCommentStyle || !activeCommentPool) {
-    commentPhrasesPanel.setItems([]);
+function renderCampaignsList() {
+  const listEl = $("#campaigns-list");
+  listEl.innerHTML = "";
+
+  if (!campaignsCache.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No campaigns yet — use Add Campaign below.";
+    listEl.appendChild(empty);
     return;
   }
-  const stylePhrases = commentHelperData.phrases[activeCommentStyle] || {};
-  commentPhrasesPanel.setItems(clone(stylePhrases[activeCommentPool] || []));
+
+  campaignsCache
+    .slice()
+    .sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999))
+    .forEach((campaign) => listEl.appendChild(buildCampaignRow(campaign)));
 }
 
-function initCommentHelperPanel() {
-  $("#comment-helper-save").addEventListener("click", () => {
-    persistActivePool();
+function buildCampaignRow(campaign) {
+  const inFirestore = campaign._inFirestore !== false;
 
-    for (const style of commentHelperData.styles || []) {
-      const pools = commentHelperData.phrases[style.id] || {};
-      for (const poolKey of poolsForStyle(style.id)) {
-        const lines = pools[poolKey] || [];
-        if (lines.some((line) => !isNonEmptyString(line))) {
-          setStatus($("#comment-helper-status"), `Empty phrase found in "${style.label} → ${poolKey}" — fill it in or remove it.`, "error");
-          return;
-        }
-      }
-    }
+  const row = document.createElement("div");
+  row.className = "admin-item";
 
-    withSaving($("#comment-helper-save"), $("#comment-helper-status"), "Saving…", async () => {
-      await setDoc(doc(db, "content/commentHelper"), commentHelperData);
-    });
-  });
-}
+  const toolbar = document.createElement("div");
+  toolbar.className = "admin-item-toolbar";
 
-async function loadCommentHelperPanel() {
-  commentHelperData = await loadDocOr("content/commentHelper", FALLBACK_DATA.commentHelper);
-  if (!commentHelperData.phrases) commentHelperData.phrases = {};
-  if (!Array.isArray(commentHelperData.styles) || !commentHelperData.styles.length) {
-    setStatus($("#comment-helper-status"), "No comment helper data found yet in Firestore or data.js.", "error");
-    return;
+  const titleWrap = document.createElement("div");
+  const titleEl = document.createElement("strong");
+  titleEl.textContent = campaign.title || campaign.id;
+  titleWrap.appendChild(titleEl);
+  if (campaign.isFeatured) {
+    const featuredBadge = document.createElement("span");
+    featuredBadge.className = "badge badge-active";
+    featuredBadge.style.marginLeft = "8px";
+    featuredBadge.textContent = "Featured";
+    titleWrap.appendChild(featuredBadge);
   }
-  activeCommentStyle = commentHelperData.styles[0].id;
-  activeCommentPool = poolsForStyle(activeCommentStyle)[0];
-  renderCommentStyleTabs();
-  renderCommentPoolTabs();
-  renderCommentPool();
+  toolbar.appendChild(titleWrap);
+
+  const actions = document.createElement("div");
+  actions.className = "admin-item-actions";
+  actions.style.flexWrap = "wrap";
+
+  const statusSelect = document.createElement("select");
+  statusSelect.style.width = "auto";
+  CAMPAIGN_STATUSES.forEach((status) => {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    if (status === campaign.status) option.selected = true;
+    statusSelect.appendChild(option);
+  });
+  statusSelect.disabled = !inFirestore;
+  statusSelect.addEventListener("change", () => {
+    quickUpdateCampaign(campaign.id, { status: statusSelect.value });
+  });
+  actions.appendChild(statusSelect);
+
+  const featuredBtn = document.createElement("button");
+  featuredBtn.type = "button";
+  featuredBtn.className = "btn btn-secondary btn-sm";
+  featuredBtn.style.width = "auto";
+  featuredBtn.textContent = campaign.isFeatured ? "★ Featured" : "Make Featured";
+  featuredBtn.disabled = !inFirestore || !!campaign.isFeatured;
+  featuredBtn.addEventListener("click", () => makeFeatured(campaign.id));
+  actions.appendChild(featuredBtn);
+
+  const orderInput = document.createElement("input");
+  orderInput.type = "number";
+  orderInput.step = "1";
+  orderInput.style.width = "70px";
+  orderInput.value = typeof campaign.displayOrder === "number" ? campaign.displayOrder : 999;
+  orderInput.disabled = !inFirestore;
+  orderInput.addEventListener("change", () => {
+    quickUpdateCampaign(campaign.id, { displayOrder: Number(orderInput.value) || 0 });
+  });
+  actions.appendChild(orderInput);
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn btn-secondary btn-sm";
+  editBtn.style.width = "auto";
+  editBtn.textContent = "Edit";
+  editBtn.addEventListener("click", () => openCampaignEditor(campaign.id));
+  actions.appendChild(editBtn);
+
+  const commentHelperBtn = document.createElement("button");
+  commentHelperBtn.type = "button";
+  commentHelperBtn.className = "btn btn-secondary btn-sm";
+  commentHelperBtn.style.width = "auto";
+  commentHelperBtn.textContent = "Comment Helper";
+  commentHelperBtn.disabled = !inFirestore;
+  if (!inFirestore) commentHelperBtn.title = "Save this campaign first.";
+  commentHelperBtn.addEventListener("click", () => openCommentHelperManager(campaign.id));
+  actions.appendChild(commentHelperBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "admin-delete-btn";
+  deleteBtn.textContent = "✕";
+  deleteBtn.setAttribute("aria-label", "Delete campaign");
+  deleteBtn.disabled = !inFirestore;
+  deleteBtn.addEventListener("click", () => deleteCampaign(campaign.id));
+  actions.appendChild(deleteBtn);
+
+  toolbar.appendChild(actions);
+  row.appendChild(toolbar);
+
+  const meta = document.createElement("p");
+  meta.className = "admin-meta";
+  meta.textContent = `${campaign.campaignType || "—"} · id: ${campaign.id}`;
+  row.appendChild(meta);
+
+  if (!inFirestore) {
+    const notice = document.createElement("p");
+    notice.className = "admin-hint";
+    notice.style.margin = 0;
+    notice.textContent = campaign.id === "heartbound"
+      ? "Not yet migrated — use the migration action above to enable quick status/featured/order controls."
+      : "Not yet saved to Firestore — click Edit, then Save, to create it and enable quick controls.";
+    row.appendChild(notice);
+  }
+
+  return row;
 }
 
-/* ==========================================================================
-   Current Campaign (scalar form)
-   ========================================================================== */
-
-async function loadCampaignPanel() {
-  const c = await loadDocOr("campaign/current", FALLBACK_DATA.campaign);
-  $("#campaign-title").value = c.title || "";
-  $("#campaign-subtitle").value = c.subtitle || "";
-  $("#campaign-description").value = c.description || "";
-  $("#campaign-hero-message").value = c.heroMessage || "";
-  $("#campaign-status").value = c.status || "active";
-  $("#campaign-youtube-label").value = (c.primaryLink && c.primaryLink.label) || "";
-  $("#campaign-youtube-url").value = (c.primaryLink && c.primaryLink.url) || "";
-  $("#campaign-tiktok-label").value = (c.tiktokLink && c.tiktokLink.label) || "";
-  $("#campaign-tiktok-url").value = (c.tiktokLink && c.tiktokLink.url) || "";
+function quickUpdateCampaign(id, fields) {
+  updateDoc(doc(db, "campaigns", id), { ...fields, updatedAt: serverTimestamp() })
+    .then(() => loadCampaignsPanel())
+    .catch((error) => {
+      console.error(error);
+      window.alert(`Couldn't update campaign: ${error.message || "unknown error"}`);
+      loadCampaignsPanel();
+    });
 }
 
-function initCampaignPanel() {
-  $("#campaign-form").addEventListener("submit", (event) => {
+async function unsetFeaturedOnOthers(exceptId) {
+  const others = campaignsCache.filter((c) => c.id !== exceptId && c.isFeatured && c._inFirestore !== false);
+  if (!others.length) return;
+  const batch = writeBatch(db);
+  others.forEach((o) => batch.update(doc(db, "campaigns", o.id), { isFeatured: false }));
+  await batch.commit();
+}
+
+async function makeFeatured(id) {
+  try {
+    await updateDoc(doc(db, "campaigns", id), { isFeatured: true, updatedAt: serverTimestamp() });
+    await unsetFeaturedOnOthers(id);
+    await loadCampaignsPanel();
+  } catch (error) {
+    console.error(error);
+    window.alert(`Couldn't update the featured campaign: ${error.message || "unknown error"}`);
+  }
+}
+
+function deleteCampaign(id) {
+  if (!confirmDelete(`Delete the "${id}" campaign? This can't be undone.`)) return;
+  deleteDoc(doc(db, "campaigns", id))
+    .then(() => loadCampaignsPanel())
+    .catch((error) => {
+      console.error(error);
+      window.alert(`Couldn't delete campaign: ${error.message || "unknown error"}`);
+    });
+}
+
+function blankCampaign() {
+  return {
+    id: "", title: "", subtitle: "", campaignType: "", status: "upcoming", isFeatured: false,
+    displayOrder: 99, image: "", description: "", heroMessage: "", startDate: "", endDate: "",
+    links: {}, goals: {}, stats: {}, platforms: [], missions: [], quickLinks: [], features: {}, notes: ""
+  };
+}
+
+function openCampaignEditor(id) {
+  if (typeof closeCommentHelperManager === "function") closeCommentHelperManager();
+
+  editingCampaignId = id || null;
+  const campaign = id ? campaignsCache.find((c) => c.id === id) || blankCampaign() : blankCampaign();
+
+  $("#campaign-editor-title").textContent = id ? `Edit Campaign — ${campaign.title || id}` : "Add Campaign";
+  $("#ce-id").value = campaign.id || "";
+  $("#ce-id").disabled = !!id;
+  $("#ce-title").value = campaign.title || "";
+  $("#ce-subtitle").value = campaign.subtitle || "";
+  $("#ce-type").value = campaign.campaignType || "";
+  $("#ce-status").value = campaign.status || "upcoming";
+  $("#ce-featured").checked = !!campaign.isFeatured;
+  $("#ce-order").value = typeof campaign.displayOrder === "number" ? campaign.displayOrder : "";
+  $("#ce-image").value = campaign.image || "";
+  $("#ce-description").value = campaign.description || "";
+  $("#ce-hero-message").value = campaign.heroMessage || "";
+  $("#ce-start-date").value = campaign.startDate || "";
+  $("#ce-end-date").value = campaign.endDate || "";
+
+  const links = campaign.links || {};
+  $("#ce-link-youtube-label").value = (links.youtube && links.youtube.label) || "";
+  $("#ce-link-youtube-url").value = (links.youtube && links.youtube.url) || "";
+  $("#ce-link-tiktok-label").value = (links.tiktok && links.tiktok.label) || "";
+  $("#ce-link-tiktok-url").value = (links.tiktok && links.tiktok.url) || "";
+  $("#ce-link-instagram-url").value = (links.instagram && links.instagram.url) || "";
+  $("#ce-link-x-url").value = (links.x && links.x.url) || "";
+
+  campaignYoutubeGoalsEditor.setItems((campaign.goals && campaign.goals.youtube) || []);
+  campaignTiktokGoalsEditor.setItems((campaign.goals && campaign.goals.tiktok) || []);
+
+  $("#ce-youtube-video-id").value = (campaign.stats && campaign.stats.youtubeVideoId) || "";
+  $("#ce-youtube-stats-source").value = (campaign.stats && campaign.stats.youtubeStatsSource) || "";
+  $("#ce-tiktok-current-views").value = (campaign.stats && campaign.stats.tiktokCurrentViews) || 0;
+
+  campaignPlatformsEditor.setItems((campaign.platforms || []).map((p) => ({
+    id: p.id || "",
+    name: p.name || "",
+    actionsText: (p.actions || []).join(", "),
+    cta: p.cta || "",
+    url: p.url || ""
+  })));
+  campaignMissionsEditor.setItems(campaign.missions || []);
+  campaignQuickLinksEditor.setItems(campaign.quickLinks || []);
+
+  $("#ce-feature-youtube-guide").checked = !!(campaign.features && campaign.features.youtubeGuide);
+  $("#ce-feature-playlists").checked = !!(campaign.features && campaign.features.playlists);
+  $("#ce-feature-comment-helper").checked = !!(campaign.features && campaign.features.commentHelper);
+  $("#ce-notes").value = campaign.notes || "";
+
+  setStatus($("#campaign-editor-status"), "", null);
+  $("#campaign-editor").hidden = false;
+  $("#campaign-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeCampaignEditor() {
+  $("#campaign-editor").hidden = true;
+  editingCampaignId = null;
+}
+
+function initCampaignEditorForm() {
+  $("#campaign-editor-form").addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const title = $("#campaign-title").value;
-    const subtitle = $("#campaign-subtitle").value;
-    const youtubeUrl = $("#campaign-youtube-url").value;
-    const tiktokUrl = $("#campaign-tiktok-url").value;
+    const isNew = !editingCampaignId;
+    const id = (isNew ? $("#ce-id").value : editingCampaignId).trim();
+    const title = $("#ce-title").value.trim();
 
-    if (!isNonEmptyString(title) || !isNonEmptyString(subtitle)) {
-      setStatus($("#campaign-status-msg"), "Title and subtitle are required.", "error");
+    if (!isNonEmptyString(id) || !/^[a-z0-9-]+$/.test(id)) {
+      setStatus($("#campaign-editor-status"), "Campaign ID must use only lowercase letters, numbers, and dashes.", "error");
       return;
     }
-    if (isNonEmptyString(youtubeUrl) && !isHttpUrl(youtubeUrl)) {
-      setStatus($("#campaign-status-msg"), "YouTube trailer URL must start with http:// or https://.", "error");
+    if (!isNonEmptyString(title)) {
+      setStatus($("#campaign-editor-status"), "Title is required.", "error");
       return;
     }
-    if (isNonEmptyString(tiktokUrl) && !isHttpUrl(tiktokUrl)) {
-      setStatus($("#campaign-status-msg"), "TikTok trailer URL must start with http:// or https://.", "error");
+    if (isNew && campaignsCache.some((c) => c.id === id && c._inFirestore !== false)) {
+      setStatus($("#campaign-editor-status"), `A campaign with id "${id}" already exists in Firestore.`, "error");
       return;
+    }
+
+    const youtubeUrl = $("#ce-link-youtube-url").value.trim();
+    const tiktokUrl = $("#ce-link-tiktok-url").value.trim();
+    const instagramUrl = $("#ce-link-instagram-url").value.trim();
+    const xUrl = $("#ce-link-x-url").value.trim();
+    for (const url of [youtubeUrl, tiktokUrl, instagramUrl, xUrl]) {
+      if (isNonEmptyString(url) && !isHttpUrl(url)) {
+        setStatus($("#campaign-editor-status"), "Every link must start with http:// or https://.", "error");
+        return;
+      }
     }
 
     const data = {
-      title: title.trim(),
-      subtitle: subtitle.trim(),
-      description: $("#campaign-description").value.trim(),
-      heroMessage: $("#campaign-hero-message").value.trim(),
-      status: $("#campaign-status").value,
-      primaryLink: {
-        label: $("#campaign-youtube-label").value.trim(),
-        url: youtubeUrl.trim()
+      id,
+      title,
+      subtitle: $("#ce-subtitle").value.trim(),
+      campaignType: $("#ce-type").value.trim(),
+      status: $("#ce-status").value,
+      isFeatured: $("#ce-featured").checked,
+      displayOrder: isNonEmptyString($("#ce-order").value) ? Number($("#ce-order").value) : 999,
+      image: isNonEmptyString($("#ce-image").value) ? $("#ce-image").value.trim() : null,
+      description: $("#ce-description").value.trim(),
+      heroMessage: $("#ce-hero-message").value.trim(),
+      startDate: isNonEmptyString($("#ce-start-date").value) ? $("#ce-start-date").value.trim() : null,
+      endDate: isNonEmptyString($("#ce-end-date").value) ? $("#ce-end-date").value.trim() : null,
+      links: {
+        youtube: youtubeUrl ? { label: $("#ce-link-youtube-label").value.trim(), url: youtubeUrl } : null,
+        tiktok: tiktokUrl ? { label: $("#ce-link-tiktok-label").value.trim(), url: tiktokUrl } : null,
+        instagram: instagramUrl ? { url: instagramUrl } : null,
+        x: xUrl ? { url: xUrl } : null,
+        other: []
       },
-      tiktokLink: {
-        label: $("#campaign-tiktok-label").value.trim(),
-        url: tiktokUrl.trim()
-      }
+      goals: {
+        youtube: campaignYoutubeGoalsEditor.getItems()
+          .filter((g) => isNonEmptyString(g.label))
+          .map((g) => ({ label: g.label.trim(), target: Number(g.target) || 0 })),
+        tiktok: campaignTiktokGoalsEditor.getItems()
+          .filter((g) => isNonEmptyString(g.label))
+          .map((g) => ({ label: g.label.trim(), target: Number(g.target) || 0 }))
+      },
+      stats: {
+        youtubeVideoId: isNonEmptyString($("#ce-youtube-video-id").value) ? $("#ce-youtube-video-id").value.trim() : null,
+        youtubeStatsSource: isNonEmptyString($("#ce-youtube-stats-source").value) ? $("#ce-youtube-stats-source").value.trim() : null,
+        tiktokCurrentViews: isNonNegativeInteger($("#ce-tiktok-current-views").value) ? Number($("#ce-tiktok-current-views").value) : 0
+      },
+      platforms: campaignPlatformsEditor.getItems()
+        .map((p) => ({
+          id: (p.id || "").trim(),
+          name: (p.name || "").trim(),
+          actions: (p.actionsText || "").split(",").map((a) => a.trim()).filter(Boolean),
+          cta: (p.cta || "").trim(),
+          url: (p.url || "").trim()
+        }))
+        .filter((p) => p.id && p.name && p.url),
+      missions: campaignMissionsEditor.getItems().map((m) => m.trim()).filter(Boolean),
+      quickLinks: campaignQuickLinksEditor.getItems()
+        .map((l) => ({ label: (l.label || "").trim(), icon: (l.icon || "").trim(), url: (l.url || "").trim() }))
+        .filter((l) => l.label && l.url),
+      features: {
+        youtubeGuide: $("#ce-feature-youtube-guide").checked,
+        playlists: $("#ce-feature-playlists").checked,
+        commentHelper: $("#ce-feature-comment-helper").checked
+      },
+      notes: isNonEmptyString($("#ce-notes").value) ? $("#ce-notes").value.trim() : null,
+      updatedAt: serverTimestamp()
     };
 
-    withSaving($("#campaign-save"), $("#campaign-status-msg"), "Saving…", async () => {
-      await setDoc(doc(db, "campaign/current"), data);
+    withSaving($("#campaign-editor-save"), $("#campaign-editor-status"), "Saving…", async () => {
+      if (isNew) {
+        data.createdAt = serverTimestamp();
+        // Sensible defaults so a brand-new campaign's Comment Helper
+        // manager has something to show immediately — editable there,
+        // not here (see the dedicated [Comment Helper] manager).
+        data.commentHelper = {
+          title: "Comment Helper",
+          description: "Need an idea? Generate a comment you can personalize.",
+          buttonLabel: "Generate Comment",
+          copyLabel: "Copy",
+          allowEditing: true
+        };
+        await setDoc(doc(db, "campaigns", id), data);
+      } else {
+        await setDoc(doc(db, "campaigns", id), data, { merge: true });
+      }
+
+      if (data.isFeatured) {
+        await unsetFeaturedOnOthers(id);
+      }
+
+      closeCampaignEditor();
+      await loadCampaignsPanel();
+    });
+  });
+
+  $("#campaign-editor-cancel").addEventListener("click", closeCampaignEditor);
+  $("#campaign-add-btn").addEventListener("click", () => openCampaignEditor(null));
+}
+
+function initCampaignMigration() {
+  $("#campaign-migrate-btn").addEventListener("click", () => {
+    const confirmed = window.confirm(
+      "This will create campaigns/heartbound from Heartbound's current live data.\n\n" +
+      "Heartbound will remain:\n  - Current\n  - Featured\n\n" +
+      "The following will NOT change:\n" +
+      "  - YouTube automatic stats\n  - TikTok stats\n  - streaming goals\n  - public website appearance\n\n" +
+      "Continue?"
+    );
+    if (!confirmed) return;
+
+    withSaving($("#campaign-migrate-btn"), $("#campaign-migrate-status"), "Migrating…", async () => {
+      const existing = await getDoc(doc(db, "campaigns", "heartbound"));
+      if (existing.exists()) {
+        throw new Error("campaigns/heartbound already exists — refusing to overwrite it.");
+      }
+
+      const fallback = FALLBACK_DATA.campaigns.find((c) => c.id === "heartbound") || blankCampaign();
+
+      const [legacyCurrent, legacyGoals, legacyTiktokGoals, legacyStatsTiktok, legacyMissions, legacyQuickLinks, legacyPlatforms] = await Promise.all([
+        loadDocOr("campaign/current", {}),
+        loadDocOr("campaign/goals", { items: [] }),
+        loadDocOr("campaign/tiktokGoals", { items: [] }),
+        loadDocOr("stats/tiktok", { currentViews: fallback.stats ? fallback.stats.tiktokCurrentViews : 0 }),
+        loadDocOr("content/missions", { items: fallback.missions || [] }),
+        loadDocOr("content/quickLinks", { items: fallback.quickLinks || [] }),
+        loadDocOr("content/platforms", { items: fallback.platforms || [] })
+      ]);
+
+      const data = {
+        ...fallback,
+        id: "heartbound",
+        title: legacyCurrent.title !== undefined ? legacyCurrent.title : fallback.title,
+        subtitle: legacyCurrent.subtitle !== undefined ? legacyCurrent.subtitle : fallback.subtitle,
+        description: legacyCurrent.description !== undefined ? legacyCurrent.description : fallback.description,
+        heroMessage: legacyCurrent.heroMessage !== undefined ? legacyCurrent.heroMessage : fallback.heroMessage,
+        status: legacyCurrent.status ? (LEGACY_HEARTBOUND_STATUS_MAP[legacyCurrent.status] || fallback.status) : fallback.status,
+        isFeatured: true,
+        links: {
+          ...fallback.links,
+          youtube: legacyCurrent.primaryLink || (fallback.links && fallback.links.youtube) || null,
+          tiktok: legacyCurrent.tiktokLink || (fallback.links && fallback.links.tiktok) || null
+        },
+        goals: {
+          youtube: Array.isArray(legacyGoals.items) && legacyGoals.items.length
+            ? legacyGoals.items.map((g) => ({ label: g.label, target: g.target }))
+            : (fallback.goals && fallback.goals.youtube) || [],
+          tiktok: Array.isArray(legacyTiktokGoals.items) && legacyTiktokGoals.items.length
+            ? legacyTiktokGoals.items.map((g) => ({ label: g.label, target: g.target }))
+            : (fallback.goals && fallback.goals.tiktok) || []
+        },
+        stats: {
+          ...fallback.stats,
+          tiktokCurrentViews: typeof legacyStatsTiktok.currentViews === "number"
+            ? legacyStatsTiktok.currentViews
+            : (fallback.stats && fallback.stats.tiktokCurrentViews) || 0
+        },
+        missions: Array.isArray(legacyMissions.items) && legacyMissions.items.length ? legacyMissions.items : fallback.missions || [],
+        quickLinks: Array.isArray(legacyQuickLinks.items) && legacyQuickLinks.items.length ? legacyQuickLinks.items : fallback.quickLinks || [],
+        platforms: Array.isArray(legacyPlatforms.items) && legacyPlatforms.items.length ? legacyPlatforms.items : fallback.platforms || [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(doc(db, "campaigns", "heartbound"), data);
+      await loadCampaignsPanel();
     });
   });
 }
 
+function initCampaignsPanel() {
+  initCampaignEditorForm();
+  initCampaignMigration();
+}
+
 /* ==========================================================================
-   TikTok Views (scalar, the "very easy to update daily" panel)
+   Comment Helper manager (per-campaign)
+   ------------------------------------------------------------------
+   Opened via the [Comment Helper] button on a Campaign Manager row.
+   campaigns/{id}.features.commentHelper is the visibility flag (shared
+   with the main campaign editor's checkbox); campaigns/{id}.commentHelper
+   holds the lightweight label config. The phrase library itself lives in
+   the campaigns/{id}/commentHelperPhrases subcollection and is never
+   embedded in the campaign doc, and never fetched in full by the public
+   site (see js/firestore-content.js's fetchCommentHelperBatch). This admin
+   view DOES load the whole subcollection at once when opened — the same
+   management-only tradeoff Trending's phrase manager already makes.
+   ========================================================================== */
+
+const COMMENT_HELPER_PHRASE_PAGE_SIZE = 100;
+
+let commentHelperCampaignId = null;
+const commentHelperPhraseCache = {}; // campaignId -> { items: [{id,text,enabled,randomKey,normalizedText}], loaded }
+let commentHelperSearchTerm = "";
+let commentHelperStatusFilter = "all";
+let commentHelperVisibleCount = COMMENT_HELPER_PHRASE_PAGE_SIZE;
+let commentHelperCsvPreview = null;
+
+function commentHelperPhrasesPath(campaignId) {
+  return `campaigns/${campaignId}/commentHelperPhrases`;
+}
+
+async function ensureCommentHelperCacheLoaded(campaignId, forceReload) {
+  if (!forceReload && commentHelperPhraseCache[campaignId] && commentHelperPhraseCache[campaignId].loaded) {
+    return commentHelperPhraseCache[campaignId];
+  }
+  const snap = await getDocs(collection(db, commentHelperPhrasesPath(campaignId)));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  commentHelperPhraseCache[campaignId] = { items, loaded: true };
+  return commentHelperPhraseCache[campaignId];
+}
+
+function updateCommentHelperCounts() {
+  const cache = commentHelperPhraseCache[commentHelperCampaignId];
+  const items = cache ? cache.items : [];
+  const total = items.length;
+  const enabled = items.filter((p) => p.enabled !== false).length;
+  $("#comment-helper-phrase-total").textContent = total;
+  $("#comment-helper-phrase-enabled").textContent = enabled;
+  $("#comment-helper-phrase-disabled").textContent = total - enabled;
+}
+
+// Only Heartbound ever sees this, and only while its library is empty —
+// this is the one place the Comment Helper admin code is allowed to know
+// a campaign's id, because it's specifically the migration/legacy layer.
+function updateCommentHelperMigrationBanner(campaignId) {
+  const banner = $("#comment-helper-migrate-banner");
+  const cache = commentHelperPhraseCache[campaignId];
+  const isEmpty = !!(cache && cache.loaded && cache.items.length === 0);
+  banner.hidden = !(campaignId === "heartbound" && isEmpty);
+}
+
+function collapseCommentHelperSubPanels() {
+  $("#comment-helper-csv-panel").hidden = true;
+  $("#comment-helper-add-panel").hidden = true;
+}
+
+function toggleCommentHelperSubPanel(panelEl) {
+  const willShow = panelEl.hidden;
+  collapseCommentHelperSubPanels();
+  panelEl.hidden = !willShow;
+}
+
+function renderCommentHelperPhraseList() {
+  const listEl = $("#comment-helper-phrase-list");
+  const showMoreBtn = $("#comment-helper-phrase-show-more");
+  const cache = commentHelperPhraseCache[commentHelperCampaignId];
+  listEl.innerHTML = "";
+  if (!cache) return;
+
+  const term = commentHelperSearchTerm.trim().toLowerCase();
+  let filtered = cache.items;
+  if (term) filtered = filtered.filter((p) => (p.text || "").toLowerCase().includes(term));
+  if (commentHelperStatusFilter === "enabled") filtered = filtered.filter((p) => p.enabled !== false);
+  if (commentHelperStatusFilter === "disabled") filtered = filtered.filter((p) => p.enabled === false);
+
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No phrases found.";
+    listEl.appendChild(empty);
+    showMoreBtn.hidden = true;
+    return;
+  }
+
+  const visible = filtered.slice(0, commentHelperVisibleCount);
+
+  visible.forEach((phrase) => {
+    const row = document.createElement("div");
+    row.className = "admin-phrase-row";
+
+    const textArea = document.createElement("textarea");
+    textArea.rows = 2;
+    textArea.value = phrase.text || "";
+    row.appendChild(textArea);
+
+    const actions = document.createElement("div");
+    actions.className = "admin-phrase-row-actions";
+
+    const enabledLabel = document.createElement("label");
+    enabledLabel.className = "admin-checkbox-label";
+    const enabledCheckbox = document.createElement("input");
+    enabledCheckbox.type = "checkbox";
+    enabledCheckbox.checked = phrase.enabled !== false;
+    enabledCheckbox.addEventListener("change", () => {
+      updateDoc(doc(db, commentHelperPhrasesPath(commentHelperCampaignId), phrase.id), {
+        enabled: enabledCheckbox.checked
+      })
+        .then(() => {
+          phrase.enabled = enabledCheckbox.checked;
+          updateCommentHelperCounts();
+        })
+        .catch((error) => {
+          console.error(error);
+          enabledCheckbox.checked = !enabledCheckbox.checked;
+          window.alert(`Couldn't update: ${error.message || "unknown error"}`);
+        });
+    });
+    enabledLabel.append(enabledCheckbox, " Enabled");
+    actions.appendChild(enabledLabel);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn btn-secondary btn-sm";
+    saveBtn.textContent = "Save";
+    saveBtn.addEventListener("click", async () => {
+      const newText = textArea.value.trim();
+      if (!newText) {
+        window.alert("Phrase text can't be empty.");
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        await updateDoc(doc(db, commentHelperPhrasesPath(commentHelperCampaignId), phrase.id), {
+          text: newText,
+          normalizedText: normalizePhraseKey(newText),
+          updatedAt: serverTimestamp()
+        });
+        phrase.text = newText;
+        phrase.normalizedText = normalizePhraseKey(newText);
+      } catch (error) {
+        console.error(error);
+        window.alert(`Couldn't save: ${error.message || "unknown error"}`);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+    actions.appendChild(saveBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "admin-delete-btn";
+    deleteBtn.textContent = "✕";
+    deleteBtn.setAttribute("aria-label", "Delete phrase");
+    deleteBtn.addEventListener("click", async () => {
+      if (!confirmDelete("Delete this phrase? This can't be undone.")) return;
+      try {
+        await deleteDoc(doc(db, commentHelperPhrasesPath(commentHelperCampaignId), phrase.id));
+        const cache2 = commentHelperPhraseCache[commentHelperCampaignId];
+        cache2.items = cache2.items.filter((p) => p.id !== phrase.id);
+        updateCommentHelperCounts();
+        renderCommentHelperPhraseList();
+      } catch (error) {
+        console.error(error);
+        window.alert(`Couldn't delete: ${error.message || "unknown error"}`);
+      }
+    });
+    actions.appendChild(deleteBtn);
+
+    row.appendChild(actions);
+    listEl.appendChild(row);
+  });
+
+  showMoreBtn.hidden = filtered.length <= commentHelperVisibleCount;
+}
+
+function openCommentHelperManager(campaignId) {
+  const campaign = campaignsCache.find((c) => c.id === campaignId);
+  if (!campaign) return;
+
+  commentHelperCampaignId = campaignId;
+  commentHelperSearchTerm = "";
+  commentHelperStatusFilter = "all";
+  commentHelperVisibleCount = COMMENT_HELPER_PHRASE_PAGE_SIZE;
+  commentHelperCsvPreview = null;
+  $("#comment-helper-phrase-search").value = "";
+  $("#comment-helper-csv-file").value = "";
+  $("#comment-helper-csv-preview-panel").hidden = true;
+  document.querySelectorAll("#comment-helper-filter-tabs .admin-subtab").forEach((t) => {
+    t.classList.toggle("is-active", t.getAttribute("data-comment-helper-filter") === "all");
+  });
+  collapseCommentHelperSubPanels();
+  [
+    "comment-helper-config-status",
+    "comment-helper-migrate-status",
+    "comment-helper-csv-status",
+    "comment-helper-add-status"
+  ].forEach((id) => setStatus($(`#${id}`), "", null));
+
+  $("#comment-helper-manager-title").textContent = `Comment Helper — ${campaign.title || campaignId}`;
+
+  const config = campaign.commentHelper || {};
+  $("#chm-enabled").checked = !!(campaign.features && campaign.features.commentHelper);
+  $("#chm-title").value = config.title || "Comment Helper";
+  $("#chm-description").value = config.description || "Need an idea? Generate a comment you can personalize.";
+  $("#chm-button-label").value = config.buttonLabel || "Generate Comment";
+  $("#chm-copy-label").value = config.copyLabel || "Copy";
+  $("#chm-allow-editing").checked = config.allowEditing !== false;
+
+  $("#comment-helper-manager").hidden = false;
+  $("#campaign-editor").hidden = true;
+  $("#comment-helper-manager").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  $("#comment-helper-phrase-total").textContent = "…";
+  $("#comment-helper-phrase-enabled").textContent = "…";
+  $("#comment-helper-phrase-disabled").textContent = "…";
+
+  ensureCommentHelperCacheLoaded(campaignId).then(() => {
+    updateCommentHelperCounts();
+    updateCommentHelperMigrationBanner(campaignId);
+    renderCommentHelperPhraseList();
+  });
+}
+
+function closeCommentHelperManager() {
+  $("#comment-helper-manager").hidden = true;
+  commentHelperCampaignId = null;
+}
+
+function initCommentHelperConfigForm() {
+  $("#comment-helper-manager-close").addEventListener("click", closeCommentHelperManager);
+
+  $("#comment-helper-config-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!commentHelperCampaignId) return;
+
+    const campaignId = commentHelperCampaignId;
+    const enabled = $("#chm-enabled").checked;
+    const config = {
+      title: $("#chm-title").value.trim() || "Comment Helper",
+      description: $("#chm-description").value.trim(),
+      buttonLabel: $("#chm-button-label").value.trim() || "Generate Comment",
+      copyLabel: $("#chm-copy-label").value.trim() || "Copy",
+      allowEditing: $("#chm-allow-editing").checked
+    };
+
+    withSaving($("#comment-helper-config-save"), $("#comment-helper-config-status"), "Saving…", async () => {
+      await updateDoc(doc(db, "campaigns", campaignId), {
+        "features.commentHelper": enabled,
+        commentHelper: config,
+        updatedAt: serverTimestamp()
+      });
+      await loadCampaignsPanel();
+    });
+  });
+}
+
+function initCommentHelperAddPhrase() {
+  $("#comment-helper-add-toggle").addEventListener("click", () => toggleCommentHelperSubPanel($("#comment-helper-add-panel")));
+  $("#comment-helper-csv-toggle").addEventListener("click", () => toggleCommentHelperSubPanel($("#comment-helper-csv-panel")));
+
+  $("#comment-helper-phrase-add-save").addEventListener("click", () => {
+    const input = $("#comment-helper-phrase-add-input");
+    const text = input.value.trim();
+    if (!text) {
+      setStatus($("#comment-helper-add-status"), "Enter phrase text first.", "error");
+      return;
+    }
+
+    withSaving($("#comment-helper-phrase-add-save"), $("#comment-helper-add-status"), "Saving…", async () => {
+      const campaignId = commentHelperCampaignId;
+      const randomKey = Math.random();
+      const ref = await addDoc(collection(db, commentHelperPhrasesPath(campaignId)), {
+        text,
+        normalizedText: normalizePhraseKey(text),
+        enabled: true,
+        randomKey,
+        createdAt: serverTimestamp()
+      });
+      input.value = "";
+
+      const cache = commentHelperPhraseCache[campaignId];
+      if (cache && cache.loaded) {
+        cache.items.push({ id: ref.id, text, enabled: true, randomKey, normalizedText: normalizePhraseKey(text) });
+      }
+      updateCommentHelperCounts();
+      updateCommentHelperMigrationBanner(campaignId);
+      renderCommentHelperPhraseList();
+    });
+  });
+}
+
+function initCommentHelperSearchAndFilter() {
+  $("#comment-helper-phrase-search").addEventListener("input", (event) => {
+    commentHelperSearchTerm = event.target.value;
+    commentHelperVisibleCount = COMMENT_HELPER_PHRASE_PAGE_SIZE;
+    renderCommentHelperPhraseList();
+  });
+
+  $("#comment-helper-phrase-show-more").addEventListener("click", () => {
+    commentHelperVisibleCount += COMMENT_HELPER_PHRASE_PAGE_SIZE;
+    renderCommentHelperPhraseList();
+  });
+
+  document.querySelectorAll("#comment-helper-filter-tabs .admin-subtab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#comment-helper-filter-tabs .admin-subtab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      commentHelperStatusFilter = tab.getAttribute("data-comment-helper-filter");
+      commentHelperVisibleCount = COMMENT_HELPER_PHRASE_PAGE_SIZE;
+      renderCommentHelperPhraseList();
+    });
+  });
+}
+
+/* ---- CSV import: preview (rows found / valid / duplicates / blank) before
+   any write, Add or Replace, chunked writes with progress, clear
+   partial-failure reporting. ---- */
+
+function currentCommentHelperCsvMode() {
+  const checked = document.querySelector('input[name="comment-helper-csv-mode"]:checked');
+  return checked ? checked.value : "add";
+}
+
+async function buildCommentHelperCsvPreview(rawText, fileName) {
+  const { rows, invalidCount } = parsePhraseCsv(rawText);
+
+  const seen = new Map();
+  rows.forEach((text) => {
+    const key = normalizePhraseKey(text);
+    if (!seen.has(key)) seen.set(key, text);
+  });
+  const withinFileUnique = Array.from(seen.values());
+  const withinFileDuplicates = rows.length - withinFileUnique.length;
+
+  const cache = await ensureCommentHelperCacheLoaded(commentHelperCampaignId);
+  const existingKeys = new Set(cache.items.map((p) => p.normalizedText || normalizePhraseKey(p.text)));
+
+  commentHelperCsvPreview = {
+    fileName,
+    rowsFound: rows.length,
+    blankSkipped: invalidCount,
+    withinFileDuplicates,
+    withinFileUnique,
+    existingKeys,
+    existingCount: cache.items.length
+  };
+
+  renderCommentHelperCsvPreviewPanel();
+}
+
+function renderCommentHelperCsvPreviewPanel() {
+  const preview = commentHelperCsvPreview;
+  if (!preview) return;
+
+  const mode = currentCommentHelperCsvMode();
+  const candidates = mode === "add"
+    ? preview.withinFileUnique.filter((text) => !preview.existingKeys.has(normalizePhraseKey(text)))
+    : preview.withinFileUnique;
+  const crossDuplicates = mode === "add" ? preview.withinFileUnique.length - candidates.length : 0;
+
+  preview.candidates = candidates;
+  preview.mode = mode;
+
+  const lines = [
+    `File: ${preview.fileName}`,
+    `Rows found: ${preview.rowsFound}`,
+    `Valid phrases to import: ${candidates.length}`,
+    `Duplicates skipped: ${preview.withinFileDuplicates + crossDuplicates}`,
+    `Blank rows skipped: ${preview.blankSkipped}`
+  ];
+  if (mode === "replace") {
+    lines.push(`⚠ This will permanently delete the existing ${preview.existingCount} phrase(s) before importing.`);
+  }
+
+  $("#comment-helper-csv-preview-summary").innerHTML = lines.map((l) => `<div>${l}</div>`).join("");
+  $("#comment-helper-csv-import").textContent = mode === "replace" ? "Replace Library" : "Import";
+  $("#comment-helper-csv-preview-panel").hidden = false;
+  $("#comment-helper-csv-progress").hidden = true;
+}
+
+async function runCommentHelperCsvImport() {
+  const preview = commentHelperCsvPreview;
+  if (!preview || !commentHelperCampaignId) return;
+
+  const campaignId = commentHelperCampaignId;
+  const mode = preview.mode;
+  const candidates = preview.candidates || [];
+
+  if (mode === "replace") {
+    const confirmed = window.confirm(
+      `Replace this campaign's Comment Helper library?\n\n` +
+      `This will remove the existing ${preview.existingCount} phrase(s) and replace them with ` +
+      `${candidates.length} phrase(s) from "${preview.fileName}". This can't be undone.`
+    );
+    if (!confirmed) return;
+  }
+
+  const importBtn = $("#comment-helper-csv-import");
+  const cancelBtn = $("#comment-helper-csv-cancel");
+  const progressEl = $("#comment-helper-csv-progress");
+  importBtn.disabled = true;
+  cancelBtn.disabled = true;
+  progressEl.hidden = false;
+  progressEl.textContent = "Starting…";
+  setStatus($("#comment-helper-csv-status"), "", null);
+
+  try {
+    const cache = await ensureCommentHelperCacheLoaded(campaignId);
+
+    if (mode === "replace" && cache.items.length) {
+      const refs = cache.items.map((p) => doc(db, commentHelperPhrasesPath(campaignId), p.id));
+      await chunkedBatchDelete(refs, (done, total) => {
+        progressEl.textContent = `Deleting existing phrases: ${done} / ${total}…`;
+      });
+    }
+
+    const refsAndData = candidates.map((text) => ({
+      ref: doc(collection(db, commentHelperPhrasesPath(campaignId))),
+      data: {
+        text,
+        normalizedText: normalizePhraseKey(text),
+        enabled: true,
+        randomKey: Math.random(),
+        createdAt: serverTimestamp()
+      }
+    }));
+
+    await chunkedBatchWrite(refsAndData, (done, total) => {
+      progressEl.textContent = `Importing ${done} / ${total}…`;
+    });
+
+    progressEl.textContent = `Done — imported ${refsAndData.length} phrase(s).`;
+
+    commentHelperPhraseCache[campaignId] = null;
+    await ensureCommentHelperCacheLoaded(campaignId, true);
+    updateCommentHelperCounts();
+    updateCommentHelperMigrationBanner(campaignId);
+    renderCommentHelperPhraseList();
+
+    commentHelperCsvPreview = null;
+    $("#comment-helper-csv-file").value = "";
+    setStatus($("#comment-helper-csv-status"), `Imported ${refsAndData.length} phrase(s).`, "success");
+  } catch (error) {
+    console.error(error);
+    setStatus(
+      $("#comment-helper-csv-status"),
+      `Import failed partway through: ${error.message || "unknown error"}. Some phrases may already have been written — check the phrase library below before retrying.`,
+      "error"
+    );
+    commentHelperPhraseCache[campaignId] = null;
+    await ensureCommentHelperCacheLoaded(campaignId, true);
+    updateCommentHelperCounts();
+    renderCommentHelperPhraseList();
+  } finally {
+    importBtn.disabled = false;
+    cancelBtn.disabled = false;
+    $("#comment-helper-csv-preview-panel").hidden = true;
+  }
+}
+
+function initCommentHelperCsvImport() {
+  $("#comment-helper-csv-preview").addEventListener("click", () => {
+    const fileInput = $("#comment-helper-csv-file");
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) {
+      setStatus($("#comment-helper-csv-status"), "Choose a CSV file first.", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => setStatus($("#comment-helper-csv-status"), "Couldn't read that file.", "error");
+    reader.onload = async () => {
+      setStatus($("#comment-helper-csv-status"), "Analyzing…", "pending");
+      try {
+        await buildCommentHelperCsvPreview(String(reader.result), file.name);
+        setStatus($("#comment-helper-csv-status"), "", null);
+      } catch (error) {
+        console.error(error);
+        setStatus($("#comment-helper-csv-status"), `Couldn't analyze file: ${error.message || "unknown error"}`, "error");
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.querySelectorAll('input[name="comment-helper-csv-mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (commentHelperCsvPreview) renderCommentHelperCsvPreviewPanel();
+    });
+  });
+
+  $("#comment-helper-csv-cancel").addEventListener("click", () => {
+    commentHelperCsvPreview = null;
+    $("#comment-helper-csv-preview-panel").hidden = true;
+  });
+
+  $("#comment-helper-csv-import").addEventListener("click", runCommentHelperCsvImport);
+}
+
+/* ---- Heartbound migration — reuses the legacy style/length generator
+   logic (see FALLBACK_DATA.commentHelperLegacyTemplates) to pre-bake a
+   large, deduplicated, flat set of complete comments. Explicit admin
+   action only; never runs automatically; refuses to overwrite an
+   existing non-empty library. ---- */
+
+function legacyPickRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function legacyPickRandomUnique(arr, n) {
+  const pool = arr.slice();
+  const result = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const index = Math.floor(Math.random() * pool.length);
+    result.push(pool.splice(index, 1)[0]);
+  }
+  return result;
+}
+
+function legacyGenerateOne(helper, styleId, lengthId) {
+  if (styleId === "simple") {
+    const lineCounts = { short: 1, medium: 2, longer: 3 };
+    const count = lineCounts[lengthId] || 1;
+    const lines = legacyPickRandomUnique(helper.phrases.simple.lines, count);
+    return lines.join(" ");
+  }
+
+  const pool = helper.phrases[styleId];
+  if (!pool) return "";
+
+  const sentences = [];
+  if (lengthId === "medium") {
+    sentences.push(legacyPickRandomItem(pool.openings));
+    const secondCategory = Math.random() < 0.5 ? "observations" : "reactions";
+    sentences.push(legacyPickRandomItem(pool[secondCategory]));
+  } else if (lengthId === "longer") {
+    sentences.push(legacyPickRandomItem(pool.openings));
+    sentences.push(legacyPickRandomItem(pool.observations));
+    sentences.push(legacyPickRandomItem(pool.reactions));
+    sentences.push(legacyPickRandomItem(pool.endings));
+  } else {
+    const category = Math.random() < 0.5 ? "openings" : "reactions";
+    sentences.push(legacyPickRandomItem(pool[category]));
+  }
+  return sentences.join(" ");
+}
+
+const COMMENT_HELPER_MIGRATION_STYLE_IDS = ["excited", "emotional", "proud", "acting", "chemistry", "story", "simple"];
+
+// Samples (rather than exhaustively enumerates — the "longer" tier's
+// combinatorial space is far larger than needed) using the exact legacy
+// per-tier construction rules, deduplicating finished comments (not
+// fragments) until each style/tier's target is hit or its available
+// unique space runs dry. Lands the total around 1,500-2,000 comments,
+// evenly split across styles.
+function buildHeartboundMigrationComments() {
+  const helper = FALLBACK_DATA.commentHelperLegacyTemplates;
+  const seen = new Set();
+  const comments = [];
+  let duplicatesSkipped = 0;
+
+  const targetsFor = (styleId) => (styleId === "simple"
+    ? { short: 999, medium: 90, longer: 70 }
+    : { short: 999, medium: 120, longer: 120 });
+  const maxAttemptsFor = { short: 400, medium: 600, longer: 600 };
+
+  COMMENT_HELPER_MIGRATION_STYLE_IDS.forEach((styleId) => {
+    const targets = targetsFor(styleId);
+
+    ["short", "medium", "longer"].forEach((tier) => {
+      const target = targets[tier];
+      const maxAttempts = maxAttemptsFor[tier];
+      let added = 0;
+      let attempts = 0;
+      let staleStreak = 0;
+
+      while (added < target && attempts < maxAttempts && staleStreak < 60) {
+        attempts++;
+        const text = legacyGenerateOne(helper, styleId, tier);
+        const key = (text || "").trim().toLowerCase();
+        if (!text || seen.has(key)) {
+          staleStreak++;
+          duplicatesSkipped++;
+          continue;
+        }
+        staleStreak = 0;
+        seen.add(key);
+        comments.push(text);
+        added++;
+      }
+    });
+  });
+
+  return { comments, duplicatesSkipped };
+}
+
+function initCommentHelperMigration() {
+  $("#comment-helper-migrate-btn").addEventListener("click", () => {
+    const campaignId = commentHelperCampaignId;
+    if (campaignId !== "heartbound") return;
+
+    const { comments, duplicatesSkipped } = buildHeartboundMigrationComments();
+
+    const confirmed = window.confirm(
+      "Migrate Heartbound Comment Helper\n\n" +
+      "Legacy template system detected.\n\n" +
+      `Complete comments prepared: ${comments.length}\n` +
+      `Duplicates removed: ${duplicatesSkipped}\n\n` +
+      "Destination:\ncampaigns/heartbound/commentHelperPhrases\n\n" +
+      "This will not delete the old local template data.\n\n" +
+      "Continue?"
+    );
+    if (!confirmed) return;
+
+    withSaving($("#comment-helper-migrate-btn"), $("#comment-helper-migrate-status"), "Migrating…", async () => {
+      const cache = await ensureCommentHelperCacheLoaded(campaignId, true);
+      if (cache.items.length) {
+        throw new Error("This campaign's Comment Helper library already has phrases — refusing to overwrite it.");
+      }
+
+      const refsAndData = comments.map((text) => ({
+        ref: doc(collection(db, commentHelperPhrasesPath(campaignId))),
+        data: {
+          text,
+          normalizedText: normalizePhraseKey(text),
+          enabled: true,
+          randomKey: Math.random(),
+          createdAt: serverTimestamp()
+        }
+      }));
+
+      await chunkedBatchWrite(refsAndData);
+
+      commentHelperPhraseCache[campaignId] = null;
+      await ensureCommentHelperCacheLoaded(campaignId, true);
+      updateCommentHelperCounts();
+      updateCommentHelperMigrationBanner(campaignId);
+      renderCommentHelperPhraseList();
+    });
+  });
+}
+
+function initCommentHelperManager() {
+  initCommentHelperConfigForm();
+  initCommentHelperAddPhrase();
+  initCommentHelperSearchAndFilter();
+  initCommentHelperCsvImport();
+  initCommentHelperMigration();
+}
+
+/* ==========================================================================
+   TikTok Views (scalar, the "very easy to update daily" panel — still
+   Heartbound-specific, see the Campaigns panel for the compatibility note)
    ========================================================================== */
 
 async function loadTiktokViewsPanel() {
@@ -955,7 +1972,10 @@ function initSiteSettingsPanel() {
 
 const TRENDING_CATEGORIES = ["perthsanta", "perth", "santa"];
 const TRENDING_PHRASE_PAGE_SIZE = 100;
-const TRENDING_BATCH_CHUNK_SIZE = 450; // stays under Firestore's 500-op batch cap
+// Shared with the Comment Helper phrase manager below — stays under
+// Firestore's 500-op batch cap, used by the generic chunkedBatchWrite/
+// chunkedBatchDelete helpers further down.
+const PHRASE_BATCH_CHUNK_SIZE = 450;
 
 let activeTrendingCategory = "perthsanta";
 const trendingPhraseCache = {}; // category -> { items: [{id,text,enabled,randomKey}], loaded }
@@ -1195,9 +2215,12 @@ function initTrendingPhraseManagement() {
   });
 }
 
-// Recognizes and skips an optional leading "text" header line (quoted or
-// bare, case-insensitive) — the site owner's normal CSV export includes one.
-function parseTrendingCsv(rawText) {
+// Generic one-column phrase CSV parser — shared by Trending and the
+// Comment Helper phrase manager. Recognizes and skips an optional leading
+// "text" header line (quoted or bare, case-insensitive), strips a UTF-8
+// BOM, unescapes quoted/doubled-quote fields, trims whitespace, and skips
+// blank rows.
+function parsePhraseCsv(rawText) {
   const text = rawText.replace(/^﻿/, "");
   const lines = text.split(/\r\n|\r|\n/);
   const rows = [];
@@ -1230,19 +2253,25 @@ function parseTrendingCsv(rawText) {
   return { rows, invalidCount };
 }
 
-async function chunkedBatchWrite(refsAndData) {
-  for (let i = 0; i < refsAndData.length; i += TRENDING_BATCH_CHUNK_SIZE) {
+// onProgress(done, total), if given, is called after each chunk commits —
+// existing callers that don't pass it (Trending) are unaffected.
+async function chunkedBatchWrite(refsAndData, onProgress) {
+  for (let i = 0; i < refsAndData.length; i += PHRASE_BATCH_CHUNK_SIZE) {
     const batch = writeBatch(db);
-    refsAndData.slice(i, i + TRENDING_BATCH_CHUNK_SIZE).forEach(({ ref, data }) => batch.set(ref, data));
+    const chunk = refsAndData.slice(i, i + PHRASE_BATCH_CHUNK_SIZE);
+    chunk.forEach(({ ref, data }) => batch.set(ref, data));
     await batch.commit();
+    if (onProgress) onProgress(Math.min(i + chunk.length, refsAndData.length), refsAndData.length);
   }
 }
 
-async function chunkedBatchDelete(refs) {
-  for (let i = 0; i < refs.length; i += TRENDING_BATCH_CHUNK_SIZE) {
+async function chunkedBatchDelete(refs, onProgress) {
+  for (let i = 0; i < refs.length; i += PHRASE_BATCH_CHUNK_SIZE) {
     const batch = writeBatch(db);
-    refs.slice(i, i + TRENDING_BATCH_CHUNK_SIZE).forEach((ref) => batch.delete(ref));
+    const chunk = refs.slice(i, i + PHRASE_BATCH_CHUNK_SIZE);
+    chunk.forEach((ref) => batch.delete(ref));
     await batch.commit();
+    if (onProgress) onProgress(Math.min(i + chunk.length, refs.length), refs.length);
   }
 }
 
@@ -1269,7 +2298,7 @@ function initTrendingCsvImport() {
       setStatus($("#trending-csv-status"), "Importing…", "pending");
 
       try {
-        const { rows, invalidCount } = parseTrendingCsv(String(reader.result));
+        const { rows, invalidCount } = parsePhraseCsv(String(reader.result));
 
         // Dedupe within the CSV batch itself (case/whitespace-insensitive).
         const seen = new Map();
@@ -1376,8 +2405,8 @@ async function loadTrendingPanel() {
 const TRENDING_CATEGORY_LABELS = { perthsanta: "PerthSanta", perth: "Perth", santa: "Santa" };
 
 async function loadDashboard() {
-  const [campaign, tiktokStats, announcements, music, faq, trendingPerthsanta, trendingPerth, trendingSanta] = await Promise.all([
-    loadDocOr("campaign/current", FALLBACK_DATA.campaign),
+  const [liveCampaignDocs, tiktokStats, announcements, music, faq, trendingPerthsanta, trendingPerth, trendingSanta] = await Promise.all([
+    getLiveCampaignDocs(),
     loadDocOr("stats/tiktok", { currentViews: FALLBACK_DATA.tiktokCurrentViews, updatedAt: null }),
     loadDocOr("content/announcements", { items: FALLBACK_DATA.announcements }),
     loadDocOr("content/music", FALLBACK_DATA.music),
@@ -1386,6 +2415,22 @@ async function loadDashboard() {
     loadDocOr("trending/perth", FALLBACK_DATA.trending.perth),
     loadDocOr("trending/santa", FALLBACK_DATA.trending.santa)
   ]);
+
+  const liveById = new Map(liveCampaignDocs.map((d) => [d.id, d]));
+  const campaigns = FALLBACK_DATA.campaigns.map((f) => ({ ...f, ...(liveById.get(f.id) || {}) }));
+  liveById.forEach((docData, id) => {
+    if (!campaigns.some((c) => c.id === id)) campaigns.push({ ...docData, id });
+  });
+
+  const currentCount = campaigns.filter((c) => c.status === "current").length;
+  const upcomingCount = campaigns.filter((c) => c.status === "upcoming").length;
+  const previousCount = campaigns.filter((c) => c.status === "previous").length;
+  const featuredCampaigns = campaigns.filter((c) => c.isFeatured);
+  const featuredLine = featuredCampaigns.length === 1
+    ? `Featured: ${featuredCampaigns[0].title || featuredCampaigns[0].id}`
+    : featuredCampaigns.length === 0
+      ? "Featured: none set"
+      : `⚠ Featured: ${featuredCampaigns.length} campaigns marked — should be 1, check Campaign Manager`;
 
   const musicCount = MUSIC_CATEGORIES.reduce((sum, cat) => sum + (music[cat] ? music[cat].length : 0), 0);
 
@@ -1397,10 +2442,10 @@ async function loadDashboard() {
 
   const cards = [
     {
-      title: "Current Campaign",
-      lines: [`Title: ${campaign.title || "—"}`, `Status: ${campaign.status || "—"}`],
-      button: "Edit Campaign",
-      panel: "campaign"
+      title: "Campaigns",
+      lines: [`${currentCount} current · ${upcomingCount} upcoming · ${previousCount} previous`, featuredLine],
+      button: "Manage Campaigns",
+      panel: "campaigns"
     },
     {
       title: "TikTok Views",
@@ -1463,17 +2508,13 @@ async function loadDashboard() {
 async function loadAllPanels() {
   await Promise.all([
     loadDashboard(),
-    loadCampaignPanel(),
+    loadCampaignsPanel(),
     loadTiktokViewsPanel(),
     youtubeGoalsPanel.load(),
     tiktokGoalsPanel.load(),
     announcementsPanel.load(),
     faqPanel.load(),
-    quickLinksPanel.load(),
-    platformsPanel.load(),
-    missionsPanel.load(),
     loadMusicPanel(),
-    loadCommentHelperPanel(),
     loadSiteSettingsPanel(),
     loadTrendingPanel()
   ]);
@@ -1553,10 +2594,10 @@ function initAuth() {
    ========================================================================== */
 
 initNav();
-initCampaignPanel();
+initCampaignsPanel();
+initCommentHelperManager();
 initTiktokViewsPanel();
 initMusicPanel();
-initCommentHelperPanel();
 initSiteSettingsPanel();
 initTrendingPanel();
 initAuth();

@@ -1,27 +1,89 @@
 /*
   Firestore content overrides — public pages.
   ------------------------------------------------------------------
-  Loaded (as a module) after js/data.js and js/main.js on every public
-  page. js/main.js already renders the whole page immediately from the
-  siteData object defined in js/data.js — that happens first and is
-  completely unaffected by anything in this file.
+  Loaded (as a module) after js/data.js, js/main.js, and js/campaigns.js on
+  every public page. js/main.js already renders the whole page immediately
+  from the siteData object defined in js/data.js — that happens first and
+  is completely unaffected by anything in this file.
 
-  This module then tries to fetch admin-managed content from Firestore
-  in the background. For each collection that loads successfully, it
-  overrides the corresponding siteData value and re-runs the page's
-  render functions (window.renderAllContent, exposed by js/main.js) so
-  the swap from fallback -> live content happens automatically.
+  This module then tries to fetch admin-managed content from Firestore in
+  the background. For each collection/doc that loads successfully, it
+  overrides the corresponding siteData value and re-runs the page's render
+  functions (window.renderAllContent, exposed by js/main.js) so the swap
+  from fallback -> live content happens automatically.
 
   If Firestore is slow, offline, empty, or errors out, every fetch below
   fails safe: the page simply keeps showing the js/data.js content it
   already rendered. A Firebase outage cannot break the public site.
+
+  ------------------------------------------------------------------
+  Campaign system + legacy compatibility layer
+  ------------------------------------------------------------------
+  campaigns/{id} is the canonical source for every campaign's identity,
+  status, links, platforms, goBook targets, missions, quick links, and
+  feature flags. It's fetched as a whole collection and merged over the
+  siteData.campaigns fallback array by id — a live doc overrides its
+  matching fallback entry field-by-field; a brand-new admin-created
+  campaign with no fallback entry is simply appended.
+
+  Heartbound is a normal campaign in that collection once
+  `campaigns/heartbound` has been created (via the "Migrate Heartbound to
+  Firestore" admin action). Until then, two older paths remain load-bearing
+  for it specifically:
+
+    - campaign/current  — while campaigns/heartbound doesn't exist yet,
+      its title/subtitle/description/heroMessage/status/links fill in
+      Heartbound's identity on top of the data.js fallback. The moment
+      campaigns/heartbound exists, this path is no longer read at all.
+
+    - campaign/goals, campaign/tiktokGoals, stats/tiktok — these remain
+      the real source for Heartbound's YouTube/TikTok goal targets and
+      current TikTok view count *regardless* of migration status, because
+      the admin's "Streaming Goals" and "TikTok Views" panels still write
+      to them. This is intentional and temporary until those are
+      generalized per-campaign.
+
+  data/youtube-stats.json (fetched by js/campaigns.js, not here) is
+  unaffected by any of this — it's keyed off each campaign's own
+  stats.youtubeStatsSource field, not a hardcoded path.
 */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const FETCH_TIMEOUT_MS = 2500;
+const COMMENT_HELPER_BATCH_SIZE = 40;
+
+// Hoisted to module scope (rather than local to applyFirestoreOverrides)
+// so fetchCommentHelperBatch below — called on-demand from js/campaigns.js
+// whenever a fan clicks "Generate Comment", long after this module's
+// initial load — can reuse the same app/db instead of calling
+// initializeApp() a second time (which throws if called twice for the
+// default app on one page).
+let firebaseApp = null;
+let db = null;
+
+function ensureFirebaseApp() {
+  if (db) return db;
+  try {
+    firebaseApp = initializeApp(firebaseConfig);
+    db = getFirestore(firebaseApp);
+  } catch (error) {
+    console.warn("[firestore-content] Firebase failed to initialize — using data.js content only.", error);
+  }
+  return db;
+}
 
 function withTimeout(promise, ms) {
   return new Promise((resolve) => {
@@ -63,6 +125,17 @@ async function fetchDoc(db, path) {
   }
 }
 
+async function fetchCollectionDocs(db, path) {
+  try {
+    const snap = await withTimeout(getDocs(collection(db, path)), FETCH_TIMEOUT_MS);
+    if (!snap) return [];
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.warn(`[firestore-content] Could not load collection "${path}" — using data.js fallback.`, error);
+    return [];
+  }
+}
+
 function applySiteSettings(settings) {
   if (!settings) return;
 
@@ -89,98 +162,130 @@ function applySiteSettings(settings) {
     if (el) el.src = settings.homepageCampaignImage;
   }
 
-  if (settings.campaignPageImage) {
-    const el = document.querySelector("[data-field='campaign-page-image']");
-    if (el) el.src = settings.campaignPageImage;
+  // site/settings.campaignPageImage (a single global "the campaign page's
+  // image" setting from back when campaign.html only ever showed
+  // Heartbound) is intentionally NOT applied here anymore. campaign.html's
+  // hero image is now built entirely from the resolved campaign's own
+  // `image` field (see js/campaigns.js renderCampaignHeroImage) into a
+  // [data-campaign-image] container with no static <img> for a global
+  // setting to target — reintroducing one here would just recreate the
+  // "two sources of truth for one image" bug this file used to have.
+  // This Firestore field is now unused; it's safe to leave as-is or clear
+  // it from Site Settings whenever convenient.
+}
+
+function mergeCampaignFields(base, overrides) {
+  if (!overrides) return base;
+  const merged = { ...base };
+  Object.keys(overrides).forEach((key) => {
+    if (overrides[key] !== undefined) merged[key] = overrides[key];
+  });
+  return merged;
+}
+
+// Legacy status vocabulary -> new vocabulary. Only used for campaign/current,
+// which may still contain "active"/"ended" from before this migration.
+const LEGACY_STATUS_MAP = { active: "current", upcoming: "upcoming", ended: "previous" };
+
+// Pre-migration compatibility only: fills Heartbound's identity fields from
+// the legacy campaign/current doc. Never runs once campaigns/heartbound
+// exists (see applyFirestoreOverrides below).
+function applyLegacyHeartboundIdentity(heartbound, legacyCurrent) {
+  if (!legacyCurrent) return heartbound;
+
+  const merged = { ...heartbound, links: { ...heartbound.links } };
+  if (legacyCurrent.title !== undefined) merged.title = legacyCurrent.title;
+  if (legacyCurrent.subtitle !== undefined) merged.subtitle = legacyCurrent.subtitle;
+  if (legacyCurrent.description !== undefined) merged.description = legacyCurrent.description;
+  if (legacyCurrent.heroMessage !== undefined) merged.heroMessage = legacyCurrent.heroMessage;
+  if (legacyCurrent.status !== undefined) {
+    merged.status = LEGACY_STATUS_MAP[legacyCurrent.status] || merged.status;
   }
+  if (legacyCurrent.primaryLink) merged.links.youtube = legacyCurrent.primaryLink;
+  if (legacyCurrent.tiktokLink) merged.links.tiktok = legacyCurrent.tiktokLink;
+  return merged;
+}
+
+// Always applies to Heartbound, migrated or not — campaign/goals,
+// campaign/tiktokGoals, and stats/tiktok remain the real source for these
+// three values until they're generalized per-campaign later.
+function applyLegacyHeartboundStats(heartbound, legacyGoals, legacyTiktokGoals, legacyStatsTiktok) {
+  const merged = {
+    ...heartbound,
+    goals: { ...heartbound.goals },
+    stats: { ...heartbound.stats }
+  };
+
+  if (legacyGoals && Array.isArray(legacyGoals.items)) {
+    merged.goals.youtube = legacyGoals.items.map((g) => ({ label: g.label, target: g.target }));
+  }
+  if (legacyTiktokGoals && Array.isArray(legacyTiktokGoals.items)) {
+    merged.goals.tiktok = legacyTiktokGoals.items.map((g) => ({ label: g.label, target: g.target }));
+  }
+  if (legacyStatsTiktok && typeof legacyStatsTiktok.currentViews === "number") {
+    merged.stats.tiktokCurrentViews = legacyStatsTiktok.currentViews;
+  }
+
+  return merged;
 }
 
 async function applyFirestoreOverrides() {
   if (typeof siteData === "undefined") return;
 
-  let app;
-  let db;
-  try {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-  } catch (error) {
-    console.warn("[firestore-content] Firebase failed to initialize — using data.js content only.", error);
-    return;
-  }
+  const db = ensureFirebaseApp();
+  if (!db) return;
 
   const [
-    campaignCurrent,
-    campaignGoals,
-    campaignTiktokGoals,
-    statsTiktok,
+    campaignDocs,
+    legacyCampaignCurrent,
+    legacyCampaignGoals,
+    legacyCampaignTiktokGoals,
+    legacyStatsTiktok,
     contentAnnouncements,
-    contentMissions,
-    contentQuickLinks,
-    contentPlatforms,
     contentFaq,
     contentMusic,
-    contentCommentHelper,
     siteSettings
   ] = await Promise.all([
+    fetchCollectionDocs(db, "campaigns"),
     fetchDoc(db, "campaign/current"),
     fetchDoc(db, "campaign/goals"),
     fetchDoc(db, "campaign/tiktokGoals"),
     fetchDoc(db, "stats/tiktok"),
     fetchDoc(db, "content/announcements"),
-    fetchDoc(db, "content/missions"),
-    fetchDoc(db, "content/quickLinks"),
-    fetchDoc(db, "content/platforms"),
     fetchDoc(db, "content/faq"),
     fetchDoc(db, "content/music"),
-    fetchDoc(db, "content/commentHelper"),
     fetchDoc(db, "site/settings")
   ]);
 
-  const c = siteData.currentCampaign;
+  // Merge the live `campaigns` collection over the data.js fallback array by
+  // id — a live doc overrides its matching fallback entry field-by-field; a
+  // brand-new admin-created campaign with no fallback entry is appended.
+  const campaignDocsById = new Map(campaignDocs.map((d) => [d.id, d]));
+  let mergedCampaigns = siteData.campaigns.map((fallback) =>
+    mergeCampaignFields(fallback, campaignDocsById.get(fallback.id))
+  );
+  campaignDocsById.forEach((docData, id) => {
+    if (!mergedCampaigns.some((c) => c.id === id)) {
+      mergedCampaigns.push({ id, ...docData });
+    }
+  });
 
-  // Campaign profile fields — plain scalar override.
-  if (campaignCurrent) {
-    if (campaignCurrent.title !== undefined) c.title = campaignCurrent.title;
-    if (campaignCurrent.subtitle !== undefined) c.subtitle = campaignCurrent.subtitle;
-    if (campaignCurrent.description !== undefined) c.description = campaignCurrent.description;
-    if (campaignCurrent.heroMessage !== undefined) c.heroMessage = campaignCurrent.heroMessage;
-    if (campaignCurrent.status !== undefined) c.status = campaignCurrent.status;
-    if (campaignCurrent.primaryLink) c.primaryLink = campaignCurrent.primaryLink;
-    if (campaignCurrent.tiktokLink) c.tiktokLink = campaignCurrent.tiktokLink;
-  }
+  // Heartbound compatibility layer — see the file header comment.
+  const heartboundHasLiveDoc = campaignDocsById.has("heartbound");
+  mergedCampaigns = mergedCampaigns.map((c) => {
+    if (c.id !== "heartbound") return c;
+    let result = c;
+    if (!heartboundHasLiveDoc) {
+      result = applyLegacyHeartboundIdentity(result, legacyCampaignCurrent);
+    }
+    result = applyLegacyHeartboundStats(result, legacyCampaignGoals, legacyCampaignTiktokGoals, legacyStatsTiktok);
+    return result;
+  });
 
-  // YouTube goal milestones — target/label only. "current" always comes
-  // from data/youtube-stats.json inside loadAndRenderGoals(), never from
-  // Firestore, so it's intentionally left out of this override entirely.
-  if (campaignGoals && Array.isArray(campaignGoals.items)) {
-    c.goals = campaignGoals.items.map((g) => ({ label: g.label, target: g.target, current: 0 }));
-  }
-
-  // TikTok goal milestones — target/label only, no "current" here either.
-  if (campaignTiktokGoals && Array.isArray(campaignTiktokGoals.items)) {
-    c.tiktokGoals = campaignTiktokGoals.items.map((g) => ({ label: g.label, target: g.target }));
-  }
-
-  // The single shared TikTok "current views" value every TikTok goal
-  // card reads from.
-  if (statsTiktok && typeof statsTiktok.currentViews === "number") {
-    c.tiktokCurrentViews = statsTiktok.currentViews;
-  }
+  siteData.campaigns = mergedCampaigns;
 
   if (contentAnnouncements && Array.isArray(contentAnnouncements.items)) {
     siteData.announcements = contentAnnouncements.items;
-  }
-
-  if (contentMissions && Array.isArray(contentMissions.items)) {
-    c.missions = contentMissions.items;
-  }
-
-  if (contentQuickLinks && Array.isArray(contentQuickLinks.items)) {
-    c.quickLinks = contentQuickLinks.items;
-  }
-
-  if (contentPlatforms && Array.isArray(contentPlatforms.items)) {
-    c.platforms = contentPlatforms.items;
   }
 
   if (contentFaq && Array.isArray(contentFaq.items)) {
@@ -196,10 +301,6 @@ async function applyFirestoreOverrides() {
     };
   }
 
-  if (contentCommentHelper && Array.isArray(contentCommentHelper.styles) && contentCommentHelper.phrases) {
-    siteData.commentHelper = contentCommentHelper;
-  }
-
   applySiteSettings(siteSettings);
 
   if (typeof window.renderAllContent === "function") {
@@ -208,3 +309,59 @@ async function applyFirestoreOverrides() {
 }
 
 applyFirestoreOverrides();
+
+/* ==========================================================================
+   Comment Helper — on-demand random phrase batch
+   ------------------------------------------------------------------
+   Called from js/campaigns.js (a classic script, no Firestore access of
+   its own) whenever a fan clicks "Generate Comment" on a campaign whose
+   features.commentHelper is enabled. Exposed on window since campaigns.js
+   can't `import` this module.
+
+   Same bounded-randomization approach as js/trending.js's phrase pool:
+   each phrase carries a `randomKey` set once at creation, and this pulls
+   one bounded batch (40) via a single-field range query starting from a
+   random point, wrapping around when the key space runs out. That query
+   only range-filters/orders on `randomKey` — a single field, which
+   Firestore indexes automatically — so no composite index is required.
+   `enabled` is deliberately NOT part of the query (an equality filter
+   combined with a range filter on a different field would require a
+   composite index); instead disabled phrases are filtered out of the
+   result client-side, exactly like js/trending.js already does. The
+   library is never fetched in full.
+   ========================================================================== */
+
+async function fetchCommentHelperBatch(campaignId) {
+  const dbRef = ensureFirebaseApp();
+  if (!dbRef) return null;
+
+  const phrasesRef = collection(dbRef, `campaigns/${campaignId}/commentHelperPhrases`);
+  const randomStart = Math.random();
+  const merged = new Map();
+
+  try {
+    const firstQuery = query(
+      phrasesRef,
+      where("randomKey", ">=", randomStart),
+      orderBy("randomKey"),
+      limit(COMMENT_HELPER_BATCH_SIZE)
+    );
+    const firstSnap = await withTimeout(getDocs(firstQuery), FETCH_TIMEOUT_MS);
+    if (firstSnap) firstSnap.docs.forEach((d) => merged.set(d.id, d));
+
+    if (merged.size < COMMENT_HELPER_BATCH_SIZE) {
+      const wrapQuery = query(phrasesRef, orderBy("randomKey"), limit(COMMENT_HELPER_BATCH_SIZE));
+      const wrapSnap = await withTimeout(getDocs(wrapQuery), FETCH_TIMEOUT_MS);
+      if (wrapSnap) wrapSnap.docs.forEach((d) => merged.set(d.id, d));
+    }
+  } catch (error) {
+    console.warn(`[comment-helper] Could not load phrase batch for campaign "${campaignId}".`, error);
+    return null;
+  }
+
+  return Array.from(merged.values())
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((p) => p.enabled !== false && typeof p.text === "string" && p.text.length > 0);
+}
+
+window.fetchCommentHelperBatch = fetchCommentHelperBatch;

@@ -434,6 +434,18 @@ select:focus-visible,
   border: 1px solid var(--color-border-strong);
 }
 
+.badge-upcoming {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+}
+
+.badge-previous {
+  background: transparent;
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-border);
+}
+
 /* ==========================================================================
    Hero
    ========================================================================== */
@@ -1139,10 +1151,17 @@ body.music-modal-open {
 
 .announcement-card-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+.announcement-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .announcement-badge {
@@ -1241,6 +1260,16 @@ body.music-modal-open {
 .stream-guide-card:hover {
   border-color: var(--color-accent-hover);
   box-shadow: 0 0 0 1px var(--color-accent-soft), var(--shadow-md);
+}
+
+/* .stream-guide-card sets its own `display`, which — same as
+   .music-modal-overlay/.faq-answer/.trending-event-tag above — would
+   otherwise beat the browser's default [hidden] rule and leave it
+   visible. The "Busy? Use a Playlist" card carries data-feature="playlists"
+   and needs this to actually hide for a campaign with youtubeGuide
+   enabled but playlists disabled. */
+.stream-guide-card[hidden] {
+  display: none;
 }
 
 .stream-guide-card--do {
@@ -1853,10 +1882,27 @@ body.music-modal-open {
 }
 
 .comment-helper-text {
+  display: block;
+  width: 100%;
   margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text);
+  font: inherit;
   font-size: 1.02rem;
   line-height: 1.6;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.comment-helper-text:read-only {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.comment-helper-text:disabled {
+  opacity: 0.7;
 }
 
 .comment-helper-actions {
@@ -2362,4 +2408,157 @@ body.music-modal-open {
   .trending-actions .btn {
     width: 100%;
   }
+}
+
+/* ==========================================================================
+   Multi-campaign system — grid cards (Current/All Campaigns pages),
+   Also Streaming compact cards (homepage), and the All Campaigns filter.
+   ========================================================================== */
+
+.campaigns-grid {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-7);
+}
+
+.campaigns-section-heading {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.campaign-grid-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.campaign-grid-card-cover {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface-alt);
+}
+
+.campaign-grid-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.campaign-grid-card-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-4);
+  color: var(--color-text-faint);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.campaign-grid-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.campaign-grid-card-type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.campaign-grid-card-subtitle {
+  color: var(--color-text-muted);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.campaign-grid-card-desc {
+  font-size: 0.92rem;
+}
+
+.campaign-grid-card-meta {
+  font-size: 0.85rem;
+  color: var(--color-text-faint);
+}
+
+/* ---- Homepage Also Streaming row ---- */
+.also-streaming {
+  margin-top: var(--space-6);
+}
+
+.also-streaming-heading {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.also-streaming-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.also-streaming-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+/* ---- All Campaigns filter tabs ---- */
+.campaign-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.campaign-filter-tab {
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.campaign-filter-tab:hover {
+  border-color: var(--color-accent);
+}
+
+.campaign-filter-tab.is-active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+/* Built fresh by js/campaigns.js as the sole child of [data-campaign-image]
+   whenever a campaign has no image — never a toggled-visibility element,
+   so there's no [hidden]-vs-author-display-property conflict to worry
+   about here (see the .stream-guide-card[hidden] note below for a case
+   where that conflict does apply). */
+.campaign-hero-image-placeholder {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border-strong);
+  background: linear-gradient(155deg, var(--color-surface), var(--color-surface-alt));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+  font-weight: 600;
+  text-align: center;
+  padding: var(--space-5);
 }

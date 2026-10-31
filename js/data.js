@@ -20,103 +20,251 @@ const siteData = {
   },
 
   /*
-    The campaign currently shown on the homepage and campaign.html.
-    When this campaign ends and a new one begins, move this object into
-    `pastCampaigns` and replace `currentCampaign` with the new campaign's
-    data — the page structure does not need to change.
-  */
-  currentCampaign: {
-    id: "heartbound-pilot-trailer",
-    title: "HEARTBOUND",
-    subtitle: "Pilot Trailer Streaming Campaign",
-    status: "active", // "active" | "upcoming" | "ended"
-    description:
-      "PerthSanta's upcoming series Heartbound just released its pilot trailer. This is our first big push to help it reach as many eyes as possible — every watch, like, comment, and share genuinely helps.",
-    heroMessage:
-      "Let's show up for PerthSanta and Heartbound together. Every bit of support counts.",
-      primaryPlatform: "youtube",
-    
-      primaryPlatforms: ["youtube", "tiktok"],
+    Every campaign the site knows about — current, upcoming, and previous
+    alike. This is the fallback used whenever Firestore's `campaigns/{id}`
+    collection is slow/unavailable/doesn't yet have a given doc; js/campaigns.js
+    reads this array (merged with any live Firestore docs) to render the
+    homepage Active Campaigns section, the Current/All Campaigns pages, and
+    every campaign.html?id=... detail page.
 
-    // The official trailer link has not been provided yet.
-    primaryLink: {
-      label: "Official Heartbound Pilot Trailer",
-      url: "https://www.youtube.com/watch?v=I1guVkLJ4mU"
-    },
-
-    tiktokLink: {
-      label: "Official Heartbound Pilot Trailer on TikTok",
-      url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397"
-    },
-
-    // Placeholder milestones — replace target/current with real numbers
-    // once the actual campaign goals are confirmed.
-    goals: [
-      { label: "1M Views", target: 1000000, current: 0 },
-      { label: "2M Views", target: 2000000, current: 0 },
-      { label: "3M Views", target: 3000000, current: 0 },
-      { label: "5M Views", target: 5000000, current: 0 }
-    ],
-
-    tiktokGoals: [
-      { label: "1M Views", target: 1000000 },
-      { label: "2M Views", target: 2000000 },
-      { label: "3M Views", target: 3000000 },
-      { label: "4M Views", target: 4000000 }
-    ],
-
-    // Single shared "current" value for every TikTok goal card above —
-    // replaces the old per-goal `current` field so the number only needs
-    // updating in one place. The admin console's "TikTok Views" panel
-    // manages this same value in Firestore (stats/tiktok.currentViews);
-    // this is only the fallback used when Firestore is unavailable.
-    tiktokCurrentViews: 2800000,
-
-    // Platform Support Center cards. `url: null` renders as "Coming soon".
-    platforms: [
+    Campaign object shape — not every field is required on every campaign;
+    js/campaigns.js hides a section gracefully when its data is missing:
       {
-        id: "x",
-        name: "X / Twitter",
-        actions: ["Like", "Repost", "Reply", "Share"],
-        cta: "ENGAGE ON X",
-        url: "https://x.com/HeartboundTH"
-      },
-      {
-        id: "instagram",
-        name: "Instagram",
-        actions: ["Like", "Repost", "Comment", "Share"],
-        cta: "ENGAGE ON INSTAGRAM",
-        url: "https://www.instagram.com/heartboundth_/"
+        id,                 // unique slug, used in campaign.html?id=...
+        title, subtitle,
+        campaignType,       // "Pilot Trailer" | "Official Trailer" | "Series" | "OST" | "Music" | "Other"
+        status,             // "current" | "upcoming" | "previous" — never "active"/"ended"
+        isFeatured,         // only one campaign should normally be true at a time
+        displayOrder,       // lower = higher priority in every list/grid
+        image,              // path, or null to show a placeholder
+        description, heroMessage,
+        startDate, endDate, // "YYYY-MM-DD" or null
+        links: { youtube, tiktok, instagram, x, other: [{label,url}] },
+        platforms: [ {id,name,actions,cta,url} ],
+        goals: { youtube: [{label,target}], tiktok: [{label,target}] },
+        stats: { youtubeVideoId, youtubeStatsSource, tiktokCurrentViews },
+        missions: [ "..." ],
+        quickLinks: [ {label,icon,url} ],
+        features: { commentHelper, youtubeGuide, playlists }, // optional campaign.html modules
+        notes
       }
-    ],
+  */
+  campaigns: [
+    {
+      id: "heartbound",
+      title: "HEARTBOUND",
+      subtitle: "Pilot Trailer Streaming Campaign",
+      campaignType: "Pilot Trailer",
+      status: "current",
+      isFeatured: true,
+      displayOrder: 1,
+      image: "assets/images/heartbound.jpg",
+      description:
+        "PerthSanta's upcoming series Heartbound just released its pilot trailer. This is our first big push to help it reach as many eyes as possible — every watch, like, comment, and share genuinely helps.",
+      heroMessage:
+        "Let's show up for PerthSanta and Heartbound together. Every bit of support counts.",
+      startDate: null,
+      endDate: null,
 
-    // Today's Support Mission — simple ordered checklist, edit freely.
-    missions: [
-      "Watch the Heartbound pilot trailer",
-      "Like the official video",
-      "Leave a genuine comment",
-      "Share the trailer with a friend or on your socials",
-      "Engage with the official Heartbound posts",
-      "Come back later and keep supporting the campaign"
-    ],
+      links: {
+        youtube: {
+          label: "Official Heartbound Pilot Trailer",
+          url: "https://www.youtube.com/watch?v=I1guVkLJ4mU"
+        },
+        tiktok: {
+          label: "Official Heartbound Pilot Trailer on TikTok",
+          url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397"
+        },
+        instagram: null,
+        x: null,
+        other: []
+      },
 
-    // Quick Links grid. `icon` is a plain glyph/emoji — swap for a real
-    // icon asset later if desired.
-    quickLinks: [
-      { label: "Heartbound Pilot Trailer", icon: "▶", url: "https://www.youtube.com/watch?v=I1guVkLJ4mU" },
-      { label: "Official X Post", icon: "𝕏", url: "https://x.com/GMMTV/status/2078863739143803261" },
-      { label: "Instagram Post", icon: "◎", url: "https://www.instagram.com/reel/Da_ms6PMQtl/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==&igsi=MzRlODBiNWFlZA==" },
-      { label: "TikTok Post", icon: "♪", url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397?is_from_webapp=1&sender_device=pc&web_id=7674032561550607879" }
+      // Platform Support Center cards. `url: null` renders as "Coming soon".
+      platforms: [
+        {
+          id: "x",
+          name: "X / Twitter",
+          actions: ["Like", "Repost", "Reply", "Share"],
+          cta: "ENGAGE ON X",
+          url: "https://x.com/HeartboundTH"
+        },
+        {
+          id: "instagram",
+          name: "Instagram",
+          actions: ["Like", "Repost", "Comment", "Share"],
+          cta: "ENGAGE ON INSTAGRAM",
+          url: "https://www.instagram.com/heartboundth_/"
+        }
+      ],
+
+      // Placeholder milestones — replace target with real numbers once the
+      // actual campaign goals are confirmed. "current" is never stored here —
+      // YouTube's live count always comes from data/youtube-stats.json, and
+      // TikTok's from stats.tiktokCurrentViews below.
+      goals: {
+        youtube: [
+          { label: "1M Views", target: 1000000 },
+          { label: "2M Views", target: 2000000 },
+          { label: "3M Views", target: 3000000 },
+          { label: "5M Views", target: 5000000 }
+        ],
+        tiktok: [
+          { label: "1M Views", target: 1000000 },
+          { label: "2M Views", target: 2000000 },
+          { label: "3M Views", target: 3000000 },
+          { label: "4M Views", target: 4000000 }
+        ]
+      },
+
+      // youtubeVideoId/youtubeStatsSource identify which static JSON file
+      // (generated by the update-youtube-views GitHub Actions workflow)
+      // supplies this campaign's live YouTube count. tiktokCurrentViews is
+      // the fallback used when Firestore's legacy stats/tiktok doc (still
+      // the real source for this value today) is unavailable.
+      stats: {
+        youtubeVideoId: "I1guVkLJ4mU",
+        youtubeStatsSource: "data/youtube-stats.json",
+        tiktokCurrentViews: 2800000
+      },
+
+      // Today's Support Mission — simple ordered checklist, edit freely.
+      missions: [
+        "Watch the Heartbound pilot trailer",
+        "Like the official video",
+        "Leave a genuine comment",
+        "Share the trailer with a friend or on your socials",
+        "Engage with the official Heartbound posts",
+        "Come back later and keep supporting the campaign"
+      ],
+
+      // Quick Links grid. `icon` is a plain glyph/emoji — swap for a real
+      // icon asset later if desired.
+      quickLinks: [
+        { label: "Heartbound Pilot Trailer", icon: "▶", url: "https://www.youtube.com/watch?v=I1guVkLJ4mU" },
+        { label: "Official X Post", icon: "𝕏", url: "https://x.com/GMMTV/status/2078863739143803261" },
+        { label: "Instagram Post", icon: "◎", url: "https://www.instagram.com/reel/Da_ms6PMQtl/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==&igsi=MzRlODBiNWFlZA==" },
+        { label: "TikTok Post", icon: "♪", url: "https://www.tiktok.com/@gmmtvofficial/video/7664261665067781397?is_from_webapp=1&sender_device=pc&web_id=7674032561550607879" }
+      ],
+
+      // Heartbound keeps all three optional campaign.html modules —
+      // these sections render conditionally based on this flag, not based
+      // on which campaign id is being viewed.
+      features: {
+        commentHelper: true,
+        youtubeGuide: true,
+        playlists: true
+      },
+
+      // Comment Helper config — lightweight labels only. The actual phrase
+      // library lives in Firestore at campaigns/heartbound/commentHelperPhrases
+      // (see commentHelperFallback below for the small local fallback, and
+      // the "legacy template system" comment further down in this file for
+      // where the old style/length fragment banks live now).
+      commentHelper: {
+        title: "Comment Helper",
+        description: "Need an idea? Generate a comment you can personalize.",
+        buttonLabel: "Generate Comment",
+        copyLabel: "Copy",
+        allowEditing: true
+      },
+
+      notes: null
+    },
+
+    {
+      id: "new-pilot-2026-placeholder",
+      title: "New PerthSanta Pilot",
+      subtitle: "New GMMTV Pilot Trailer",
+      campaignType: "Pilot Trailer",
+      status: "upcoming",
+      isFeatured: false,
+      displayOrder: 2,
+      image: null,
+      description: "Details will be added after the official GMMTV announcement.",
+      heroMessage: "A new PerthSanta pilot campaign will be added here after the official reveal.",
+      startDate: null,
+      endDate: null,
+      links: { youtube: null, tiktok: null, instagram: null, x: null, other: [] },
+      platforms: [],
+      goals: { youtube: [], tiktok: [] },
+      stats: { youtubeVideoId: null, youtubeStatsSource: null, tiktokCurrentViews: 0 },
+      missions: [],
+      quickLinks: [],
+      features: { commentHelper: false, youtubeGuide: false, playlists: false },
+      commentHelper: {
+        title: "Comment Helper",
+        description: "Need an idea? Generate a comment you can personalize.",
+        buttonLabel: "Generate Comment",
+        copyLabel: "Copy",
+        allowEditing: true
+      },
+      notes: null
+    }
+  ],
+
+  /*
+    Comment Helper emergency fallback — Heartbound only, used only when
+    Firestore itself is unreachable (not when a campaign's library is
+    legitimately empty). Deliberately small (a few dozen entries, not the
+    full 1,500-2,000-comment Firestore library) so this file never needs to
+    carry a large duplicated phrase bank. Every other campaign has no
+    fallback at all — an unreachable Firestore for them just shows the
+    friendly "couldn't load" state. See js/campaigns.js for how this is
+    used, and the "legacy template system" comment below for where
+    Heartbound's old style/length generator data lives (used only once, by
+    the admin "Migrate Heartbound Comment Helper" action — not by any
+    public page).
+  */
+  commentHelperFallback: {
+    heartbound: [
+      "This looks so good!",
+      "Can't wait for this!",
+      "So excited for Heartbound!",
+      "This trailer is everything.",
+      "Loving this already.",
+      "Perth and Santa never disappoint.",
+      "This is going to be so good.",
+      "So proud of this project.",
+      "Already hooked!",
+      "Can't stop watching this trailer.",
+      "This trailer has me so excited!",
+      "Heartbound already looks amazing.",
+      "PerthSanta did so well here!",
+      "I need the full series immediately.",
+      "This looks incredibly promising.",
+      "Already obsessed with Heartbound.",
+      "The chemistry is everything!",
+      "Such a beautiful trailer.",
+      "The acting already looks so good.",
+      "Heartbound has my full attention.",
+      "I can't wait to see more!",
+      "This deserves so much love.",
+      "Everything about this looks so promising.",
+      "Perth and Santa look amazing together.",
+      "This trailer made me even more excited.",
+      "I'm officially ready for Heartbound.",
+      "The visuals are stunning!",
+      "I already love the atmosphere.",
+      "This cast looks incredible.",
+      "The story already has me curious.",
+      "So much potential in this series!",
+      "I'm definitely watching Heartbound.",
+      "This trailer was worth the wait.",
+      "I love the energy of this!",
+      "Already waiting for episode one.",
+      "This looks like it's going to be special.",
+      "Heartbound, you have my attention.",
+      "Such a strong first look at the series.",
+      "I can't wait to meet these characters properly.",
+      "Sending all my support to Heartbound!"
     ]
   },
 
-  // Reserved for a future campaign archive. Not yet displayed anywhere.
-  pastCampaigns: [],
-
   /*
     Announcements — a general, site-wide updates feed shown in the
-    Announcements section on index.html. Unlike currentCampaign, this is
-    NOT scoped to a single campaign — use it for Heartbound news, music
+    Announcements section on index.html. Unlike the campaigns array above,
+    this is NOT scoped to a single campaign — use it for Heartbound news, music
     releases, JASP.ER news, streaming campaigns, milestones, and general
     site updates alike.
 
@@ -125,11 +273,12 @@ const siteData = {
 
     Each announcement object shape:
       {
-        date: "2026-08-17",     // required, "YYYY-MM-DD"
-        category: "JASP.ER",    // required — one of "Heartbound" | "Music" |
-                                 // "JASP.ER" | "Streaming" | "Campaign" |
-                                 // "General" (see ANNOUNCEMENT_CATEGORIES
-                                 // in js/main.js)
+        date: "2026-08-17",           // required, "YYYY-MM-DD"
+        categories: ["JASP.ER"],      // required, at least one — each a string from
+                                       // "Heartbound" | "Music" | "JASP.ER" | "Streaming" |
+                                       // "Campaign" | "General" (see ANNOUNCEMENT_CATEGORIES
+                                       // in js/announcements.js). An announcement can belong
+                                       // to more than one, e.g. ["Campaign", "Streaming"].
         title: "Announcement title",
         message: "Short description shown under the title.",
         url: null,               // optional — leave null to render no CTA
@@ -137,11 +286,15 @@ const siteData = {
                                  // when `url` is set; defaults to
                                  // "Learn more" when left null)
       }
+
+    Legacy single-category announcements (category: "...") are still read
+    correctly — js/announcements.js's getAnnouncementCategories() normalizes
+    either shape — but every entry here already uses the new array form.
   */
   announcements: [
     {
       date: "2026-08-17",
-      category: "JASP.ER",
+      categories: ["JASP.ER"],
       title: "JASP.ER Comeback — \"WISH\"",
       message: "A new JASP.ER comeback has been announced with the upcoming song \"WISH\".",
       url: null,
@@ -149,7 +302,7 @@ const siteData = {
     },
     {
       date: "2026-08-14",
-      category: "Heartbound",
+      categories: ["Heartbound"],
       title: "Heartbound Pilot Trailer Is Out!",
       message: "The official Heartbound pilot trailer is now available. Watch, stream, comment, and share to support PerthSanta.",
       url: "https://www.youtube.com/watch?v=I1guVkLJ4mU",
@@ -157,7 +310,7 @@ const siteData = {
     },
     {
       date: "2026-08-10",
-      category: "Campaign",
+      categories: ["Campaign", "Streaming"],
       title: "Comment Helper Is Now Available",
       message: "Need inspiration? Generate a comment suggestion and make it your own.",
       url: "campaign.html#comment-helper",
@@ -165,7 +318,7 @@ const siteData = {
     },
     {
       date: "2026-08-07",
-      category: "Streaming",
+      categories: ["Streaming"],
       title: "Next Target: 2M Views",
       message: "Keep streaming and sharing the official Heartbound pilot trailer.",
       url: null,
@@ -173,7 +326,7 @@ const siteData = {
     },
     {
       date: "2026-08-05",
-      category: "Streaming",
+      categories: ["Streaming"],
       title: "1M YouTube Views Reached",
       message: "Thank you for helping Heartbound reach the first major streaming milestone.",
       url: null,
@@ -181,7 +334,7 @@ const siteData = {
     },
     {
       date: "2026-08-03",
-      category: "Campaign",
+      categories: ["Campaign"],
       title: "Leave a Genuine Comment",
       message: "Don't forget to leave a thoughtful comment under the official pilot trailer.",
       url: null,
@@ -189,7 +342,7 @@ const siteData = {
     },
     {
       date: "2026-08-01",
-      category: "Campaign",
+      categories: ["Campaign"],
       title: "Use the Official Trailer",
       message: "Please make sure you're streaming the official GMMTV upload, not a reupload or clip.",
       url: null,
@@ -198,8 +351,8 @@ const siteData = {
   ],
 
   /*
-    PerthSanta Music — a permanent hub for songs/OSTs, independent of
-    currentCampaign. Rendered on the dedicated music.html catalog page
+    PerthSanta Music — a permanent hub for songs/OSTs, independent of any
+    campaign. Rendered on the dedicated music.html catalog page
     (js/main.js, renderMusicSections()) and stays populated across
     campaigns, so it does not move when the active campaign changes.
 
@@ -488,27 +641,31 @@ const siteData = {
   ],
 
   /*
-    Comment Helper (campaign.html) — reusable phrase banks for the
-    Heartbound pilot trailer comment generator. js/main.js combines
-    these into full comments client-side; nothing here is posted
-    anywhere automatically, and no external API is used.
+    LEGACY — Heartbound's old style/length comment-template system.
+    ------------------------------------------------------------------
+    The public Comment Helper no longer uses this data (campaign.html now
+    reads a flat, campaign-scoped phrase library from Firestore at
+    campaigns/{id}/commentHelperPhrases instead — see js/campaigns.js's
+    renderCommentHelper()). This block stays here, inert, for exactly one
+    purpose: the admin "Migrate Heartbound Comment Helper" action
+    (js/admin.js) reads it once to pre-bake a large set of complete,
+    deduplicated comments by reusing this exact generation logic, so the
+    new flat library starts with comparable variety to what this old
+    generator used to produce live. Do not wire this back into any public
+    render path — do not add new styles here expecting them to appear on
+    the site; add phrases to a campaign's Firestore library instead.
 
-    Every style (except "simple") has four phrase pools — openings,
-    observations, reactions, endings — combined in that fixed order
-    depending on the chosen length:
+    Shape (unchanged from the old system): every style (except "simple")
+    has four phrase pools — openings, observations, reactions, endings —
+    combined in that fixed order depending on the chosen length:
       short  -> 1 sentence  (opening OR reaction)
       medium -> 2 sentences (opening + observation OR reaction)
       longer -> 4 sentences (opening + observation + reaction + ending)
-
-    "simple" is a flat list of short standalone lines instead, and
-    length there just controls how many distinct lines get combined
-    (short = 1 line, medium = 2, longer = 3).
-
-    To add more variety later, just append more strings to any pool —
-    no HTML/JS changes needed. Keep phrases hashtag-free and avoid any
-    claim about specific viewing behavior (e.g. rewatch counts).
+    "simple" is a flat list of short standalone lines instead, and length
+    there just controls how many distinct lines get combined (short = 1
+    line, medium = 2, longer = 3).
   */
-  commentHelper: {
+  commentHelperLegacyTemplates: {
     styles: [
       { id: "excited", label: "Excited" },
       { id: "emotional", label: "Emotional" },

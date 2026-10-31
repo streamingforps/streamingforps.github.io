@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>All Campaigns — PerthSanta Streaming</title>
+
+  <meta
+    name="description"
+    content="Every PerthSanta streaming campaign — current, upcoming, and previous."
+  />
+
+  <link rel="icon" type="image/png" href="assets/icons/favicon.jpg" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        PerthSanta <span>Streaming</span>
+      </a>
+
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
+
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html" aria-current="page">All Campaigns</a></li>
+            <li><a href="trending.html">Trending</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li><a href="index.html#platforms">Platforms</a></li>
+            <li><a href="index.html#faq">FAQ / Important Info</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <section class="section" aria-labelledby="all-campaigns-heading" data-render="all-campaigns">
+      <div class="container">
+
+        <div class="section-heading">
+          <h1 id="all-campaigns-heading">
+            All Campaigns
+          </h1>
+
+          <p>
+            Every PerthSanta streaming campaign — current, upcoming, and previous.
+          </p>
+        </div>
+
+        <div class="campaign-filter-tabs" role="tablist" aria-label="Filter campaigns">
+          <button type="button" class="campaign-filter-tab is-active" data-campaign-filter="all">All</button>
+          <button type="button" class="campaign-filter-tab" data-campaign-filter="current">Current</button>
+          <button type="button" class="campaign-filter-tab" data-campaign-filter="upcoming">Upcoming</button>
+          <button type="button" class="campaign-filter-tab" data-campaign-filter="previous">Previous</button>
+        </div>
+
+        <!-- Current -->
+        <div data-campaigns-section="current">
+          <h2 class="campaigns-section-heading">Current Campaigns</h2>
+          <div class="card-grid campaigns-grid" data-render="campaigns-current"></div>
+        </div>
+
+        <!-- Upcoming -->
+        <div data-campaigns-section="upcoming">
+          <h2 class="campaigns-section-heading">Upcoming Campaigns</h2>
+          <div class="card-grid campaigns-grid" data-render="campaigns-upcoming"></div>
+        </div>
+
+        <!-- Previous -->
+        <div data-campaigns-section="previous">
+          <h2 class="campaigns-section-heading">Previous Campaigns</h2>
+          <div class="card-grid campaigns-grid" data-render="campaigns-previous"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="PerthSanta Streaming profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">PerthSanta Streaming</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, or any associated network,
+        platform, or production.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> PerthSanta Streaming
+      </p>
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
+  <script type="module" src="js/firestore-content.js"></script>
+</body>
+</html>

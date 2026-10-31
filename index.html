@@ -8,7 +8,7 @@
 
   <meta
     name="description"
-    content="PerthSanta Streaming is the central hub for PerthSanta fans: current campaigns, streaming guides, goals, and links, all in one place."
+    content="PerthSanta Streaming is the central hub for PerthSanta fans: current campaigns, streaming guides, music, and official links, all in one place."
   />
 
   <link rel="icon" type="image/png" href="assets/icons/favicon.jpg" />
@@ -45,12 +45,12 @@
         >
           <ul>
             <li><a href="index.html">Home</a></li>
-            <li><a href="campaign.html">Current Campaign</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html">All Campaigns</a></li>
             <li><a href="trending.html">Trending</a></li>
             <li><a href="music.html">Music</a></li>
             <li><a href="index.html#guides">Streaming Guides</a></li>
             <li><a href="index.html#platforms">Platforms</a></li>
-            <li><a href="index.html#goals">Goals</a></li>
             <li><a href="index.html#faq">FAQ / Important Info</a></li>
           </ul>
         </nav>
@@ -115,7 +115,8 @@
           <div class="hero-actions">
             <a
               class="btn btn-primary"
-              href="campaign.html"
+              href="campaign.html?id=heartbound"
+              data-field="hero-campaign-cta"
             >
               Join the Streaming Campaign
             </a>
@@ -132,7 +133,7 @@
         <div class="campaign-visual">
           <img
             src="assets/images/homepage.jpg"
-            alt="Heartbound"
+            alt="PerthSanta performing live"
             class="campaign-image"
             data-field="homepage-campaign-image"
           />
@@ -141,7 +142,7 @@
       </div>
     </section>
 
-    <!-- Active Campaign -->
+    <!-- Active Campaigns -->
     <section
       class="section section-alt"
       id="current-campaign"
@@ -151,7 +152,7 @@
 
         <div class="section-heading">
           <h2 id="current-campaign-heading">
-            Active Campaign
+            Active Campaigns
           </h2>
 
           <p>
@@ -159,11 +160,8 @@
           </p>
         </div>
 
-        <div
-          class="campaign-card"
-          data-render="active-campaign"
-        >
-          <!-- Rendered by js/main.js from js/data.js -->
+        <div data-render="active-campaigns">
+          <!-- Rendered by js/campaigns.js from siteData.campaigns -->
         </div>
 
       </div>
@@ -211,7 +209,7 @@
           </h2>
 
           <p>
-            Latest PerthSanta, Heartbound, music, and streaming updates.
+            Latest PerthSanta streaming, campaign, music, and site updates.
           </p>
         </div>
 
@@ -219,8 +217,17 @@
           class="announcement-grid"
           data-render="announcements"
         >
-          <!-- Rendered by js/main.js -->
+          <!-- Rendered by js/announcements.js -->
         </ul>
+
+        <div
+          class="announcement-archive-cta"
+          data-render="announcements-view-all"
+          hidden
+        >
+          <!-- "View All Announcements" button, rendered by js/announcements.js
+               only when there are more than 6 announcements -->
+        </div>
 
       </div>
     </section>
@@ -252,114 +259,9 @@
       </div>
     </section>
 
-    <!-- Quick Links -->
-    <section
-      class="section section-alt"
-      aria-labelledby="quick-links-heading"
-    >
-      <div class="container">
-
-        <div class="section-heading">
-          <h2 id="quick-links-heading">
-            Quick Links
-          </h2>
-
-          <p>
-            Jump straight to the official posts and content.
-          </p>
-        </div>
-
-        <div
-          class="card-grid"
-          data-render="quick-links"
-        >
-          <!-- Rendered by js/main.js -->
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Official Heartbound Accounts -->
-    <section
-      class="section"
-      id="platforms"
-      aria-labelledby="platforms-heading"
-    >
-      <div class="container">
-
-        <div class="section-heading">
-          <h2 id="platforms-heading">
-            Official Heartbound Accounts
-          </h2>
-
-          <p>
-            Every platform where you can help support Heartbound.
-          </p>
-        </div>
-
-        <div
-          class="card-grid"
-          data-render="platforms"
-        >
-          <!-- Rendered by js/main.js -->
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Streaming Goals -->
-    <section
-      class="section section-alt"
-      id="goals"
-      aria-labelledby="goals-heading"
-    >
-      <div class="container">
-
-        <div class="section-heading">
-          <h2 id="goals-heading">
-            Streaming Goals
-          </h2>
-
-          <p>
-            Help Heartbound reach the next milestone on every streaming platform.
-          </p>
-        </div>
-
-        <!-- YouTube Goals -->
-        <h3 class="platform-goals-title">
-          YouTube Goals
-        </h3>
-
-        <div
-          class="card-grid"
-          data-render="goals"
-        >
-          <!-- YouTube goals rendered by js/main.js -->
-        </div>
-
-        <p class="goals-live-note">
-          YouTube views updated automatically
-          <span data-field="goals-updated-at"></span>
-        </p>
-
-        <!-- TikTok Goals -->
-        <h3 class="platform-goals-title">
-          TikTok Goals
-        </h3>
-
-        <div
-          class="card-grid"
-          data-render="tiktok-goals"
-        >
-          <!-- TikTok goals rendered by js/main.js -->
-        </div>
-
-      </div>
-    </section>
-
     <!-- PerthSanta Music teaser -->
     <section
-      class="section"
+      class="section section-alt"
       aria-labelledby="music-teaser-heading"
     >
       <div class="container">
@@ -378,6 +280,34 @@
           <a class="btn btn-primary" href="music.html">
             Explore Music
           </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Official Accounts -->
+    <section
+      class="section"
+      id="platforms"
+      aria-labelledby="platforms-heading"
+    >
+      <div class="container">
+
+        <div class="section-heading">
+          <h2 id="platforms-heading">
+            Official Accounts
+          </h2>
+
+          <p>
+            Every platform where you can help support PerthSanta's current campaigns.
+          </p>
+        </div>
+
+        <div
+          class="card-grid"
+          data-render="platforms"
+        >
+          <!-- Rendered by js/main.js -->
         </div>
 
       </div>
@@ -443,8 +373,8 @@
 
       <p class="footer-disclaimer">
         PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
-        endorsed by, or operated on behalf of PerthSanta, Heartbound, or any associated
-        network or platform.
+        endorsed by, or operated on behalf of PerthSanta, or any associated network,
+        platform, or production.
       </p>
 
       <p class="footer-credit">
@@ -462,6 +392,8 @@
 
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
+  <script src="js/announcements.js"></script>
   <script type="module" src="js/firestore-content.js"></script>
 </body>
 </html>
