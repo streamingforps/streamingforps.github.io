@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Leaderboard — PerthSanta Streaming</title>
+
+  <meta name="description" content="See who's earned the most Domiias by supporting PerthSanta." />
+
+  <link rel="icon" type="image/jpeg" href="assets/icons/favicon.jpg" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a0a0a" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        <span>PerthSanta</span>
+        <span class="site-logo-accent">Streaming</span>
+      </a>
+
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
+
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="missions.html">Missions</a></li>
+            <li><a href="leaderboard.html" aria-current="page">Leaderboard</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html">All Campaigns</a></li>
+            <li><a href="trending.html">Trending</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li class="nav-more">
+              <button type="button" class="nav-more-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-menu">More</button>
+              <div class="nav-more-menu" id="nav-more-menu" hidden>
+                <a class="nav-more-item" href="index.html#platforms">Platforms</a>
+                <a class="nav-more-item" href="index.html#faq">FAQ / Important Info</a>
+              </div>
+            </li>
+            <li class="nav-admin-mobile"><a href="admin.html">Admin console</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="section">
+      <div class="container">
+
+        <div class="section-heading">
+          <h1>Domiia Leaderboard</h1>
+          <p>See who's earned the most Domiias by supporting PerthSanta.</p>
+        </div>
+
+        <div class="cosmetic-tabs" data-leaderboard-tabs role="tablist">
+          <button type="button" class="cosmetic-tab" data-leaderboard-tab="weekly" role="tab" aria-selected="false">Weekly</button>
+          <button type="button" class="cosmetic-tab" data-leaderboard-tab="monthly" role="tab" aria-selected="false">Monthly</button>
+          <button type="button" class="cosmetic-tab" data-leaderboard-tab="allTime" role="tab" aria-selected="false">All-Time</button>
+        </div>
+        <p class="leaderboard-period-label" data-leaderboard-period-label></p>
+
+        <!-- Signed-out: can view, cannot join -->
+        <div class="leaderboard-join-card" data-leaderboard-signin-card hidden>
+          <p>Sign in to join the leaderboard.</p>
+          <button type="button" class="btn btn-primary" data-leaderboard-signin-btn>Sign In</button>
+        </div>
+
+        <!-- Signed-in, not opted in -->
+        <div class="leaderboard-join-card" data-leaderboard-join-card hidden>
+          <h2>Want to join the leaderboard?</h2>
+          <p>
+            You are currently private. Joining makes your display name, selected site avatar, and
+            lifetime Domiias visible to other visitors.
+          </p>
+          <button type="button" class="btn btn-primary" data-leaderboard-join-btn>Join Leaderboard</button>
+          <p class="cosmetic-section-status" data-leaderboard-join-status hidden></p>
+        </div>
+
+        <div class="leaderboard-list" data-leaderboard-list>
+          <p class="cosmetic-section-status">Loading…</p>
+        </div>
+
+        <div style="text-align: center; margin-top: var(--space-5);">
+          <button type="button" class="btn btn-secondary" data-leaderboard-load-more hidden>Load More</button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="PerthSanta Streaming profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">PerthSanta Streaming</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, or any associated network,
+        platform, or production.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> PerthSanta Streaming
+      </p>
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
+  <script type="module" src="js/firestore-content.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/mission-tracking.js"></script>
+  <script type="module">
+    import { onAuthChange, openAuthModal } from "./js/auth.js";
+    import { renderDomiiaAmount } from "./js/domiia.js";
+    import { fetchLeaderboardPage, setLeaderboardOptIn, getCurrentPeriodKeys } from "./js/leaderboard.js";
+
+    const listEl = document.querySelector("[data-leaderboard-list]");
+    const loadMoreBtn = document.querySelector("[data-leaderboard-load-more]");
+    const signInCard = document.querySelector("[data-leaderboard-signin-card]");
+    const signInBtn = document.querySelector("[data-leaderboard-signin-btn]");
+    const joinCard = document.querySelector("[data-leaderboard-join-card]");
+    const joinBtn = document.querySelector("[data-leaderboard-join-btn]");
+    const joinStatusEl = document.querySelector("[data-leaderboard-join-status]");
+    const periodLabelEl = document.querySelector("[data-leaderboard-period-label]");
+    const tabButtons = Array.from(document.querySelectorAll("[data-leaderboard-tab]"));
+
+    if (signInBtn) signInBtn.addEventListener("click", () => openAuthModal("signin", signInBtn));
+
+    // Same basePrefix()/resolveAssetUrl() convention as js/cosmetics.js —
+    // leaderboard avatarPath is always a site-root-relative asset path.
+    function basePrefix() {
+      const logo = document.querySelector(".site-logo");
+      const href = (logo && logo.getAttribute("href")) || "index.html";
+      return href.endsWith("index.html") ? href.slice(0, -"index.html".length) : "";
+    }
+    function resolveAssetUrl(rawPath) {
+      if (typeof rawPath !== "string" || !rawPath) return null;
+      if (/^(https?:|data:)/i.test(rawPath)) return rawPath;
+      return `${basePrefix()}${rawPath}`;
+    }
+    const DEFAULT_AVATAR_DATA_URI = "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">' +
+      '<circle cx="20" cy="20" r="20" fill="#242424"/>' +
+      '<circle cx="20" cy="16" r="7" fill="#888888"/>' +
+      '<path d="M5 36c0-8.3 6.7-14 15-14s15 5.7 15 14" fill="#888888"/>' +
+      "</svg>"
+    );
+
+    // ---- Per-tab state. Switching tabs always does a fresh load (reset
+    // = true) — no cross-tab row caching, so there's nothing to keep in
+    // sync between tabs beyond `currentPeriod` itself. ----
+    let currentPeriod = "weekly"; // spec section 19 — Weekly is the default tab
+    let lastDoc = null;
+    let rankCounter = 0;
+    let currentUserUid = null;
+    let loadInFlight = false;
+    const rowsByUid = new Map(); // uid -> row element, for the "YOU" highlight (see updateCurrentUserHighlight)
+    // Defensive duplicate-UID guard (not a substitute for a correct
+    // cursor — see fetchLeaderboardPage's lookahead strategy, which is
+    // the actual fix): never render the same uid twice no matter what a
+    // query happens to return.
+    const loadedLeaderboardUids = new Set();
+
+    // Tab-switch race safety (spec section 50): every loadPage(true) call
+    // (initial load OR a tab switch) mints a new token; a loadPage's own
+    // async fetchLeaderboardPage() result is only applied to the DOM if
+    // this token is STILL the current one when it resolves. A stale
+    // response from a tab the user has since navigated away from is
+    // silently discarded instead of rendering into the wrong tab.
+    let requestToken = 0;
+
+    function rankLabel(rank) {
+      if (rank === 1) return "🥇";
+      if (rank === 2) return "🥈";
+      if (rank === 3) return "🥉";
+      return `#${rank}`;
+    }
+
+    function scoreSuffixFor(period) {
+      if (period === "weekly") return " this week";
+      if (period === "monthly") return " this month";
+      return "";
+    }
+
+    function buildRow(entry, rank, period) {
+      const row = document.createElement("div");
+      row.className = `leaderboard-row${rank <= 3 ? " leaderboard-row--top" : ""}`;
+      row.dataset.uid = entry.uid;
+
+      const rankEl = document.createElement("span");
+      rankEl.className = "leaderboard-rank";
+      rankEl.textContent = rankLabel(rank);
+      rankEl.setAttribute("aria-label", `Rank ${rank}`);
+      row.appendChild(rankEl);
+
+      const avatarImg = document.createElement("img");
+      avatarImg.className = "leaderboard-avatar";
+      avatarImg.alt = "";
+      avatarImg.loading = "lazy";
+      avatarImg.src = resolveAssetUrl(entry.avatarPath) || DEFAULT_AVATAR_DATA_URI;
+      avatarImg.addEventListener("error", () => {
+        if (avatarImg.src !== DEFAULT_AVATAR_DATA_URI) avatarImg.src = DEFAULT_AVATAR_DATA_URI;
+      }, { once: true });
+      row.appendChild(avatarImg);
+
+      const nameEl = document.createElement("span");
+      nameEl.className = "leaderboard-name";
+      nameEl.textContent = entry.displayName || "Fan";
+      row.appendChild(nameEl);
+
+      const domiiaWrap = document.createElement("span");
+      domiiaWrap.className = "leaderboard-domiia";
+      domiiaWrap.appendChild(renderDomiiaAmount(Number(entry.score) || 0, { size: "medium" }));
+      const suffix = scoreSuffixFor(period);
+      if (suffix) {
+        const suffixEl = document.createElement("span");
+        suffixEl.className = "leaderboard-domiia-suffix";
+        suffixEl.textContent = suffix;
+        domiiaWrap.appendChild(suffixEl);
+      }
+      row.appendChild(domiiaWrap);
+
+      rowsByUid.set(entry.uid, { row, nameEl });
+      return row;
+    }
+
+    // Toggles the current-user highlight/"YOU" badge on whatever rows are
+    // ALREADY rendered — never re-fetches. Handles the (uncommon) race
+    // where auth resolves slightly after the first page of results has
+    // already painted.
+    function updateCurrentUserHighlight() {
+      rowsByUid.forEach(({ row, nameEl }, uid) => {
+        const isYou = !!currentUserUid && uid === currentUserUid;
+        row.classList.toggle("is-current-user", isYou);
+        let badge = nameEl.querySelector(".leaderboard-you-badge");
+        if (isYou && !badge) {
+          badge = document.createElement("span");
+          badge.className = "leaderboard-you-badge";
+          badge.textContent = "YOU";
+          nameEl.appendChild(badge);
+        } else if (!isYou && badge) {
+          badge.remove();
+        }
+      });
+    }
+
+    function emptyMessageFor(period) {
+      if (period === "weekly") return "No Domiias have been earned on the leaderboard this week yet.";
+      if (period === "monthly") return "No Domiias have been earned on the leaderboard this month yet.";
+      return "No supporters have joined the leaderboard yet.<br>Be the first!";
+    }
+
+    function currentPeriodKey(period) {
+      const keys = getCurrentPeriodKeys();
+      if (period === "weekly") return keys.weekKey;
+      if (period === "monthly") return keys.monthKey;
+      return undefined;
+    }
+
+    function updatePeriodLabel(period) {
+      if (!periodLabelEl) return;
+      const keys = getCurrentPeriodKeys();
+      if (period === "weekly") periodLabelEl.textContent = `This Week: ${keys.weekLabel}`;
+      else if (period === "monthly") periodLabelEl.textContent = keys.monthLabel;
+      else periodLabelEl.textContent = "All-Time";
+    }
+
+    async function loadPage(reset) {
+      // A tab switch (or the very first load) must always be allowed to
+      // proceed immediately, even if a request for a DIFFERENT tab is
+      // still in flight — requestToken (below) is what discards that
+      // stale response once it eventually resolves, so blocking a reset
+      // call here would do the opposite of what spec section 50 wants
+      // (it would leave the NEW tab's active/label state on screen while
+      // the OLD tab's in-flight response is still the one that ends up
+      // rendering). Load More (reset=false) has no token of its own to
+      // lean on, so it keeps the loadInFlight guard — belt-and-suspenders
+      // alongside its own button's disabled state.
+      if (!reset && loadInFlight) return;
+      loadInFlight = true;
+
+      // Captured once per call — see requestToken's own comment above.
+      // A tab switch bumps requestToken via loadPage(true), so a Load
+      // More click's own in-flight request (period P) correctly becomes
+      // stale and is discarded if the user has since switched tabs.
+      const period = currentPeriod;
+      if (reset) requestToken += 1;
+      const token = requestToken;
+
+      if (reset) {
+        listEl.innerHTML = '<p class="cosmetic-section-status">Loading…</p>';
+        lastDoc = null;
+        rankCounter = 0;
+        rowsByUid.clear();
+        loadedLeaderboardUids.clear();
+        // Never leave the PREVIOUS tab's Load More visibility/label on
+        // screen while the new tab's first page is still in flight — a
+        // click in that narrow window would otherwise race the reset
+        // fetch below using already-cleared pagination state.
+        if (loadMoreBtn) {
+          loadMoreBtn.hidden = true;
+          loadMoreBtn.disabled = false;
+          loadMoreBtn.textContent = "Load More";
+        }
+      }
+
+      try {
+        const { entries, lastDoc: newLastDoc, hasMore } = await fetchLeaderboardPage({
+          period,
+          periodKey: currentPeriodKey(period),
+          afterDoc: lastDoc
+        });
+
+        if (token !== requestToken) return; // superseded by a newer tab switch — discard
+
+        if (reset) listEl.innerHTML = "";
+
+        if (reset && entries.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "cosmetic-section-status";
+          empty.innerHTML = emptyMessageFor(period);
+          listEl.appendChild(empty);
+        }
+
+        entries.forEach((entry) => {
+          // Defensive guard (spec section 6) — never render the same uid
+          // twice. Skipped duplicates must never consume a rank number.
+          if (loadedLeaderboardUids.has(entry.uid)) return;
+          loadedLeaderboardUids.add(entry.uid);
+          rankCounter += 1;
+          listEl.appendChild(buildRow(entry, rankCounter, period));
+        });
+
+        // Only advance the cursor when there WAS a new last doc — an
+        // empty/lookahead-exhausted page must never erase a previously-
+        // good cursor back to null (that was the actual root cause of
+        // "Load More" eventually re-fetching page 1: a prior version
+        // unconditionally overwrote lastDoc here).
+        if (newLastDoc) lastDoc = newLastDoc;
+        if (loadMoreBtn) loadMoreBtn.hidden = !hasMore;
+        updateCurrentUserHighlight();
+      } catch (error) {
+        if (token !== requestToken) return; // a newer tab switch already owns the view
+        console.error("[leaderboard] could not load leaderboard", error);
+        if (reset) {
+          listEl.innerHTML = "";
+          const errEl = document.createElement("p");
+          errEl.className = "cosmetic-section-status";
+          errEl.textContent = "Couldn't load the leaderboard right now. Please try again later.";
+          listEl.appendChild(errEl);
+        }
+        // Never leave Load More visible/clickable after a failed query —
+        // on an initial-load failure there's nothing to page through yet;
+        // on a Load More failure, the button's own finally() below
+        // restores it safely instead (see the click handler). Switching
+        // tabs and retrying always works regardless (spec section 49):
+        // the next tab click just calls loadPage(true) again.
+        if (reset && loadMoreBtn) loadMoreBtn.hidden = true;
+      } finally {
+        loadInFlight = false;
+      }
+    }
+
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener("click", () => {
+        if (loadMoreBtn.disabled) return;
+        const previousLabel = loadMoreBtn.textContent;
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = "Loading…";
+        loadPage(false).finally(() => {
+          loadMoreBtn.disabled = false;
+          // Only restore the old label if the button is still meant to be
+          // visible — if loadPage just hid it (no more pages, or an
+          // error), leave that decision alone rather than un-hiding it by
+          // implication via a label change.
+          if (!loadMoreBtn.hidden) loadMoreBtn.textContent = previousLabel;
+        });
+      });
+    }
+
+    if (joinBtn) {
+      joinBtn.addEventListener("click", async () => {
+        joinBtn.disabled = true;
+        joinStatusEl.hidden = false;
+        joinStatusEl.textContent = "Joining leaderboard…";
+        try {
+          await setLeaderboardOptIn(true);
+          if (joinCard) joinCard.hidden = true;
+          // Refresh so the user's own new entry is reflected in the
+          // ranking immediately (same callable as Profile — spec section
+          // 28, never a second opt-in system).
+          loadPage(true);
+        } catch (error) {
+          console.error("[leaderboard] join failed", error);
+          joinStatusEl.textContent = error.message || "Couldn't join the leaderboard. Please try again.";
+        } finally {
+          joinBtn.disabled = false;
+        }
+      });
+    }
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const period = btn.dataset.leaderboardTab;
+        if (period === currentPeriod) return;
+        currentPeriod = period;
+        tabButtons.forEach((b) => {
+          const isActive = b === btn;
+          b.classList.toggle("is-active", isActive);
+          b.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        updatePeriodLabel(period);
+        loadPage(true);
+      });
+    });
+
+    onAuthChange((user, profile) => {
+      currentUserUid = user ? user.uid : null;
+
+      if (!user) {
+        if (signInCard) signInCard.hidden = false;
+        if (joinCard) joinCard.hidden = true;
+      } else {
+        if (signInCard) signInCard.hidden = true;
+        const optedIn = !!(profile && profile.leaderboardOptIn);
+        if (joinCard) joinCard.hidden = optedIn;
+      }
+
+      updateCurrentUserHighlight();
+    });
+
+    // Initialize the default tab (Weekly — spec section 19) before the
+    // first load, so the active pill/label are correct from the start.
+    const defaultTabBtn = tabButtons.find((b) => b.dataset.leaderboardTab === currentPeriod);
+    if (defaultTabBtn) {
+      defaultTabBtn.classList.add("is-active");
+      defaultTabBtn.setAttribute("aria-selected", "true");
+    }
+    updatePeriodLabel(currentPeriod);
+    loadPage(true);
+  </script>
+</body>
+</html>

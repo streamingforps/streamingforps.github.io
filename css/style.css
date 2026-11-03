@@ -24,8 +24,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* height:auto matters here: several images on the site (footer logo,
+   profile/header avatars, etc.) carry explicit width/height HTML
+   attributes. Without it, max-width alone would cap an image's rendered
+   WIDTH on a narrow container while its HEIGHT stayed pinned to the HTML
+   attribute, stretching/squashing it — any element with its own sizing
+   (e.g. .domiia-icon's width/height:100%) still overrides this safely,
+   since a class selector beats this bare element one. */
 img {
   max-width: 100%;
+  height: auto;
   display: block;
 }
 
@@ -184,19 +192,29 @@ select:focus-visible,
   gap: var(--space-4);
 }
 
+/* Stacked two-line wordmark ("PerthSanta" / "Streaming") — deliberately
+   compact (small font-size, tight line-height, no inter-line gap) so it
+   reads as one brand mark, not a two-line title, and the vertical space
+   it recovers horizontally doesn't cost noticeable header height. Both
+   lines live inside the one <a>, so the whole mark stays a single
+   clickable home link. */
 .site-logo {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 0.9rem;
+  line-height: 1.15;
   letter-spacing: 0.02em;
   color: var(--color-text);
   text-decoration: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.site-logo span {
+.site-logo-accent {
   color: var(--color-accent);
 }
 
@@ -268,6 +286,88 @@ select:focus-visible,
 .main-nav a[aria-current="page"] {
   color: var(--color-text);
   border-bottom-color: var(--color-accent);
+}
+
+/* Hidden by default (desktop, and mobile widths where the settings gear
+   is still visible) — shown only at <=480px, where the gear hides, via
+   the rule inside that breakpoint further down this file. Keeps the
+   Admin console link reachable on the narrowest phones without crowding
+   the top bar or duplicating the gear's link everywhere else. */
+.nav-admin-mobile {
+  display: none;
+}
+
+/* ---- "More" nav dropdown (Platforms, FAQ / Important Info) ----
+   Keeps the desktop header's primary row short — Platforms/FAQ still
+   exist, just one click deeper, with room left for the account area's
+   future Domiia display (see .auth-user-name below). */
+.nav-more {
+  position: relative;
+}
+
+.nav-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.nav-more-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.15s ease;
+}
+
+.nav-more-toggle:hover,
+.nav-more-toggle[aria-expanded="true"] {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+.nav-more-toggle[aria-expanded="true"]::after {
+  transform: rotate(225deg) translateY(2px);
+}
+
+.nav-more-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 190px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+  z-index: 200;
+}
+
+.nav-more-item {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.nav-more-item:hover,
+.nav-more-item:focus-visible {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
 }
 
 /* ---- Site settings menu (header, far right) ----
@@ -357,6 +457,19 @@ select:focus-visible,
   transform: translateY(-2px);
 }
 
+/* .btn sets its own `display`, which — same as .stream-guide-card/
+   .music-modal-overlay/.faq-answer/.daily-bonus-row/etc. elsewhere in
+   this file — would otherwise beat the browser's default [hidden] rule
+   (author styles always win over user-agent styles at equal specificity,
+   regardless of source order) and leave a hidden button visible anyway.
+   This is exactly what kept the Leaderboard page's "Load More" button
+   visible AND clickable even once JS correctly computed hasMore=false —
+   and the pre-existing Announcements "Load More" button
+   (data-announcement-load-more) had the identical latent issue. */
+.btn[hidden] {
+  display: none;
+}
+
 .btn-primary {
   background: var(--color-accent);
   color: #fff;
@@ -444,6 +557,19 @@ select:focus-visible,
   background: transparent;
   color: var(--color-text-faint);
   border: 1px solid var(--color-border);
+}
+
+/* Required-for-daily-set vs optional mission badge (Step 10.5) — shown on
+   both the public Missions page and the admin Mission Manager's cards. */
+.badge-required {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.badge-optional {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-strong);
 }
 
 /* ==========================================================================
@@ -2278,7 +2404,9 @@ body.music-modal-open {
   margin-inline: auto;
 }
 
-.trending-tabs {
+.trending-tabs,
+.cosmetic-tabs,
+.achievement-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -2286,7 +2414,9 @@ body.music-modal-open {
   margin-bottom: var(--space-6);
 }
 
-.trending-tab {
+.trending-tab,
+.cosmetic-tab,
+.achievement-tab {
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: 999px;
@@ -2297,12 +2427,16 @@ body.music-modal-open {
   cursor: pointer;
 }
 
-.trending-tab:hover {
+.trending-tab:hover,
+.cosmetic-tab:hover,
+.achievement-tab:hover {
   border-color: var(--color-accent);
   color: var(--color-text);
 }
 
-.trending-tab.is-active {
+.trending-tab.is-active,
+.cosmetic-tab.is-active,
+.achievement-tab.is-active {
   background: var(--color-accent);
   color: #fff;
   border-color: transparent;
@@ -2561,4 +2695,1688 @@ body.music-modal-open {
   font-weight: 600;
   text-align: center;
   padding: var(--space-5);
+}
+
+/* ==========================================================================
+   Account / auth — header control + Sign In / Create Account modal
+   ------------------------------------------------------------------
+   Injected by js/auth.js into the existing .header-right (every public
+   page shares that markup) and into <body>, respectively — see that file
+   for why no page needs its own copy of this markup.
+   ========================================================================== */
+
+/* Previously fine without an explicit display — .auth-signin-btn and
+   .auth-user were mutually exclusive (only one ever visible at once), so
+   normal block flow never mattered. Now that .header-domiia is ALSO
+   visible at the same time as .auth-user, it needs to actually lay out
+   as a row instead of .auth-user (a block-level div) wrapping onto its
+   own line underneath. */
+.auth-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Hidden instead of unrendered while Firebase resolves the session, so the
+   header never flashes logged-out -> logged-in on reload. */
+.auth-control.is-loading {
+  visibility: hidden;
+}
+
+.auth-signin-btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.auth-signin-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
+}
+
+.auth-user {
+  position: relative;
+}
+
+/* ==========================================================================
+   Domiia currency display (js/domiia.js) — the one shared "[icon] amount"
+   component used by the header, profile page, and later mission rewards/
+   achievements/leaderboard rows. Informational only (never a button) —
+   no hover/active states that would read as interactive.
+   ========================================================================== */
+
+.domiia-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Sets its own `display`, so — same conflict as .auth-field/.auth-password-
+   requirements elsewhere in this file — toggling `hidden` via JS would
+   otherwise be silently overridden and leave it visible. */
+.domiia-amount[hidden] {
+  display: none;
+}
+
+/* Fixed-size, clipped viewport — see js/domiia.js for why the <img>
+   inside is deliberately larger than this frame (cropping domiia-token.png
+   down from a full-body portrait to a legible "bust" view at icon sizes). */
+.domiia-icon-frame {
+  display: block;
+  overflow: hidden;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.domiia-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.85);
+  transform-origin: center center;
+}
+
+/* The inline-SVG fallback (shown only if domiia-token.png fails to load)
+   is already a tight, full-bleed circle — it doesn't want the zoom crop
+   meant for the real artwork's padding. */
+.domiia-icon.is-fallback {
+  transform: none;
+}
+
+.domiia-value {
+  line-height: 1;
+}
+
+.domiia-amount--small {
+  gap: 4px;
+}
+
+.domiia-amount--small .domiia-icon-frame {
+  width: 18px;
+  height: 18px;
+}
+
+.domiia-amount--small .domiia-value {
+  font-size: 0.85rem;
+}
+
+.domiia-amount--medium .domiia-icon-frame {
+  width: 22px;
+  height: 22px;
+}
+
+.domiia-amount--medium .domiia-value {
+  font-size: 1rem;
+}
+
+.domiia-amount--large .domiia-icon-frame {
+  width: 32px;
+  height: 32px;
+}
+
+.domiia-amount--large .domiia-value {
+  font-size: 1.5rem;
+  color: var(--color-accent-hover);
+}
+
+/* ---- Header placement ---- */
+.header-domiia {
+  flex-shrink: 0;
+}
+
+.auth-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.auth-user-trigger:hover,
+.auth-user-trigger[aria-expanded="true"] {
+  border-color: var(--color-border-strong);
+}
+
+.auth-user-avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+}
+
+.auth-user-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-user-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 160px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+  z-index: 200;
+}
+
+.auth-user-menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-user-menu-item:hover,
+.auth-user-menu-item:focus-visible {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+/* ---- Auth modal ---- */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.auth-modal-overlay[hidden] {
+  display: none;
+}
+
+.auth-modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.auth-modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.auth-modal-close:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.auth-modal-title {
+  margin: 0 0 var(--space-3);
+  text-align: center;
+  font-size: 1.25rem;
+}
+
+.auth-modal-lede {
+  margin: 0 0 var(--space-4);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  /* This sometimes embeds the user's own (up to 30-char, possibly
+     unbroken) attempted display name — same overflow-wrap safety net as
+     .profile-name, for the same reason. */
+  overflow-wrap: break-word;
+}
+
+.auth-google-btn {
+  width: 100%;
+}
+
+.auth-modal-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-modal-divider::before,
+.auth-modal-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-strong);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* .auth-field sets its own `display`, which — same as .music-modal-overlay/
+   .stream-guide-card/.faq-answer elsewhere in this file — would otherwise
+   beat the browser's default [hidden] rule and leave it visible. Without
+   this, Sign In mode showed the Display Name / Confirm Password fields
+   even though their wrapper's `hidden` property was set. */
+.auth-field[hidden] {
+  display: none;
+}
+
+.auth-field label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.auth-field input {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.auth-field input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+/* Invalid state deliberately pairs a red border with the text message
+   below (and aria-invalid/aria-describedby in the markup) — color is
+   never the only signal. */
+.auth-field.is-invalid input {
+  border-color: var(--color-accent-hover);
+}
+
+.auth-field-error {
+  margin: 0;
+  color: var(--color-accent-hover);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.auth-field-input-wrap {
+  position: relative;
+  display: flex;
+}
+
+.auth-field-input-wrap input {
+  flex: 1;
+  padding-right: 56px;
+}
+
+.auth-toggle-password {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-toggle-password:hover,
+.auth-toggle-password:focus-visible {
+  color: var(--color-accent-hover);
+}
+
+.auth-password-requirements {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+}
+
+/* Same [hidden]-vs-author-display conflict as .auth-field above — this is
+   the "empty box" that used to show under the Password field in Sign In
+   mode, since the list stayed a visible (if empty) flex container even
+   while `hidden`. */
+.auth-password-requirements[hidden] {
+  display: none;
+}
+
+.auth-password-requirement {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 1px 0;
+  color: var(--color-text-faint);
+}
+
+.auth-password-requirement.is-met {
+  color: var(--color-success);
+}
+
+.auth-password-requirement-icon {
+  width: 14px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.auth-status {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.auth-status--info {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.auth-submit-btn {
+  width: 100%;
+}
+
+.auth-modal-switch {
+  margin: var(--space-3) 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.auth-modal-secondary-action {
+  margin: var(--space-2) 0 0;
+  text-align: center;
+}
+
+.auth-modal-secondary-action button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-modal-secondary-action button:hover,
+.auth-modal-secondary-action button:focus-visible {
+  color: var(--color-text-muted);
+}
+
+/* ---- Display-name availability status (signup choose-name modal + the
+   profile page's rename control both use this) ---- */
+.name-availability {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-faint);
+}
+
+.name-availability--available {
+  color: var(--color-success);
+}
+
+.name-availability--taken,
+.name-availability--invalid {
+  color: var(--color-accent-hover);
+}
+
+.auth-modal-switch-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: var(--space-1);
+  color: var(--color-accent-hover);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+body.auth-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .auth-modal {
+    max-width: 100%;
+  }
+
+  .auth-user-name {
+    display: none;
+  }
+
+  /* Found via audit: logo + hamburger + a 7-digit Domiia balance + avatar
+     + the settings gear genuinely don't all fit in 320px at their normal
+     sizes (confirmed overflowing by ~50-60px). The gear (and the Admin
+     console link inside it) is what gives way on the narrowest phones —
+     .nav-admin-mobile below puts that same destination back within reach
+     at this exact width, just inside the hamburger menu instead of the
+     cramped top bar, so admin access on mobile isn't actually lost.
+     Tightening the header's own gaps recovers the rest of the room
+     without touching tap target sizes (nav-toggle/avatar/Domiia are
+     untouched). */
+  .site-settings {
+    display: none;
+  }
+
+  .header-right {
+    gap: var(--space-2);
+  }
+
+  .auth-control {
+    gap: var(--space-2);
+  }
+
+  /* Only item in .main-nav hidden by default (see base rule below) —
+     surfaces exactly when .site-settings (the gear) disappears above, so
+     there's no duplicate "Admin console" entry at wider mobile widths
+     where the gear is still visible. */
+  .nav-admin-mobile {
+    display: block;
+  }
+}
+
+/* ---- Profile page ---- */
+.profile-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+  margin: 0 auto var(--space-4);
+}
+
+/* Found via audit: a long, unbroken display name (no spaces for the
+   browser to wrap at) overflowed both the card and the page horizontally
+   at narrow widths — overflow-wrap lets it break mid-word instead,
+   wrapping onto a second line rather than spilling out. Unlike the
+   header's compact single-line slot (which truncates with an ellipsis),
+   the profile page has vertical room to spare, so showing the full name
+   wrapped is better here than hiding part of it. */
+.profile-name {
+  margin: 0 0 var(--space-1);
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* ---- Display-name section: normal view <-> inline edit form ---- */
+.profile-name-section {
+  margin: 0 0 var(--space-1);
+}
+
+.profile-name-change-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 2px;
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-name-change-btn:hover,
+.profile-name-change-btn:focus-visible {
+  color: var(--color-accent-hover);
+}
+
+.profile-name-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 320px;
+  margin: 0 auto var(--space-1);
+  text-align: left;
+}
+
+.profile-name-edit[hidden] {
+  display: none;
+}
+
+.profile-name-edit label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.profile-name-input {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.profile-name-input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.profile-name-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.profile-name-actions .btn {
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.85rem;
+}
+
+.profile-name-display[hidden] {
+  display: none;
+}
+
+.profile-joined {
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-faint);
+  font-size: 0.85rem;
+}
+
+/* auto-fit rather than a fixed 3-column track: 3-across on desktop,
+   wraps to 2 (then 1) on narrower widths instead of ever cramming. */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-3);
+}
+
+.profile-stat {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+/* Centers the inline-flex .domiia-amount as a unit via inherited
+   text-align, same as it already centers .profile-stat-value's text. */
+.profile-stat .domiia-amount {
+  justify-content: center;
+}
+
+.profile-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-accent-hover);
+}
+
+.profile-stat-label {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.profile-signedout {
+  text-align: center;
+  padding: var(--space-7) 0;
+}
+
+/* Current Balance / Lifetime Earned double as links into Domiia History
+   (Step 9) — same card look as every other .profile-stat, just made
+   interactive. display:block restores the anchor to block-level layout
+   inside the grid; no custom [hidden] concerns here since this is never
+   toggled, only ever a static link. */
+.profile-stat--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.profile-stat--link:hover,
+.profile-stat--link:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.profile-stat--link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Section headings shared by Statistics/Achievements (Step 5) ---- */
+.profile-section-title {
+  margin: var(--space-6) 0 var(--space-3);
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+}
+
+.profile-card .profile-section-title:first-of-type {
+  margin-top: var(--space-5);
+}
+
+/* ---- Achievements — deliberately full-width (outside .profile-card's
+   480px cap) so cards can lay out as a real grid instead of one cramped
+   column. ---- */
+.profile-achievements {
+  max-width: 900px;
+  margin: var(--space-6) auto 0;
+}
+
+.achievement-grid,
+.cosmetic-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.achievement-card,
+.cosmetic-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.achievement-card.is-locked,
+.cosmetic-card.is-locked {
+  border-color: var(--color-border);
+  opacity: 0.75;
+}
+
+.achievement-card.is-unlocked,
+.cosmetic-card.is-unlocked {
+  border-top: 3px solid var(--color-accent);
+}
+
+.achievement-card-title,
+.cosmetic-card-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.achievement-card.is-locked .achievement-card-title,
+.cosmetic-card.is-locked .cosmetic-card-title {
+  color: var(--color-text-muted);
+}
+
+.achievement-card-desc,
+.cosmetic-card-desc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.achievement-card-reward {
+  display: flex;
+  align-items: center;
+}
+
+.achievement-card-date {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+}
+
+/* ---- "X / Y unlocked" counter + locked-achievement numeric progress
+   (Step 10.5) — with 52+ achievements across categories, the tab filter
+   plus this counter keep the section scannable instead of one long wall. ---- */
+.achievement-unlocked-count {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin: 0 0 var(--space-5);
+}
+
+.achievement-unlocked-count strong {
+  color: var(--color-text);
+}
+
+.achievement-card-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.achievement-card-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.achievement-card-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: inherit;
+}
+
+.achievement-card-progress-label {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   Cosmetic rewards + Customize Profile (Step 6)
+   ========================================================================== */
+
+/* ---- Selected background cosmetic (Step 10.6: responsive desktop/mobile
+   variants) — a dark scrim layered WITH the photo in one background-image
+   value, under a photo for text readability, rather than a second DOM
+   element. js/cosmetics.js's applySelectedBackground() resolves the
+   equipped cosmetic to --cosmetic-bg-desktop/--cosmetic-bg-mobile (each
+   already its own url("...") or "none"); the actual desktop<->mobile
+   SWITCH happens entirely here, via the max-width:599px override below —
+   a plain CSS media query, so resizing the window needs no JS resize
+   listener at all. Reuses the project's existing 600px tablet/mobile
+   boundary (see .guides-grid etc.'s `@media (min-width: 600px)`, which
+   already treats <600px as "mobile" here) — expressed as max-width:599px
+   so the two rules never both match at exactly 600px. ---- */
+body.has-cosmetic-background {
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-image:
+    linear-gradient(rgba(var(--color-bg-rgb), 0.72), rgba(var(--color-bg-rgb), 0.72)),
+    var(--cosmetic-bg-desktop, none);
+  background-position: center, var(--cosmetic-bg-position-desktop, center);
+}
+
+@media (max-width: 599px) {
+  body.has-cosmetic-background {
+    background-image:
+      linear-gradient(rgba(var(--color-bg-rgb), 0.72), rgba(var(--color-bg-rgb), 0.72)),
+      var(--cosmetic-bg-mobile, none);
+    background-position: center, var(--cosmetic-bg-position-mobile, center);
+  }
+}
+
+/* ---- Selected theme — ONLY recognized keys ever reach this attribute
+   (see js/cosmetics.js's KNOWN_THEME_KEYS); the actual values are static,
+   reviewed CSS, never injected from Firestore. Add a new theme by adding
+   both a key to that allow-list and a block here. ---- */
+:root[data-cosmetic-theme="purple-night"] {
+  --color-bg: #0d0b16;
+  --color-bg-rgb: 13, 11, 22;
+  --color-bg-alt: #15111f;
+  --color-surface: #1c1730;
+  --color-surface-alt: #251e3d;
+  --color-border: #2f2650;
+  --color-border-strong: #42366b;
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #a78bfa;
+  --color-accent-soft: rgba(139, 92, 246, 0.18);
+  --color-focus: #c4b5fd;
+}
+
+/* Heartbound campaign reward theme (campaign-dailyset-25) */
+:root[data-cosmetic-theme="heartbound-red"] {
+  --color-bg: #180a0d;
+  --color-bg-rgb: 24, 10, 13;
+  --color-bg-alt: #210e13;
+  --color-surface: #2b131a;
+  --color-surface-alt: #3a1a23;
+  --color-border: #4a212c;
+  --color-border-strong: #632b3a;
+  --color-accent: #e0245e;
+  --color-accent-hover: #ff5c89;
+  --color-accent-soft: rgba(224, 36, 94, 0.18);
+  --color-focus: #ff9fb8;
+}
+
+/* Consistency reward theme (days-30) */
+:root[data-cosmetic-theme="midnight-blue"] {
+  --color-bg: #070b16;
+  --color-bg-rgb: 7, 11, 22;
+  --color-bg-alt: #0c1220;
+  --color-surface: #121a2e;
+  --color-surface-alt: #1a243d;
+  --color-border: #223152;
+  --color-border-strong: #2f4570;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-soft: rgba(59, 130, 246, 0.18);
+  --color-focus: #93c5fd;
+}
+
+/* Premium top-tier reward theme (domiia-5000) */
+:root[data-cosmetic-theme="golden-supporter"] {
+  --color-bg: #140f05;
+  --color-bg-rgb: 20, 15, 5;
+  --color-bg-alt: #1c1508;
+  --color-surface: #261b0b;
+  --color-surface-alt: #332310;
+  --color-border: #473016;
+  --color-border-strong: #5f4019;
+  --color-accent: #d4a017;
+  --color-accent-hover: #f5c84c;
+  --color-accent-soft: rgba(212, 160, 23, 0.18);
+  --color-focus: #ffe08a;
+}
+
+/* Variety reward theme (unique-10) */
+:root[data-cosmetic-theme="soft-pink"] {
+  --color-bg: #15090f;
+  --color-bg-rgb: 21, 9, 15;
+  --color-bg-alt: #1d0d15;
+  --color-surface: #28121c;
+  --color-surface-alt: #351926;
+  --color-border: #482233;
+  --color-border-strong: #5e2c42;
+  --color-accent: #ec5fa3;
+  --color-accent-hover: #f58cc0;
+  --color-accent-soft: rgba(236, 95, 163, 0.18);
+  --color-focus: #ffb8dc;
+}
+
+/* Premium top-tier reward theme (streak-100) */
+:root[data-cosmetic-theme="domiia-night"] {
+  --color-bg: #050c12;
+  --color-bg-rgb: 5, 12, 18;
+  --color-bg-alt: #091620;
+  --color-surface: #0e202c;
+  --color-surface-alt: #152d3c;
+  --color-border: #1d3c4e;
+  --color-border-strong: #295267;
+  --color-accent: #22d3ee;
+  --color-accent-hover: #67e8f9;
+  --color-accent-soft: rgba(34, 211, 238, 0.18);
+  --color-focus: #a5f3fc;
+}
+
+/* ---- Customize Profile section ---- */
+.cosmetic-section {
+  max-width: 900px;
+  margin: var(--space-5) auto 0;
+}
+
+.cosmetic-section-status {
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: 0.85rem;
+}
+
+/* .achievement-card already covers the shell (border/padding/locked-
+   unlocked tint) and .achievement-grid the responsive grid — reused
+   as-is here, just with a preview image + equip actions added below. */
+.cosmetic-card-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cosmetic-card-preview--wide {
+  aspect-ratio: 16 / 9;
+}
+
+.cosmetic-card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Shown instead of <img> for theme cosmetics (no image expected) and as
+   the onerror fallback for a missing avatar/background asset file (spec
+   section 31: no broken-image icon, a graceful placeholder instead). */
+.cosmetic-card-preview-placeholder {
+  color: var(--color-text-faint);
+  font-size: 2rem;
+}
+
+/* Subtle device-aware label — background cosmetics only (Step 10.6.1),
+   makes it clear the preview adapts to the viewer's own viewport rather
+   than being an arbitrary mismatch. Small and unobtrusive, never on
+   avatar/theme cards. */
+.cosmetic-preview-device-label {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.cosmetic-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.cosmetic-card-requirement {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   Leaderboard page (leaderboard.html / js/leaderboard.js) — Step 7
+   ========================================================================== */
+
+.leaderboard-join-card {
+  max-width: 560px;
+  margin: 0 auto var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.leaderboard-join-card h2 {
+  margin-bottom: var(--space-2);
+  font-size: 1.1rem;
+}
+
+.leaderboard-join-card p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-4);
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.leaderboard-row--top {
+  border-color: var(--color-accent);
+}
+
+.leaderboard-row.is-current-user {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+.leaderboard-rank {
+  flex: 0 0 2.25rem;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text-faint);
+}
+
+.leaderboard-row--top .leaderboard-rank {
+  font-size: 1.4rem;
+}
+
+.leaderboard-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+  flex: 0 0 auto;
+}
+
+.leaderboard-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-you-badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+.leaderboard-domiia {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+/* "120 this week" / "540 this month" (Step 8 spec section 26) — quieter
+   than the Domiia amount itself so the number stays the visual anchor. */
+.leaderboard-domiia-suffix {
+  color: var(--color-text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* "This Week: Nov 2 – Nov 8" / "November 2026" / "All-Time" (Step 8
+   spec section 21) — sits under the Weekly/Monthly/All-Time tabs, above
+   the join card / row list. Reuses the same muted/centered treatment as
+   every other section sub-lede in this file (e.g. .section-heading p). */
+.leaderboard-period-label {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: var(--space-5);
+}
+
+/* At very narrow widths, let the Domiia amount wrap to its own line
+   below rank/avatar/name rather than ever causing horizontal scroll
+   (spec section 35: "#1 [avatar] Moon" / "[Domiia] 8,420"). */
+@media (max-width: 420px) {
+  .leaderboard-domiia {
+    flex-basis: 100%;
+    margin-left: calc(2.25rem + var(--space-3) + 36px + var(--space-3));
+  }
+}
+
+/* ==========================================================================
+   Daily Missions page (missions.html / js/missions.js)
+   ========================================================================== */
+
+.missions-signedout {
+  text-align: center;
+  padding: var(--space-7) 0;
+}
+
+.missions-summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+/* ---- Step 11: TWO separate top-level groups — Current Campaign Missions
+   (priority, rendered FIRST in real DOM order) and General Daily Missions
+   (secondary, rendered second) — never one shared container the two look
+   like variations of. Each group may itself contain multiple daily-set
+   sections (one per current campaign, or General's own). No redesign:
+   existing tokens/accent color only. ---- */
+.daily-set-group {
+  margin-bottom: var(--space-8);
+}
+
+.daily-set-group:last-child {
+  margin-bottom: 0;
+}
+
+.daily-set-group-heading {
+  margin-bottom: var(--space-5);
+}
+
+.daily-set-group-heading h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+/* General is intentionally the quieter of the two — smaller heading,
+   muted explanatory copy, no "current"/urgency treatment (spec section 4). */
+.daily-set-group--general .daily-set-group-heading h2 {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+.daily-set-group-subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-faint);
+  font-size: 0.9rem;
+}
+
+/* Campaign group is the PRIMARY one — a subtle accent border/background
+   wrapper around the whole group (not just a label) makes it read as the
+   page's main content at a glance, especially on mobile where it's the
+   first thing scrolled into view (spec sections 3, 12). Still just the
+   existing accent tokens, no new color language. */
+.daily-set-group--campaign {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.campaign-section-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.daily-set-group--campaign .daily-set-group-heading h2 {
+  margin: 0;
+}
+
+/* One <section> per General/campaign daily set — a self-contained
+   summary card + mission list, fully built by js/missions.js. */
+.daily-set-section {
+  margin-bottom: var(--space-7);
+}
+
+.daily-set-section:last-child {
+  margin-bottom: 0;
+}
+
+.daily-set-campaign-title {
+  margin: 0 0 var(--space-1);
+  font-size: 1.1rem;
+}
+
+.daily-set-campaign-tagline {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* A second (or later) campaign section within the group gets a divider
+   from the one before it — the FIRST campaign section never does, since
+   the group's own heading above already separates it visually. */
+.daily-set-section--campaign + .daily-set-section--campaign {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-accent);
+}
+
+/* ---- Daily summary card (Step 5): completed-today count + progress
+   bar + streak + the one-time daily bonus's pending/complete state. ---- */
+.daily-summary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.daily-summary-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.daily-streak {
+  margin: 0;
+  color: var(--color-accent-hover);
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.daily-summary-track {
+  margin-bottom: var(--space-4);
+}
+
+.daily-bonus-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* .daily-bonus-row sets its own `display`, which — same as
+   .stream-guide-card/.music-modal-overlay/.faq-answer/.trending-event-tag
+   elsewhere in this file — would otherwise beat the browser's default
+   [hidden] rule (author styles always win over user-agent styles at
+   equal specificity, regardless of source order) and leave the element
+   visible even with the hidden attribute set. This is exactly what made
+   an unfinished user's "✓ Daily set complete" row render anyway: JS was
+   correctly setting .hidden = true, but this class's display:flex kept
+   it showing regardless. */
+.daily-bonus-row[hidden] {
+  display: none;
+}
+
+.daily-bonus-row--complete {
+  color: var(--color-success);
+}
+
+.daily-bonus-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-faint);
+  font-weight: 700;
+}
+
+.missions-list {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* ---- Required ("Daily Goals"/"Campaign Goals") vs optional ("More Ways
+   to Support"/"Additional Support") mission groups within one daily-set
+   section (Step 10.5) — a quiet sub-heading only, not a second
+   .daily-set-group-style wrapper, since both halves still belong to the
+   SAME set/bonus. ---- */
+.mission-subsection + .mission-subsection {
+  margin-top: var(--space-6);
+}
+
+.mission-subsection-heading {
+  margin: 0 0 var(--space-3);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+}
+
+.mission-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.mission-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.mission-card-title-row .mission-card-title {
+  margin-bottom: 0;
+}
+
+.mission-card-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.1rem;
+}
+
+.mission-card-desc {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.mission-card-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-2);
+}
+
+.mission-card-progress-label {
+  color: var(--color-text-faint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+}
+
+.mission-card-progress-value {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.mission-card .progress-track {
+  margin-bottom: var(--space-4);
+}
+
+.mission-card-reward-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.mission-card-reward-label {
+  color: var(--color-text-faint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+}
+
+.mission-card-action {
+  width: 100%;
+}
+
+.mission-card-action[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
+}
+
+.mission-card-status {
+  margin: var(--space-3) 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
+/* ---- Mission completion toast ---- */
+.mission-toast {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  left: var(--space-5);
+  margin-inline: auto;
+  max-width: 280px;
+  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-4) var(--space-5);
+  text-align: center;
+  animation: mission-toast-in 0.25s ease;
+}
+
+.mission-toast-title {
+  margin: 0 0 var(--space-2);
+  font-weight: 800;
+  color: var(--color-accent-hover);
+}
+
+.mission-toast-reward {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+@keyframes mission-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Domiia History page (domiia-history.html / js/domiia-history.js) — Step 9
+   ========================================================================== */
+
+.history-summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  max-width: 480px;
+  margin: 0 auto var(--space-4);
+}
+
+/* Reuses .profile-stat's exact card look (background/border/padding) —
+   no new card style invented for the same kind of content. */
+.history-summary-row .profile-stat {
+  background: var(--color-surface);
+}
+
+.history-summary-row--period {
+  margin-bottom: var(--space-5);
+}
+
+.history-legacy-note {
+  max-width: 560px;
+  margin: 0 auto var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-faint);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* .history-legacy-note sets no `display` of its own, so the browser's
+   default [hidden] rule already applies correctly — no [hidden] override
+   needed here (unlike several older components in this file — see the
+   .btn[hidden]/.daily-bonus-row[hidden] comments for the bug this avoids
+   by construction: an element only needs a fix if IT sets a competing
+   `display` property, which this one deliberately doesn't). Same is true
+   of every other newly-hidden element on this page (Load More reuses
+   .btn, which already has its own [hidden] fix). */
+
+.history-recent-heading {
+  max-width: 720px;
+  margin: 0 auto var(--space-4);
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+.history-group-heading {
+  max-width: 720px;
+  margin: var(--space-6) auto var(--space-3);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.history-group-heading:first-child {
+  margin-top: 0;
+}
+
+.history-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.history-entry-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.history-entry-icon {
+  flex: 0 0 auto;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.history-entry-text {
+  min-width: 0;
+}
+
+.history-entry-primary {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.history-entry-secondary {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.history-entry-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.history-entry-badge {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.history-entry-time {
+  color: var(--color-text-faint);
+  font-size: 0.78rem;
+}
+
+.history-entry-amount {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 800;
+}
+
+.history-entry-amount-plus {
+  color: var(--color-text-faint);
+}
+
+/* At very narrow widths, let the amount wrap to its own line below the
+   entry text rather than ever causing horizontal scroll (spec section 33
+   — same convention the Leaderboard's row already uses). */
+@media (max-width: 420px) {
+  .history-entry-amount {
+    flex-basis: 100%;
+    margin-left: calc(1.4rem + var(--space-3));
+  }
+}
+
+.history-empty-state {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.history-empty-state p {
+  margin: 0 0 var(--space-2);
 }

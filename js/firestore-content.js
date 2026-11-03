@@ -48,9 +48,7 @@
   stats.youtubeStatsSource field, not a hardcoded path.
 */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getFirestore,
   doc,
   getDoc,
   collection,
@@ -60,29 +58,18 @@ import {
   orderBy,
   limit
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { db as sharedDb } from "./firebase-app.js";
 
 const FETCH_TIMEOUT_MS = 2500;
 const COMMENT_HELPER_BATCH_SIZE = 40;
 
-// Hoisted to module scope (rather than local to applyFirestoreOverrides)
-// so fetchCommentHelperBatch below — called on-demand from js/campaigns.js
-// whenever a fan clicks "Generate Comment", long after this module's
-// initial load — can reuse the same app/db instead of calling
-// initializeApp() a second time (which throws if called twice for the
-// default app on one page).
-let firebaseApp = null;
-let db = null;
-
+// Firestore instance comes from js/firebase-app.js, the single shared
+// singleton for the whole page (also used by js/auth.js on public pages).
+// Kept behind this function, rather than imported and used directly,
+// purely so a Firebase init failure fails safe here too: every call site
+// already treats a null db as "Firebase unavailable, keep data.js content".
 function ensureFirebaseApp() {
-  if (db) return db;
-  try {
-    firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp);
-  } catch (error) {
-    console.warn("[firestore-content] Firebase failed to initialize — using data.js content only.", error);
-  }
-  return db;
+  return sharedDb;
 }
 
 function withTimeout(promise, ms) {

@@ -173,6 +173,103 @@ const siteData = {
     },
 
     {
+      // PLACEHOLDER CAMPAIGN — created ahead of full official details.
+      // Confirmed so far: this is PerthSanta's newly announced series
+      // (reportedly featuring 3 other couples) and the one YouTube link
+      // below. Everything else (real title, subtitle, synopsis,
+      // description, poster image, release date, cast/couple names,
+      // TikTok/Instagram/X links, view-count goals) is intentionally left
+      // null/placeholder-safe rather than invented — fill these in once
+      // confirmed (via this file directly, or by editing this campaign in
+      // Admin → Campaigns, which will create its live Firestore doc the
+      // first time it's saved there).
+      id: "new-series-2026",
+      title: "New PerthSanta Series",
+      subtitle: "Newly Announced Series",
+      campaignType: "Series",
+      status: "current",
+      isFeatured: false,
+      // Lower than Heartbound's displayOrder (1) so this newly-announced
+      // campaign sorts FIRST in Current Campaigns / All Campaigns / the
+      // Missions page's Campaign section — Heartbound stays isFeatured on
+      // the homepage (unchanged), just no longer first in list order.
+      displayOrder: 0,
+      // Poster provided directly by the user (not sourced/invented by me).
+      image: "assets/images/thehalo.jpg",
+      description:
+        "PerthSanta just announced a new series featuring 3 other couples. Full details (title, synopsis, cast) haven't been officially confirmed yet — for now, support by watching the official YouTube video below.",
+      heroMessage: "Let's show up for PerthSanta's newest series together.",
+      startDate: null,
+      endDate: null,
+
+      links: {
+        youtube: {
+          label: "Official YouTube Video",
+          url: "https://www.youtube.com/watch?v=BxoDDMjgyE0"
+        },
+        tiktok: null,
+        instagram: null,
+        x: null,
+        other: []
+      },
+
+      platforms: [],
+
+      // No view-count milestones confirmed yet — left empty so the Goals
+      // section hides gracefully (see js/campaigns.js's
+      // renderCampaignGoalsVisibility) rather than showing fabricated targets.
+      goals: { youtube: [], tiktok: [] },
+
+      // youtubeVideoId is directly derived from the confirmed URL above
+      // (not invented). youtubeStatsSource now points at this video's own
+      // stats file — the update-youtube-views GitHub Actions workflow was
+      // extended to fetch this video ID in the SAME batched videos.list
+      // call as Heartbound's and write it here. The file won't exist on
+      // disk until that workflow actually runs (next scheduled tick, or a
+      // manual workflow_dispatch) — js/campaigns.js's fetchYoutubeStats
+      // already handles a missing/404 file gracefully (shows the existing
+      // "Goals have not been set yet" / unavailable state), so wiring this
+      // up now is safe even before the file exists.
+      stats: {
+        youtubeVideoId: "BxoDDMjgyE0",
+        youtubeStatsSource: "data/youtube-stats-BxoDDMjgyE0.json",
+        tiktokCurrentViews: 0
+      },
+
+      // "Today's Support Mission" checklist — left empty (section hides
+      // gracefully) rather than inventing specific steps beyond the one
+      // confirmed action (watching the YouTube video, already covered by
+      // the CTA/Quick Link/Campaign Mission below).
+      missions: [],
+
+      quickLinks: [
+        { label: "Official YouTube Video", icon: "▶", url: "https://www.youtube.com/watch?v=BxoDDMjgyE0" }
+      ],
+
+      // Comment Helper is now ON — its phrase library is ready to import
+      // via Admin → Comment Helper CSV import (see
+      // new-series-2026-comment-helper-phrases.csv prepared alongside this
+      // change). youtubeGuide/playlists stay off — those modules reference
+      // Heartbound-specific legacy content not applicable here.
+      features: {
+        commentHelper: true,
+        youtubeGuide: false,
+        playlists: false
+      },
+
+      commentHelper: {
+        title: "Comment Helper",
+        description: "Need an idea? Generate a comment you can personalize.",
+        buttonLabel: "Generate Comment",
+        copyLabel: "Copy",
+        allowEditing: true
+      },
+
+      notes:
+        "Needs from the team: real series title/subtitle, synopsis/description, poster image path, release date, and any additional confirmed platform links (TikTok/Instagram/X). Only the YouTube link is confirmed as of this entry's creation. This campaign's Daily Mission Completion Bonus also still needs to be set once — that field only exists on the live Firestore doc, not this fallback file (see Admin → Campaigns). Comment Helper phrases are prepared as a ready-to-import CSV (new-series-2026-comment-helper-phrases.csv) — import via Admin → Campaigns → Comment Helper → CSV Import for campaign id new-series-2026 to populate campaigns/new-series-2026/commentHelperPhrases."
+    },
+
+    {
       id: "new-pilot-2026-placeholder",
       title: "New PerthSanta Pilot",
       subtitle: "New GMMTV Pilot Trailer",

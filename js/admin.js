@@ -23,9 +23,7 @@
   sync. js/data.js is never written to from here.
 */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
@@ -33,7 +31,6 @@ import {
   browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getFirestore,
   doc,
   getDoc,
   setDoc,
@@ -44,14 +41,14 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  writeBatch
+  writeBatch,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-import { firebaseConfig, ADMIN_UID } from "./firebase-config.js";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { ADMIN_UID } from "./firebase-config.js";
+import { auth, db } from "./firebase-app.js";
+import { renderDomiiaAmount } from "./domiia.js";
+import { normalizeTrackableUrl } from "./url-normalize.js";
 
 /* ==========================================================================
    Fallback content — derived from the real siteData global (js/data.js,
@@ -68,6 +65,7 @@ const db = getFirestore(app);
 const hasSiteData = typeof siteData !== "undefined";
 const fallbackCampaigns = hasSiteData && Array.isArray(siteData.campaigns) ? siteData.campaigns : [];
 const fallbackHeartbound = fallbackCampaigns.find((c) => c.id === "heartbound") || {};
+const fallbackNewSeries2026 = fallbackCampaigns.find((c) => c.id === "new-series-2026") || {};
 
 const FALLBACK_DATA = {
   // Full campaign objects (data.js shape) — seeds the Campaign Manager list
@@ -973,7 +971,7 @@ function deleteCampaign(id) {
 function blankCampaign() {
   return {
     id: "", title: "", subtitle: "", campaignType: "", status: "upcoming", isFeatured: false,
-    displayOrder: 99, image: "", description: "", heroMessage: "", startDate: "", endDate: "",
+    displayOrder: 99, dailyMissionBonus: 0, image: "", description: "", heroMessage: "", startDate: "", endDate: "",
     links: {}, goals: {}, stats: {}, platforms: [], missions: [], quickLinks: [], features: {}, notes: ""
   };
 }
@@ -993,6 +991,7 @@ function openCampaignEditor(id) {
   $("#ce-status").value = campaign.status || "upcoming";
   $("#ce-featured").checked = !!campaign.isFeatured;
   $("#ce-order").value = typeof campaign.displayOrder === "number" ? campaign.displayOrder : "";
+  $("#ce-daily-mission-bonus").value = typeof campaign.dailyMissionBonus === "number" ? campaign.dailyMissionBonus : 0;
   $("#ce-image").value = campaign.image || "";
   $("#ce-description").value = campaign.description || "";
   $("#ce-hero-message").value = campaign.heroMessage || "";
@@ -1079,6 +1078,7 @@ function initCampaignEditorForm() {
       status: $("#ce-status").value,
       isFeatured: $("#ce-featured").checked,
       displayOrder: isNonEmptyString($("#ce-order").value) ? Number($("#ce-order").value) : 999,
+      dailyMissionBonus: isNonNegativeInteger($("#ce-daily-mission-bonus").value) ? Number($("#ce-daily-mission-bonus").value) : 0,
       image: isNonEmptyString($("#ce-image").value) ? $("#ce-image").value.trim() : null,
       description: $("#ce-description").value.trim(),
       heroMessage: $("#ce-hero-message").value.trim(),
@@ -1230,6 +1230,1534 @@ function initCampaignMigration() {
 function initCampaignsPanel() {
   initCampaignEditorForm();
   initCampaignMigration();
+}
+
+/* ==========================================================================
+   Mission Manager (Step 4)
+   ------------------------------------------------------------------
+   missions/{missionId} is a flat collection of standalone documents — one
+   per mission — so this mirrors the Campaign Manager's pattern (cache
+   array + row-per-document + a toggleable single-item editor subsection
+   written with setDoc/updateDoc/deleteDoc) rather than createArrayPanel,
+   which is for a single doc holding one array field.
+
+   BACKEND COMPATIBILITY (see functions/missionLogic.js): recordMissionAction
+   queries missions where actionId == X AND active == true and fans one
+   accepted action out to EVERY eligible mission it finds (Step 9 — tiered
+   missions like "stream 3 times" / "stream 10 times" sharing one tracked
+   action). Sharing an Action ID across several active missions is valid;
+   this panel instead enforces that the SHARED parts of that
+   configuration — destinationUrl, actionType, cooldownSeconds,
+   maxCountPerDay — stay consistent across every active mission using the
+   same Action ID (see getActionIdUrlMismatch/getSharedActionConfigMismatch),
+   since the backend treats those as one tracked action's config, not
+   per-mission settings. target/rewardDomiias/title/etc. are mission-
+   specific and may always differ between tiers.
+   ========================================================================== */
+
+const MISSION_ACTION_TYPES = ["external_click"];
+const MISSION_FREQUENCIES = ["daily"];
+const MISSION_STATUS_BADGE_CLASS = {
+  active: "badge-active",
+  inactive: "badge-coming-soon",
+  scheduled: "badge-upcoming",
+  expired: "badge-previous"
+};
+const MISSION_STATUS_LABEL = {
+  active: "Active",
+  inactive: "Inactive",
+  scheduled: "Scheduled",
+  expired: "Expired"
+};
+
+let missionsCache = [];
+let missionCampaignOptions = []; // [{id, title}], loaded independently of the Campaigns panel
+let missionCampaignOptionsFailed = false;
+let editingMissionId = null; // null while "Add Mission" is open
+let missionActionIdTouched = false; // once true, title changes stop auto-suggesting the Action ID
+let missionStatusFilter = "all";
+let missionCampaignFilter = "all";
+
+function timestampToDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+// Step 10: every mission belongs to one daily SET — "general" or a
+// specific campaign's. missionScope is the explicit field going forward;
+// existing missions saved before Step 10 never had it, so this falls
+// back to inferring scope from campaignId rather than requiring a
+// destructive migration — the SAME fallback functions/missionLogic.js
+// uses server-side (effectiveScope there), kept in sync by hand since a
+// Cloud Function can't be imported into this plain admin script.
+function effectiveScope(mission) {
+  if (mission.missionScope === "campaign" || mission.missionScope === "general") return mission.missionScope;
+  return mission.campaignId ? "campaign" : "general";
+}
+
+// Pure — never mutates the mission doc, per spec (status is always derived
+// at render time from active/startsAt/endsAt + the current clock).
+function deriveMissionStatus(mission, now) {
+  if (!mission.active) return "inactive";
+  const starts = timestampToDate(mission.startsAt);
+  const ends = timestampToDate(mission.endsAt);
+  const clock = now || new Date();
+  if (starts && starts > clock) return "scheduled";
+  if (ends && ends < clock) return "expired";
+  return "active";
+}
+
+function slugify(text) {
+  return (text || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function generateUniqueMissionId(title, frequency, excludeId) {
+  const base = slugify(`${title}-${frequency || "daily"}`) || "mission";
+  const existingIds = new Set(missionsCache.filter((m) => m.id !== excludeId).map((m) => m.id));
+  if (!existingIds.has(base)) return base;
+  let suffix = 2;
+  while (existingIds.has(`${base}-${suffix}`)) suffix++;
+  return `${base}-${suffix}`;
+}
+
+/* ==========================================================================
+   Generate Streaming Missions (Step 10.5) — admin-only bulk proposal tool.
+   ------------------------------------------------------------------
+   Reads the REAL canonical content (FALLBACK_DATA.music, sourced from
+   js/data.js's actual song catalog, and the live Heartbound campaign doc's
+   own links) and proposes one mission per song/platform + two Heartbound
+   Campaign missions. NEVER invents a song, URL, or campaign — a song whose
+   platform link is null is reported as "Missing URL" and is simply skipped,
+   not fabricated with a guessed link. Idempotent by ACTION ID (not just
+   mission ID): re-running this after missions already exist for an action
+   correctly reports "Already exists" and the confirm step only ever
+   creates the NEW ones, never touches or duplicates an existing mission —
+   safe to re-run as often as needed after the catalog grows.
+   ========================================================================== */
+const STREAMING_MISSION_PLATFORMS = [
+  { key: "youtube", label: "YouTube" },
+  { key: "spotify", label: "Spotify" }
+];
+
+function allCatalogSongs() {
+  const music = FALLBACK_DATA.music || {};
+  return [].concat(music.osts || [], music.perthsanta || [], music.perthSolo || [], music.jasper || []);
+}
+
+// `liveHeartbound` (a real campaigns/heartbound Firestore doc, if loaded)
+// takes priority over the js/data.js fallback, same as every other panel's
+// "live Firestore doc wins over the bundled fallback" convention — the
+// admin may have already edited Heartbound's links in Campaign Manager.
+function buildStreamingMissionCandidates(liveHeartbound, liveNewSeries2026) {
+  const existingActionIds = new Set(missionsCache.map((m) => m.actionId).filter(Boolean));
+  const existingMissionIds = new Set(missionsCache.map((m) => m.id));
+  const candidates = [];
+
+  allCatalogSongs().forEach((song) => {
+    STREAMING_MISSION_PLATFORMS.forEach(({ key, label }) => {
+      const url = song.links && song.links[key];
+      const actionId = `${song.id}-${key}`;
+      const missionId = `${song.id}-${key}-daily`;
+      const hasUrl = isNonEmptyString(url);
+      candidates.push({
+        id: missionId,
+        status: !hasUrl ? "missing-url" : existingActionIds.has(actionId) ? "exists" : "new",
+        summary: `${song.title} — ${label}`,
+        data: hasUrl ? {
+          title: `Stream "${song.title}" on ${label}`,
+          description: `Stream "${song.title}" by ${song.artist} on ${label} to support PerthSanta's music.`,
+          missionScope: "general",
+          campaignId: null,
+          actionId,
+          destinationUrl: url,
+          actionType: "external_click",
+          frequency: "daily",
+          target: 1,
+          rewardDomiias: 2,
+          cooldownSeconds: 0,
+          maxCountPerDay: 1,
+          displayOrder: 500,
+          active: true,
+          requiredForDailySet: false
+        } : null
+      });
+    });
+  });
+
+  const heartbound = liveHeartbound || fallbackHeartbound;
+  const heartboundLinks = heartbound.links || {};
+  [
+    { key: "youtube", label: "YouTube" },
+    { key: "tiktok", label: "TikTok" }
+  ].forEach(({ key, label }) => {
+    const url = heartboundLinks[key] && heartboundLinks[key].url;
+    const actionId = `heartbound-${key}`;
+    const missionId = `heartbound-${key}-daily`;
+    const hasUrl = isNonEmptyString(url);
+    candidates.push({
+      id: missionId,
+      status: !hasUrl ? "missing-url" : existingActionIds.has(actionId) ? "exists" : "new",
+      summary: `Heartbound — ${label} (Campaign)`,
+      data: hasUrl ? {
+        title: `Watch the Heartbound Pilot Trailer on ${label}`,
+        description: "Watch the official Heartbound pilot trailer to support this campaign.",
+        missionScope: "campaign",
+        campaignId: "heartbound",
+        actionId,
+        destinationUrl: url,
+        actionType: "external_click",
+        frequency: "daily",
+        target: 1,
+        rewardDomiias: 3,
+        cooldownSeconds: 0,
+        maxCountPerDay: 1,
+        displayOrder: 10,
+        active: true,
+        requiredForDailySet: true
+      } : null
+    });
+  });
+
+  // New PerthSanta series (new-series-2026) — TWO tiered Campaign missions
+  // sharing one actionId (same pattern as the Heartbound-style shared-
+  // action tiering already used elsewhere — e.g. a shared-action music
+  // mission pair), rather than Heartbound's own single target:1 mission.
+  // Idempotency for this pair is checked by MISSION ID, not actionId —
+  // both tiers legitimately share `new-series-2026-youtube`, so checking
+  // the actionId set (like every other candidate above) would incorrectly
+  // report the second tier as "already exists" the moment only the first
+  // tier had been created.
+  const newSeries2026 = liveNewSeries2026 || fallbackNewSeries2026;
+  const newSeries2026YoutubeUrl = newSeries2026.links && newSeries2026.links.youtube && newSeries2026.links.youtube.url;
+  const newSeries2026ActionId = "new-series-2026-youtube";
+  const newSeries2026HasUrl = isNonEmptyString(newSeries2026YoutubeUrl);
+  [
+    { target: 3, rewardDomiias: 5 },
+    { target: 10, rewardDomiias: 10 }
+  ].forEach(({ target, rewardDomiias }) => {
+    const missionId = `new-series-2026-youtube-${target}x-daily`;
+    candidates.push({
+      id: missionId,
+      status: !newSeries2026HasUrl ? "missing-url" : existingMissionIds.has(missionId) ? "exists" : "new",
+      summary: `New PerthSanta Series — YouTube ${target}× (Campaign)`,
+      data: newSeries2026HasUrl ? {
+        title: `Watch the New Series Video ${target}×`,
+        description: "Watch/support the official new-series YouTube video to help this campaign.",
+        missionScope: "campaign",
+        campaignId: "new-series-2026",
+        actionId: newSeries2026ActionId,
+        destinationUrl: newSeries2026YoutubeUrl,
+        actionType: "external_click",
+        frequency: "daily",
+        target,
+        rewardDomiias,
+        cooldownSeconds: 0,
+        // Must be >= the highest tier's target (10) — every mission
+        // sharing this actionId needs the identical max-count, or the
+        // higher tier could never be reached (see the Action ID hint in
+        // the mission editor form).
+        maxCountPerDay: 10,
+        displayOrder: 10,
+        active: true,
+        requiredForDailySet: true
+      } : null
+    });
+  });
+
+  return candidates;
+}
+
+// Suggestion only — the admin can always edit the Action ID field before
+// saving (see spec step 8). Deliberately simple: campaignId (if any) plus
+// the title's first couple of words, kebab-cased.
+function suggestActionId(title, campaignId) {
+  const titleSlug = slugify((title || "").split(/\s+/).slice(0, 2).join(" "));
+  if (campaignId) return slugify(`${campaignId}-${titleSlug}`) || slugify(campaignId);
+  return titleSlug;
+}
+
+function formatDateRangePart(value) {
+  const d = timestampToDate(value);
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(d);
+}
+
+// <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" in LOCAL time —
+// toISOString() would shift to UTC and silently change what the admin
+// sees, so this builds the string from local getters instead.
+function dateToLocalDatetimeInputValue(date) {
+  if (!date) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// The reverse: new Date("YYYY-MM-DDTHH:mm") (no timezone suffix) is
+// specified to parse as LOCAL time, so this really is "whatever instant
+// the admin's browser clock says that local date/time is" — stored as an
+// absolute Firestore Timestamp from there on.
+function localDatetimeInputValueToTimestamp(value) {
+  if (!isNonEmptyString(value)) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : Timestamp.fromDate(d);
+}
+
+function getCampaignTitle(campaignId) {
+  if (!campaignId) return "None / General";
+  const found = missionCampaignOptions.find((c) => c.id === campaignId);
+  return found ? found.title : campaignId;
+}
+
+// Step 9: MULTIPLE active missions may now share one actionId (tiered
+// missions — "stream 3 times" / "stream 10 times" both subscribing to the
+// same tracked action). recordMissionAction fans one accepted action out
+// to every eligible mission subscribed to it, so sharing itself is no
+// longer a conflict — only INCONSISTENT shared-action configuration is
+// (see getActionIdUrlMismatch/getSharedActionConfigMismatch below). A
+// conflict check only ever compares against OTHER ACTIVE missions — a
+// shared actionId where the sibling is inactive is fine (that's exactly
+// how Duplicate produces a safe, inactive copy to edit before activating).
+function getActiveSiblingsForActionId(actionId, excludeMissionId) {
+  if (!isNonEmptyString(actionId)) return [];
+  return missionsCache.filter((m) => m.id !== excludeMissionId && m.actionId === actionId && m.active);
+}
+
+// Reject "same actionId, different destination" (spec sections 6, 24) —
+// one actionId should always point at one tracked destination/action, so
+// every active mission sharing an actionId must agree on
+// destinationUrl (compared normalized, same equality the site-wide link
+// tracker itself uses).
+function getActionIdUrlMismatch(actionId, destinationUrl, excludeMissionId) {
+  const siblings = getActiveSiblingsForActionId(actionId, excludeMissionId);
+  if (!siblings.length) return null;
+  const key = normalizeTrackableUrl(destinationUrl);
+  return siblings.find((m) => normalizeTrackableUrl(m.destinationUrl) !== key) || null;
+}
+
+// cooldownSeconds/maxCountPerDay/actionType describe the TRACKED ACTION
+// itself, not any one mission's tier (spec sections 6, 12-14) — even
+// though they're stored redundantly on every mission document sharing
+// that actionId (there's no separate "actions" collection). Every active
+// mission sharing an actionId must agree on all three, or the backend has
+// no single coherent value to gate the shared actionHistory doc with.
+// Returns { mission, field } for the first mismatching sibling found, or
+// null.
+function getSharedActionConfigMismatch(actionId, { actionType, cooldownSeconds, maxCountPerDay }, excludeMissionId) {
+  const siblings = getActiveSiblingsForActionId(actionId, excludeMissionId);
+  for (const m of siblings) {
+    if (m.actionType !== actionType) return { mission: m, field: "Action Type" };
+    if (Number(m.cooldownSeconds) !== Number(cooldownSeconds)) return { mission: m, field: "Cooldown Seconds" };
+    if (Number(m.maxCountPerDay) !== Number(maxCountPerDay)) return { mission: m, field: "Max Count Per Day" };
+  }
+  return null;
+}
+
+// Reject "same destination, different actionId" (spec sections 5, 23) — a
+// different actionId pointed at the same destination is ambiguous for the
+// site-wide link tracker (which maps one normalized URL to exactly one
+// actionId) and would mean two unrelated tracked actions fire from the
+// same link. The REVERSE case — same actionId, same destination, used by
+// several tiered missions — is expected and fine; see
+// getActiveSiblingsForActionId above for why sharing itself isn't a
+// conflict anymore.
+function getActiveDestinationConflict(destinationUrl, actionId, excludeMissionId) {
+  const key = normalizeTrackableUrl(destinationUrl);
+  if (!key) return null;
+  return missionsCache.find((m) =>
+    m.id !== excludeMissionId
+    && m.active
+    && m.actionId !== actionId
+    && normalizeTrackableUrl(m.destinationUrl) === key
+  ) || null;
+}
+
+function shortenUrlForDisplay(url) {
+  if (!isNonEmptyString(url)) return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    const rest = u.pathname + u.search;
+    const shortRest = rest.length > 18 ? `${rest.slice(0, 15)}…` : (rest === "/" ? "" : rest);
+    return `${host}${shortRest}`;
+  } catch {
+    return url.length > 40 ? `${url.slice(0, 37)}…` : url;
+  }
+}
+
+async function getMissionCampaignOptions() {
+  try {
+    const liveDocs = await getLiveCampaignDocs();
+    const liveById = new Map(liveDocs.map((d) => [d.id, d]));
+    const merged = FALLBACK_DATA.campaigns.map((f) => ({ id: f.id, title: (liveById.get(f.id) || f).title || f.id }));
+    liveById.forEach((docData, id) => {
+      if (!merged.some((c) => c.id === id)) merged.push({ id, title: docData.title || id });
+    });
+    return { ok: merged.length > 0, campaigns: merged };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, campaigns: [] };
+  }
+}
+
+function populateMissionCampaignSelects(campaigns) {
+  const edSelect = $("#me-campaign");
+  edSelect.innerHTML = '<option value="">None / General</option>';
+  campaigns.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.title;
+    edSelect.appendChild(opt);
+  });
+
+  const filterSelect = $("#missions-campaign-filter");
+  const previousFilterValue = filterSelect.value;
+  filterSelect.innerHTML = '<option value="all">All campaigns</option><option value="">None / General</option>';
+  campaigns.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.title;
+    filterSelect.appendChild(opt);
+  });
+  if ([...filterSelect.options].some((o) => o.value === previousFilterValue)) {
+    filterSelect.value = previousFilterValue;
+  }
+}
+
+/* ---- List + filters ---- */
+
+// Reuses the ONE existing campaign filter dropdown as the Step 10 scope
+// filter too (spec section 35: "Type: All/General/Campaign, optionally
+// Campaign") rather than adding a second control: "All campaigns" = every
+// mission, "None / General" (value "") = the General scope, and any
+// specific campaign = that campaign's scope. effectiveScope-aware so a
+// legacy mission without missionScope still lands in the right bucket.
+function filteredMissions() {
+  const now = new Date();
+  return missionsCache
+    .map((m) => ({ mission: m, status: deriveMissionStatus(m, now) }))
+    .filter(({ status }) => missionStatusFilter === "all" || status === missionStatusFilter)
+    .filter(({ mission }) => {
+      if (missionCampaignFilter === "all") return true;
+      if (missionCampaignFilter === "") return effectiveScope(mission) === "general";
+      return effectiveScope(mission) === "campaign" && mission.campaignId === missionCampaignFilter;
+    })
+    .map(({ mission }) => mission);
+}
+
+function renderMissionsList() {
+  const listEl = $("#missions-list");
+  listEl.innerHTML = "";
+
+  if (!missionsCache.length) {
+    const empty = document.createElement("div");
+    empty.className = "admin-empty";
+    empty.innerHTML = "No missions yet.<br>Create your first mission to start rewarding streaming activity.";
+    listEl.appendChild(empty);
+    return;
+  }
+
+  const visible = filteredMissions()
+    .slice()
+    .sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999) || (a.title || "").localeCompare(b.title || ""));
+
+  if (!visible.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No missions match the current filters.";
+    listEl.appendChild(empty);
+    return;
+  }
+
+  visible.forEach((mission) => listEl.appendChild(buildMissionRow(mission)));
+}
+
+function buildMissionRow(mission) {
+  const status = deriveMissionStatus(mission);
+
+  const row = document.createElement("div");
+  row.className = "admin-item";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "admin-item-toolbar";
+
+  const titleWrap = document.createElement("div");
+  const titleEl = document.createElement("strong");
+  titleEl.textContent = mission.title || mission.id;
+  titleWrap.appendChild(titleEl);
+  const badge = document.createElement("span");
+  badge.className = `badge ${MISSION_STATUS_BADGE_CLASS[status]}`;
+  badge.style.marginLeft = "8px";
+  badge.textContent = MISSION_STATUS_LABEL[status];
+  titleWrap.appendChild(badge);
+
+  // Step 10 spec section 36 — scope is important to see at a glance once
+  // there are many missions across several daily sets.
+  const scopeBadge = document.createElement("span");
+  scopeBadge.className = "badge badge-coming-soon";
+  scopeBadge.style.marginLeft = "6px";
+  scopeBadge.textContent = effectiveScope(mission) === "campaign"
+    ? `CAMPAIGN · ${getCampaignTitle(mission.campaignId)}`
+    : "GENERAL";
+  titleWrap.appendChild(scopeBadge);
+
+  // Step 10.5 — required-vs-optional is important to see at a glance once
+  // most new missions are optional bonus missions, not part of the
+  // curated required set. Mirrors the backend's own
+  // `requiredForDailySet !== false` default (functions/missionLogic.js).
+  const requiredForDailySet = mission.requiredForDailySet !== false;
+  const requiredBadge = document.createElement("span");
+  requiredBadge.className = `badge ${requiredForDailySet ? "badge-required" : "badge-optional"}`;
+  requiredBadge.style.marginLeft = "6px";
+  requiredBadge.textContent = requiredForDailySet ? "DAILY SET" : "OPTIONAL";
+  titleWrap.appendChild(requiredBadge);
+
+  toolbar.appendChild(titleWrap);
+
+  const actions = document.createElement("div");
+  actions.className = "admin-item-actions";
+  actions.style.flexWrap = "wrap";
+
+  const orderInput = document.createElement("input");
+  orderInput.type = "number";
+  orderInput.step = "1";
+  orderInput.style.width = "70px";
+  orderInput.value = typeof mission.displayOrder === "number" ? mission.displayOrder : 999;
+  orderInput.title = "Display order";
+  orderInput.addEventListener("change", () => {
+    updateDoc(doc(db, "missions", mission.id), { displayOrder: Number(orderInput.value) || 0, updatedAt: serverTimestamp() })
+      .then(() => loadMissionsPanel())
+      .catch((error) => {
+        console.error(error);
+        window.alert(`Couldn't update display order: ${error.message || "unknown error"}`);
+      });
+  });
+  actions.appendChild(orderInput);
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn btn-secondary btn-sm";
+  editBtn.style.width = "auto";
+  editBtn.textContent = "Edit";
+  editBtn.addEventListener("click", () => openMissionEditor(mission.id));
+  actions.appendChild(editBtn);
+
+  const duplicateBtn = document.createElement("button");
+  duplicateBtn.type = "button";
+  duplicateBtn.className = "btn btn-secondary btn-sm";
+  duplicateBtn.style.width = "auto";
+  duplicateBtn.textContent = "Duplicate";
+  duplicateBtn.addEventListener("click", () => duplicateMission(mission.id));
+  actions.appendChild(duplicateBtn);
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "btn btn-secondary btn-sm";
+  toggleBtn.style.width = "auto";
+  toggleBtn.textContent = mission.active ? "Deactivate" : "Activate";
+  toggleBtn.addEventListener("click", () => toggleMissionActive(mission));
+  actions.appendChild(toggleBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "admin-delete-btn";
+  deleteBtn.textContent = "✕";
+  deleteBtn.setAttribute("aria-label", "Delete mission");
+  deleteBtn.addEventListener("click", () => deleteMission(mission.id));
+  actions.appendChild(deleteBtn);
+
+  toolbar.appendChild(actions);
+  row.appendChild(toolbar);
+
+  const line1 = document.createElement("p");
+  line1.className = "admin-meta";
+  line1.textContent = `Frequency: ${mission.frequency === "daily" ? "Daily" : mission.frequency || "—"} · Action ID: ${mission.actionId || "—"} · Target: ${Number(mission.target) || 0} completions`;
+  row.appendChild(line1);
+
+  const line2 = document.createElement("p");
+  line2.className = "admin-meta";
+  line2.style.display = "flex";
+  line2.style.alignItems = "center";
+  line2.style.gap = "6px";
+  line2.style.flexWrap = "wrap";
+  const rewardLabel = document.createElement("span");
+  rewardLabel.textContent = "Reward:";
+  line2.append(rewardLabel, renderDomiiaAmount(Number(mission.rewardDomiias) || 0, { size: "small" }));
+  const campaignText = document.createElement("span");
+  campaignText.textContent = `· Campaign: ${getCampaignTitle(mission.campaignId)}`;
+  line2.appendChild(campaignText);
+  row.appendChild(line2);
+
+  const line3 = document.createElement("p");
+  line3.className = "admin-meta";
+  line3.textContent = `Start: ${formatDateRangePart(mission.startsAt)} · End: ${formatDateRangePart(mission.endsAt)} · Max/day: ${Number(mission.maxCountPerDay) || 0} · Cooldown: ${Number(mission.cooldownSeconds) || 0}s`;
+  row.appendChild(line3);
+
+  const line4 = document.createElement("p");
+  line4.className = "admin-meta";
+  line4.style.wordBreak = "break-all"; // long destination URLs must never cause horizontal overflow on mobile
+  if (isNonEmptyString(mission.destinationUrl)) {
+    const destLabel = document.createElement("span");
+    destLabel.textContent = "Destination: ";
+    const destLink = document.createElement("a");
+    destLink.href = mission.destinationUrl;
+    destLink.target = "_blank";
+    destLink.rel = "noopener noreferrer";
+    destLink.title = mission.destinationUrl;
+    destLink.textContent = shortenUrlForDisplay(mission.destinationUrl);
+    line4.append(destLabel, destLink);
+  } else {
+    line4.textContent = "Destination: — (required for External Click missions)";
+  }
+  row.appendChild(line4);
+
+  return row;
+}
+
+/* ---- Quick actions: activate/deactivate, duplicate, delete ---- */
+
+function toggleMissionActive(mission) {
+  const nextActive = !mission.active;
+
+  if (nextActive) {
+    const urlMismatch = getActionIdUrlMismatch(mission.actionId, mission.destinationUrl, mission.id);
+    if (urlMismatch) {
+      window.alert(
+        `Can't activate "${mission.title}" — another active mission ("${urlMismatch.title}") already uses ` +
+        `Action ID "${mission.actionId}" with a DIFFERENT destination. Missions sharing an Action ID must ` +
+        `all point to the same destination. Fix the destination URL, or use a different Action ID.`
+      );
+      return;
+    }
+    const destinationConflict = getActiveDestinationConflict(mission.destinationUrl, mission.actionId, mission.id);
+    if (destinationConflict) {
+      window.alert(
+        `Can't activate "${mission.title}" — this destination is already tracked as Action ID ` +
+        `"${destinationConflict.actionId}" by "${destinationConflict.title}". Use the same Action ID ` +
+        `(${destinationConflict.actionId}) so all missions share the same tracked action, or point this ` +
+        `mission to a different destination.`
+      );
+      return;
+    }
+    const configMismatch = getSharedActionConfigMismatch(
+      mission.actionId,
+      { actionType: mission.actionType, cooldownSeconds: mission.cooldownSeconds, maxCountPerDay: mission.maxCountPerDay },
+      mission.id
+    );
+    if (configMismatch) {
+      window.alert(
+        `Can't activate "${mission.title}" — Action ID "${mission.actionId}" is already used by ` +
+        `"${configMismatch.mission.title}" with a different ${configMismatch.field}. Missions sharing an ` +
+        `Action ID must use the same ${configMismatch.field}.`
+      );
+      return;
+    }
+  }
+
+  updateDoc(doc(db, "missions", mission.id), { active: nextActive, updatedAt: serverTimestamp() })
+    .then(() => loadMissionsPanel())
+    .catch((error) => {
+      console.error(error);
+      window.alert(`Couldn't update mission: ${error.message || "unknown error"}`);
+    });
+}
+
+async function duplicateMission(id) {
+  const original = missionsCache.find((m) => m.id === id);
+  if (!original) return;
+
+  const newTitle = `Copy of ${original.title || id}`;
+  const newId = generateUniqueMissionId(newTitle, original.frequency, null);
+
+  const data = {
+    ...original,
+    title: newTitle,
+    active: false, // never auto-launch a duplicate as active (spec step 13)
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  delete data.id;
+
+  try {
+    await setDoc(doc(db, "missions", newId), data);
+    await loadMissionsPanel();
+  } catch (error) {
+    console.error(error);
+    window.alert(`Couldn't duplicate mission: ${error.message || "unknown error"}`);
+  }
+}
+
+function deleteMission(id) {
+  const mission = missionsCache.find((m) => m.id === id);
+  if (!mission) return;
+  const confirmed = window.confirm(
+    `Delete "${mission.title || id}"?\n\n` +
+    "Existing user progress/history will remain, but the mission definition will be removed.\n\n" +
+    "Consider Deactivate instead if you just want to stop it from running."
+  );
+  if (!confirmed) return;
+
+  deleteDoc(doc(db, "missions", id))
+    .then(() => loadMissionsPanel())
+    .catch((error) => {
+      console.error(error);
+      window.alert(`Couldn't delete mission: ${error.message || "unknown error"}`);
+    });
+}
+
+/* ---- Editor ---- */
+
+function blankMissionForm() {
+  return {
+    title: "", description: "", missionScope: "general", actionId: "", destinationUrl: "", actionType: "external_click",
+    frequency: "daily", campaignId: "", target: 1, rewardDomiias: 0,
+    cooldownSeconds: 0, maxCountPerDay: 1, startsAt: null, endsAt: null,
+    displayOrder: 999, active: false, requiredForDailySet: true
+  };
+}
+
+function updateMissionPreview() {
+  const title = $("#me-title").value.trim() || "Mission title";
+  const description = $("#me-description").value.trim();
+  const target = Number($("#me-target").value) || 0;
+  const reward = Number($("#me-reward").value) || 0;
+  const destinationUrl = $("#me-destination-url").value.trim();
+
+  $("#me-preview-title").textContent = title;
+  const descEl = $("#me-preview-desc");
+  descEl.textContent = description;
+  descEl.hidden = !description;
+  $("#me-preview-progress").textContent = `0 / ${target}`;
+  $("#me-preview-progress-fill").style.width = "0%";
+
+  const rewardEl = $("#me-preview-reward");
+  rewardEl.innerHTML = "";
+  rewardEl.appendChild(renderDomiiaAmount(reward, { size: "medium" }));
+
+  const actionEl = $("#me-preview-action");
+  if (isHttpUrl(destinationUrl)) {
+    actionEl.href = destinationUrl;
+    actionEl.target = "_blank";
+    actionEl.rel = "noopener noreferrer";
+    actionEl.removeAttribute("aria-disabled");
+    actionEl.textContent = title;
+  } else {
+    actionEl.removeAttribute("href");
+    actionEl.setAttribute("aria-disabled", "true");
+    actionEl.textContent = "Link unavailable";
+  }
+}
+
+function currentActionConfigFromForm() {
+  return {
+    actionType: $("#me-action-type").value,
+    cooldownSeconds: Number($("#me-cooldown").value),
+    maxCountPerDay: Number($("#me-max-count").value)
+  };
+}
+
+// Step 9: sharing an Action ID across several active missions (tiered
+// missions) is expected now — this warning only fires for the specific
+// bad states spec sections 6/13/24 call out: a mismatched destination or
+// mismatched action-level config among missions that would share this
+// Action ID while active. Covers both mismatch checks in one warning
+// slot since they're mutually exclusive in practice (the URL check fires
+// first) and both block saving as Active the same way.
+function updateActionIdWarning() {
+  const actionId = $("#me-action-id").value.trim();
+  const destinationUrl = $("#me-destination-url").value.trim();
+  const warningEl = $("#me-action-id-warning");
+
+  const urlMismatch = getActionIdUrlMismatch(actionId, destinationUrl, editingMissionId);
+  if (urlMismatch) {
+    warningEl.hidden = false;
+    warningEl.textContent = `Another active mission ("${urlMismatch.title}") already uses this Action ID with a DIFFERENT destination URL. Saving this mission as Active will be blocked until the destinations match.`;
+    return;
+  }
+
+  const configMismatch = getSharedActionConfigMismatch(actionId, currentActionConfigFromForm(), editingMissionId);
+  if (configMismatch) {
+    warningEl.hidden = false;
+    warningEl.textContent = `Another active mission ("${configMismatch.mission.title}") already uses this Action ID with a different ${configMismatch.field}. Saving this mission as Active will be blocked until they match.`;
+    return;
+  }
+
+  warningEl.hidden = true;
+  warningEl.textContent = "";
+}
+
+function updateDestinationWarning() {
+  const destinationUrl = $("#me-destination-url").value.trim();
+  const actionId = $("#me-action-id").value.trim();
+  const conflict = getActiveDestinationConflict(destinationUrl, actionId, editingMissionId);
+  const warningEl = $("#me-destination-url-warning");
+  if (conflict) {
+    warningEl.hidden = false;
+    warningEl.textContent = `This destination is already tracked as Action ID "${conflict.actionId}" by another active mission ("${conflict.title}"). Use that same Action ID instead, or point this mission to a different destination. Saving this mission as Active will be blocked until that's resolved.`;
+  } else {
+    warningEl.hidden = true;
+    warningEl.textContent = "";
+  }
+}
+
+function updateMaxCountWarning() {
+  const target = Number($("#me-target").value);
+  const maxCount = Number($("#me-max-count").value);
+  const warningEl = $("#me-max-count-warning");
+  if (Number.isFinite(target) && Number.isFinite(maxCount) && maxCount > 0 && maxCount < target) {
+    warningEl.hidden = false;
+    warningEl.textContent = "Max count per day must be at least the mission target.";
+  } else {
+    warningEl.hidden = true;
+    warningEl.textContent = "";
+  }
+}
+
+// Campaign Daily missions REQUIRE a campaignId (spec section 3) — General
+// missions hide the campaign picker entirely rather than just disabling
+// it, so there's no ambiguous "disabled select still showing a value"
+// state. Called on scope change and whenever the form is (re)filled.
+function updateScopeFields() {
+  const isCampaign = $("#me-scope").value === "campaign";
+  $("#me-campaign-field").hidden = !isCampaign;
+}
+
+function fillMissionForm(mission) {
+  const m = mission || blankMissionForm();
+
+  $("#me-id").value = mission ? mission.id : generateUniqueMissionId("", "daily", null);
+  $("#me-id").disabled = !!mission;
+  $("#me-title").value = m.title || "";
+  $("#me-description").value = m.description || "";
+  $("#me-scope").value = effectiveScope(m);
+  $("#me-action-id").value = m.actionId || "";
+  $("#me-destination-url").value = m.destinationUrl || "";
+  $("#me-action-type").value = MISSION_ACTION_TYPES.includes(m.actionType) ? m.actionType : "external_click";
+  $("#me-frequency").value = MISSION_FREQUENCIES.includes(m.frequency) ? m.frequency : "daily";
+
+  if (missionCampaignOptionsFailed) {
+    $("#me-campaign").hidden = true;
+    $("#me-campaign-manual").hidden = false;
+    $("#me-campaign-manual").value = m.campaignId || "";
+    $("#me-campaign-fallback-note").hidden = false;
+  } else {
+    $("#me-campaign").hidden = false;
+    $("#me-campaign-manual").hidden = true;
+    $("#me-campaign-fallback-note").hidden = true;
+    $("#me-campaign").value = m.campaignId || "";
+  }
+
+  $("#me-target").value = typeof m.target === "number" ? m.target : 1;
+  $("#me-reward").value = typeof m.rewardDomiias === "number" ? m.rewardDomiias : 0;
+  $("#me-cooldown").value = typeof m.cooldownSeconds === "number" ? m.cooldownSeconds : 0;
+  $("#me-max-count").value = typeof m.maxCountPerDay === "number" ? m.maxCountPerDay : 1;
+  $("#me-starts-at").value = dateToLocalDatetimeInputValue(timestampToDate(m.startsAt));
+  $("#me-ends-at").value = dateToLocalDatetimeInputValue(timestampToDate(m.endsAt));
+  $("#me-display-order").value = typeof m.displayOrder === "number" ? m.displayOrder : 999;
+  $("#me-active").checked = !!m.active;
+  // Defaults to checked for both a brand-new mission AND an existing
+  // mission saved before this field existed — mirrors the backend's own
+  // `requiredForDailySet !== false` convention (functions/missionLogic.js)
+  // so a pre-Step-10.5 mission's behavior never silently changes.
+  $("#me-required-for-daily-set").checked = m.requiredForDailySet !== false;
+
+  updateScopeFields();
+  updateMissionPreview();
+  updateActionIdWarning();
+  updateDestinationWarning();
+  updateMaxCountWarning();
+}
+
+function openMissionEditor(id) {
+  editingMissionId = id || null;
+  missionActionIdTouched = !!id; // editing an existing mission never auto-rewrites its Action ID
+
+  const mission = id ? missionsCache.find((m) => m.id === id) : null;
+  $("#mission-editor-title").textContent = id ? `Edit Mission — ${(mission && mission.title) || id}` : "Add Mission";
+
+  fillMissionForm(mission);
+
+  setStatus($("#mission-editor-status"), "", null);
+  $("#mission-editor").hidden = false;
+  $("#mission-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeMissionEditor() {
+  $("#mission-editor").hidden = true;
+  editingMissionId = null;
+}
+
+// A General mission's campaignId is ALWAYS null (spec section 3) —
+// regardless of whatever value the (hidden) campaign select happens to
+// still hold from before the admin switched scope — so switching back to
+// General and saving can never accidentally keep a stale campaignId.
+function currentCampaignIdFromForm() {
+  if ($("#me-scope").value !== "campaign") return null;
+  const raw = missionCampaignOptionsFailed ? $("#me-campaign-manual").value : $("#me-campaign").value;
+  return isNonEmptyString(raw) ? raw.trim() : null;
+}
+
+function validateMissionForm(idForSave) {
+  const title = $("#me-title").value.trim();
+  const actionId = $("#me-action-id").value.trim();
+  const actionType = $("#me-action-type").value;
+  const destinationUrl = $("#me-destination-url").value.trim();
+  const target = $("#me-target").value;
+  const reward = $("#me-reward").value;
+  const cooldown = $("#me-cooldown").value;
+  const maxCount = $("#me-max-count").value;
+  const displayOrder = $("#me-display-order").value;
+  const startsAt = localDatetimeInputValueToTimestamp($("#me-starts-at").value);
+  const endsAt = localDatetimeInputValueToTimestamp($("#me-ends-at").value);
+  const active = $("#me-active").checked;
+
+  if (!isNonEmptyString(title)) return "Title is required.";
+
+  // Step 10 spec section 3: a Campaign Daily mission must identify its
+  // campaign; a General mission's campaignId is always null (enforced in
+  // currentCampaignIdFromForm() regardless of what this check finds).
+  if ($("#me-scope").value === "campaign" && !isNonEmptyString(currentCampaignIdFromForm())) {
+    return "Campaign Daily missions require a campaign to be selected.";
+  }
+
+  if (!isNonEmptyString(actionId)) return "Action ID is required.";
+
+  if (actionType === "external_click") {
+    if (!isNonEmptyString(destinationUrl)) {
+      return "Destination URL is required for External Click missions.";
+    }
+    if (!isHttpUrl(destinationUrl)) {
+      return "Destination URL must be a valid http:// or https:// link.";
+    }
+  }
+
+  if (!Number.isInteger(Number(target)) || Number(target) < 1 || !isNonEmptyString(String(target))) {
+    return "Target must be a whole number of at least 1.";
+  }
+  if (!isNonEmptyString(String(reward)) || !Number.isInteger(Number(reward)) || Number(reward) < 0) {
+    return "Reward Domiias must be a whole number of 0 or more.";
+  }
+  if (!isNonEmptyString(String(cooldown)) || !Number.isInteger(Number(cooldown)) || Number(cooldown) < 0) {
+    return "Cooldown Seconds must be a whole number of 0 or more.";
+  }
+  if (!isNonEmptyString(String(maxCount)) || !Number.isInteger(Number(maxCount)) || Number(maxCount) < 1) {
+    return "Max Count Per Day must be a whole number of at least 1.";
+  }
+  if (Number(maxCount) < Number(target)) {
+    return "Max count per day must be at least the mission target.";
+  }
+  if (!isNonEmptyString(String(displayOrder)) || !Number.isInteger(Number(displayOrder))) {
+    return "Display Order must be a whole number.";
+  }
+  if ($("#me-starts-at").value && !startsAt) return "Start date/time is invalid.";
+  if ($("#me-ends-at").value && !endsAt) return "End date/time is invalid.";
+  if (startsAt && endsAt && endsAt.toMillis() <= startsAt.toMillis()) {
+    return "End date/time must be after the start date/time.";
+  }
+
+  if (active) {
+    // Step 9: sharing an Action ID across several active missions is
+    // valid now (tiered missions) — only these specific mismatches are
+    // rejected (spec sections 6, 13, 23-25).
+    const urlMismatch = getActionIdUrlMismatch(actionId, destinationUrl, idForSave);
+    if (urlMismatch) {
+      return `Can't save as Active — "${urlMismatch.title}" already uses Action ID "${actionId}" with a different destination URL. Missions sharing an Action ID must all point to the same destination.`;
+    }
+    const destinationConflict = getActiveDestinationConflict(destinationUrl, actionId, idForSave);
+    if (destinationConflict) {
+      return `Can't save as Active — this destination is already tracked as Action ID "${destinationConflict.actionId}" by "${destinationConflict.title}". Use that same Action ID so all missions share the same tracked action.`;
+    }
+    const configMismatch = getSharedActionConfigMismatch(
+      actionId,
+      { actionType, cooldownSeconds: Number(cooldown), maxCountPerDay: Number(maxCount) },
+      idForSave
+    );
+    if (configMismatch) {
+      return `Can't save as Active — "${configMismatch.mission.title}" already uses Action ID "${actionId}" with a different ${configMismatch.field}. Missions sharing an Action ID must use the same ${configMismatch.field}.`;
+    }
+  }
+
+  return null;
+}
+
+function initMissionEditorForm() {
+  $("#me-title").addEventListener("input", () => {
+    if (!editingMissionId) {
+      $("#me-id").value = generateUniqueMissionId($("#me-title").value, $("#me-frequency").value, null);
+      if (!missionActionIdTouched) {
+        $("#me-action-id").value = suggestActionId($("#me-title").value, currentCampaignIdFromForm());
+      }
+    }
+    updateMissionPreview();
+  });
+  $("#me-frequency").addEventListener("change", () => {
+    if (!editingMissionId) $("#me-id").value = generateUniqueMissionId($("#me-title").value, $("#me-frequency").value, null);
+  });
+  $("#me-scope").addEventListener("change", updateScopeFields);
+  $("#me-campaign").addEventListener("change", () => {
+    if (!editingMissionId && !missionActionIdTouched) {
+      $("#me-action-id").value = suggestActionId($("#me-title").value, currentCampaignIdFromForm());
+    }
+  });
+  $("#me-action-id").addEventListener("input", () => {
+    missionActionIdTouched = true;
+    updateActionIdWarning();
+    updateDestinationWarning();
+  });
+  $("#me-destination-url").addEventListener("input", () => {
+    updateMissionPreview();
+    updateDestinationWarning();
+    updateActionIdWarning();
+  });
+  $("#me-active").addEventListener("change", () => {
+    updateActionIdWarning();
+    updateDestinationWarning();
+  });
+  $("#me-description").addEventListener("input", updateMissionPreview);
+  $("#me-target").addEventListener("input", () => {
+    updateMissionPreview();
+    updateMaxCountWarning();
+  });
+  $("#me-reward").addEventListener("input", updateMissionPreview);
+  // cooldownSeconds/maxCountPerDay/actionType are shared-action config
+  // (spec sections 6, 13) — any edit to them can newly create or resolve
+  // a mismatch against an active sibling mission sharing this Action ID.
+  $("#me-max-count").addEventListener("input", () => {
+    updateMaxCountWarning();
+    updateActionIdWarning();
+  });
+  $("#me-cooldown").addEventListener("input", updateActionIdWarning);
+  $("#me-action-type").addEventListener("change", updateActionIdWarning);
+
+  $("#mission-editor-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const isNew = !editingMissionId;
+    const id = isNew ? $("#me-id").value.trim() : editingMissionId;
+
+    if (isNew && (!isNonEmptyString(id) || !/^[a-z0-9-]+$/.test(id))) {
+      setStatus($("#mission-editor-status"), "Mission ID must use only lowercase letters, numbers, and dashes.", "error");
+      return;
+    }
+    if (isNew && missionsCache.some((m) => m.id === id)) {
+      setStatus($("#mission-editor-status"), `A mission with ID "${id}" already exists.`, "error");
+      return;
+    }
+
+    const error = validateMissionForm(isNew ? null : id);
+    if (error) {
+      setStatus($("#mission-editor-status"), error, "error");
+      return;
+    }
+
+    const data = {
+      title: $("#me-title").value.trim(),
+      description: $("#me-description").value.trim(),
+      missionScope: $("#me-scope").value === "campaign" ? "campaign" : "general",
+      actionId: $("#me-action-id").value.trim(),
+      destinationUrl: $("#me-destination-url").value.trim(),
+      actionType: $("#me-action-type").value,
+      frequency: $("#me-frequency").value,
+      campaignId: currentCampaignIdFromForm(),
+      target: Number($("#me-target").value),
+      rewardDomiias: Number($("#me-reward").value),
+      cooldownSeconds: Number($("#me-cooldown").value),
+      maxCountPerDay: Number($("#me-max-count").value),
+      startsAt: localDatetimeInputValueToTimestamp($("#me-starts-at").value),
+      endsAt: localDatetimeInputValueToTimestamp($("#me-ends-at").value),
+      displayOrder: Number($("#me-display-order").value),
+      active: $("#me-active").checked,
+      requiredForDailySet: $("#me-required-for-daily-set").checked,
+      updatedAt: serverTimestamp()
+    };
+
+    withSaving($("#mission-editor-save"), $("#mission-editor-status"), "Saving…", async () => {
+      if (isNew) {
+        data.createdAt = serverTimestamp();
+        await setDoc(doc(db, "missions", id), data);
+      } else {
+        // Preserve the document ID and createdAt — merge only updates the
+        // editable fields above (spec step 12).
+        await setDoc(doc(db, "missions", id), data, { merge: true });
+      }
+      closeMissionEditor();
+      await loadMissionsPanel();
+    });
+  });
+
+  $("#mission-editor-cancel").addEventListener("click", closeMissionEditor);
+  $("#mission-add-btn").addEventListener("click", () => openMissionEditor(null));
+}
+
+const MISSION_GENERATE_STATUS_BADGE_CLASS = { new: "badge-active", exists: "badge-previous", "missing-url": "badge-coming-soon" };
+const MISSION_GENERATE_STATUS_LABEL = { new: "+ New", exists: "✓ Already exists", "missing-url": "⚠ Missing URL" };
+let missionGenerateCandidates = [];
+
+function renderMissionGeneratePreview(candidates) {
+  missionGenerateCandidates = candidates;
+  const listEl = $("#mission-generate-preview-list");
+  listEl.innerHTML = "";
+
+  candidates.forEach((candidate) => {
+    const row = document.createElement("div");
+    row.className = "admin-item";
+
+    const line = document.createElement("p");
+    line.className = "admin-meta";
+    line.style.display = "flex";
+    line.style.alignItems = "center";
+    line.style.gap = "8px";
+    line.style.flexWrap = "wrap";
+
+    const label = document.createElement("strong");
+    label.textContent = candidate.summary;
+    const badge = document.createElement("span");
+    badge.className = `badge ${MISSION_GENERATE_STATUS_BADGE_CLASS[candidate.status]}`;
+    badge.textContent = MISSION_GENERATE_STATUS_LABEL[candidate.status];
+    const idText = document.createElement("span");
+    idText.textContent = `(${candidate.id})`;
+
+    line.append(label, badge, idText);
+    row.appendChild(line);
+    listEl.appendChild(row);
+  });
+
+  const newCount = candidates.filter((c) => c.status === "new").length;
+  const existsCount = candidates.filter((c) => c.status === "exists").length;
+  const missingCount = candidates.filter((c) => c.status === "missing-url").length;
+  $("#mission-generate-summary").textContent =
+    `${newCount} new mission${newCount === 1 ? "" : "s"} will be created · ${existsCount} already exist and will be left untouched` +
+    (missingCount ? ` · ${missingCount} skipped (missing URL)` : "");
+  $("#mission-generate-confirm").disabled = newCount === 0;
+}
+
+async function openMissionGeneratePanel() {
+  $("#mission-generate-panel").hidden = false;
+  $("#mission-generate-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus($("#mission-generate-status"), "", null);
+  $("#mission-generate-preview-list").innerHTML = "";
+  $("#mission-generate-summary").textContent = "Loading current campaign links…";
+  $("#mission-generate-confirm").disabled = true;
+
+  // Live campaigns/{id} doc wins over the js/data.js fallback for each
+  // campaign (the admin may have already edited its links in Campaign
+  // Manager) — falls back gracefully if a doc doesn't exist or its read fails.
+  let liveHeartbound = null;
+  let liveNewSeries2026 = null;
+  try {
+    const snap = await getDoc(doc(db, "campaigns", "heartbound"));
+    if (snap.exists()) liveHeartbound = snap.data();
+  } catch (error) {
+    console.error(error);
+  }
+  try {
+    const snap = await getDoc(doc(db, "campaigns", "new-series-2026"));
+    if (snap.exists()) liveNewSeries2026 = snap.data();
+  } catch (error) {
+    console.error(error);
+  }
+
+  renderMissionGeneratePreview(buildStreamingMissionCandidates(liveHeartbound, liveNewSeries2026));
+}
+
+function closeMissionGeneratePanel() {
+  $("#mission-generate-panel").hidden = true;
+  missionGenerateCandidates = [];
+}
+
+function initMissionGeneratePanel() {
+  $("#mission-generate-btn").addEventListener("click", openMissionGeneratePanel);
+  $("#mission-generate-cancel").addEventListener("click", closeMissionGeneratePanel);
+
+  $("#mission-generate-confirm").addEventListener("click", () => {
+    const toCreate = missionGenerateCandidates.filter((c) => c.status === "new");
+    if (!toCreate.length) return;
+
+    withSaving($("#mission-generate-confirm"), $("#mission-generate-status"), "Creating missions…", async () => {
+      // One atomic batch — either every new mission is created, or (on
+      // failure) none are, never a half-applied generation.
+      const batch = writeBatch(db);
+      toCreate.forEach((candidate) => {
+        batch.set(doc(db, "missions", candidate.id), {
+          ...candidate.data,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      });
+      await batch.commit();
+      closeMissionGeneratePanel();
+      await loadMissionsPanel();
+    });
+  });
+}
+
+/* ---- Filters + bootstrap ---- */
+
+function initMissionsFilters() {
+  document.querySelectorAll("#missions-status-filter-tabs .admin-subtab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#missions-status-filter-tabs .admin-subtab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      missionStatusFilter = tab.getAttribute("data-missions-status-filter");
+      renderMissionsList();
+    });
+  });
+
+  $("#missions-campaign-filter").addEventListener("change", () => {
+    missionCampaignFilter = $("#missions-campaign-filter").value;
+    renderMissionsList();
+  });
+}
+
+function initMissionsPanel() {
+  initMissionEditorForm();
+  initMissionsFilters();
+  initMissionGeneratePanel();
+}
+
+async function loadMissionsPanel() {
+  const listEl = $("#missions-list");
+
+  const [campaignResult, missionsResult] = await Promise.all([
+    getMissionCampaignOptions(),
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "missions"));
+        return { ok: true, docs: snap.docs.map((d) => ({ id: d.id, ...d.data() })) };
+      } catch (error) {
+        console.error(error);
+        return { ok: false, docs: [] };
+      }
+    })()
+  ]);
+
+  missionCampaignOptionsFailed = !campaignResult.ok;
+  missionCampaignOptions = campaignResult.campaigns;
+  populateMissionCampaignSelects(missionCampaignOptions);
+
+  if (!missionsResult.ok) {
+    listEl.innerHTML = "";
+    const errorEl = document.createElement("p");
+    errorEl.className = "admin-empty";
+    errorEl.textContent = "Couldn't load missions — check your connection and reload the page.";
+    listEl.appendChild(errorEl);
+    return;
+  }
+
+  missionsCache = missionsResult.docs;
+  renderMissionsList();
+}
+
+/* ==========================================================================
+   Cosmetics (Step 10.5) — "Import Default Cosmetics" admin-only seed tool
+   ------------------------------------------------------------------
+   Writes the 23 cosmetic definitions functions/achievements.js's
+   cosmeticRewards actually reference (see that file for the full
+   achievement -> cosmetic mapping). Definitions only — no artwork is
+   generated here; avatar/background entries point at an expected asset
+   path the admin adds the real image file to afterward. Idempotent by
+   cosmetic ID: a cosmetic that already exists (whether seeded by this
+   tool before, or hand-created/customized in the Firestore Console) is
+   always left completely untouched — this tool only ever CREATES a
+   missing definition, never updates or overwrites one.
+   ========================================================================== */
+let cosmeticsCache = [];
+let cosmeticsImportCandidates = [];
+
+// type: "avatar" | "background" | "theme". Avatar/background carry an
+// assetPath convention matching the one already established in Step 6
+// (see test-sync-achievements.js's seedCosmetic calls) —
+// assets/rewards/{type}s/{slug}.{ext}. Theme entries carry a themeKey
+// instead, validated against KNOWN_THEME_KEYS server-side
+// (functions/cosmeticLogic.js) before it can ever be equipped — an entry
+// here pointing at an unrecognized key would simply fail to equip, never
+// silently apply arbitrary CSS.
+const DEFAULT_COSMETICS = [
+  // ---- Avatars (10) ----
+  { id: "first-steps-avatar", type: "avatar", title: "First Steps", description: "Awarded for completing your first mission.", assetPath: "assets/rewards/avatars/first-steps.png" },
+  { id: "mission-25-avatar", type: "avatar", title: "Supporter", description: "Awarded for completing 25 missions.", assetPath: "assets/rewards/avatars/mission-25.png" },
+  { id: "mission-100-avatar", type: "avatar", title: "Super Supporter", description: "Awarded for completing 100 missions.", assetPath: "assets/rewards/avatars/mission-100.png" },
+  { id: "streak-7-avatar", type: "avatar", title: "A Week Together", description: "Awarded for a 7-day General Daily streak.", assetPath: "assets/rewards/avatars/streak-7.png" },
+  { id: "streak-30-avatar", type: "avatar", title: "Unstoppable", description: "Awarded for a 30-day General Daily streak.", assetPath: "assets/rewards/avatars/streak-30.png" },
+  { id: "campaign-supporter-avatar", type: "avatar", title: "Campaign Supporter", description: "Awarded for completing your first Campaign mission.", assetPath: "assets/rewards/avatars/campaign-supporter.png" },
+  { id: "domiia-1000-avatar", type: "avatar", title: "Domiia Treasure", description: "Awarded for earning 1,000 lifetime Domiias.", assetPath: "assets/rewards/avatars/domiia-1000.png" },
+  { id: "streaming-legend-avatar", type: "avatar", title: "Streaming Legend", description: "Awarded for 1,000 tracked streaming support actions.", assetPath: "assets/rewards/avatars/streaming-legend.png" },
+  { id: "youtube-100-avatar", type: "avatar", title: "Replay Crew", description: "Awarded for 100 tracked YouTube support actions.", assetPath: "assets/rewards/avatars/youtube-100.png" },
+  { id: "spotify-100-avatar", type: "avatar", title: "Playlist Energy", description: "Awarded for 100 tracked Spotify support actions.", assetPath: "assets/rewards/avatars/spotify-100.png" },
+
+  // ---- Backgrounds (7) — Step 10.6: responsive desktop(landscape)/
+  // mobile(portrait) variants instead of one assetPath. previewPath
+  // defaults to the desktop image (see §12 of the Step 10.6 spec);
+  // buildCosmeticsImportCandidates() below derives it automatically so it
+  // never has to be kept in sync by hand. ----
+  { id: "mission-250-background", type: "background", title: "Mission Master", description: "Awarded for completing 250 missions.", desktopAssetPath: "assets/rewards/backgrounds/mission-250-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/mission-250-mobile.jpg" },
+  { id: "perfect-day-background", type: "background", title: "Perfect Day", description: "Awarded for your first Perfect Day.", desktopAssetPath: "assets/rewards/backgrounds/perfect-day-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/perfect-day-mobile.jpg" },
+  { id: "streak-14-background", type: "background", title: "Two Weeks Together", description: "Awarded for a 14-day General Daily streak.", desktopAssetPath: "assets/rewards/backgrounds/streak-14-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/streak-14-mobile.jpg" },
+  { id: "streak-60-background", type: "background", title: "Always Here", description: "Awarded for a 60-day General Daily streak.", desktopAssetPath: "assets/rewards/backgrounds/streak-60-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/streak-60-mobile.jpg" },
+  { id: "campaign-10-background", type: "background", title: "Campaign Veteran", description: "Awarded for completing 10 Campaign daily sets.", desktopAssetPath: "assets/rewards/backgrounds/campaign-10-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/campaign-10-mobile.jpg" },
+  { id: "domiia-2500-background", type: "background", title: "Domiia Legend", description: "Awarded for earning 2,500 lifetime Domiias.", desktopAssetPath: "assets/rewards/backgrounds/domiia-2500-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/domiia-2500-mobile.jpg" },
+  { id: "streaming-500-background", type: "background", title: "Streaming Machine", description: "Awarded for 500 tracked streaming support actions.", desktopAssetPath: "assets/rewards/backgrounds/streaming-500-desktop.jpg", mobileAssetPath: "assets/rewards/backgrounds/streaming-500-mobile.jpg" },
+
+  // ---- Themes (6) — three-day-theme deliberately reuses the existing
+  // purple-night CSS key rather than needing a 7th dedicated theme; the
+  // other 5 each use one of the Step 10.5 CSS additions (css/style.css). ----
+  { id: "three-day-theme", type: "theme", title: "On a Roll", description: "Awarded for a 3-day General Daily streak.", themeKey: "purple-night" },
+  { id: "midnight-blue-theme", type: "theme", title: "Midnight Blue", description: "Awarded for 30 completed General Daily sets.", themeKey: "midnight-blue" },
+  { id: "heartbound-red-theme", type: "theme", title: "Heartbound Red", description: "Awarded for completing 25 Campaign daily sets.", themeKey: "heartbound-red" },
+  { id: "golden-supporter-theme", type: "theme", title: "Golden Supporter", description: "Awarded for earning 5,000 lifetime Domiias.", themeKey: "golden-supporter" },
+  { id: "soft-pink-theme", type: "theme", title: "Soft Pink", description: "Awarded for supporting 10 different tracked streaming actions.", themeKey: "soft-pink" },
+  { id: "domiia-night-theme", type: "theme", title: "Domiia Night", description: "Awarded for a 100-day General Daily streak.", themeKey: "domiia-night" }
+];
+
+function renderCosmeticsList() {
+  const listEl = $("#cosmetics-list");
+  listEl.innerHTML = "";
+
+  if (!cosmeticsCache.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "No cosmetic definitions yet — use Import Default Cosmetics above.";
+    listEl.appendChild(empty);
+    return;
+  }
+
+  cosmeticsCache
+    .slice()
+    .sort((a, b) => a.type.localeCompare(b.type) || (a.title || "").localeCompare(b.title || ""))
+    .forEach((cosmetic) => {
+      const row = document.createElement("div");
+      row.className = "admin-item";
+      const line = document.createElement("p");
+      line.className = "admin-meta";
+      let detail;
+      if (cosmetic.type === "theme") {
+        detail = `themeKey: ${cosmetic.themeKey || "—"}`;
+      } else if (cosmetic.type === "background") {
+        // Step 10.6: show BOTH variants so a missing one is obvious at a
+        // glance — legacy docs (assetPath only, no desktopAssetPath yet)
+        // still show something useful instead of two blank dashes.
+        const desktop = cosmetic.desktopAssetPath || cosmetic.assetPath || "—";
+        const mobile = cosmetic.mobileAssetPath || cosmetic.desktopAssetPath || cosmetic.assetPath || "—";
+        detail = `Desktop: ${desktop} · Mobile: ${mobile}`;
+      } else {
+        detail = `assetPath: ${cosmetic.assetPath || "—"}`;
+      }
+      line.textContent = `${cosmetic.title || cosmetic.id} (${cosmetic.id}) · ${cosmetic.type} · ${detail} · ${cosmetic.active === false ? "Inactive" : "Active"}`;
+      row.appendChild(line);
+      listEl.appendChild(row);
+    });
+}
+
+async function loadCosmeticsPanel() {
+  try {
+    const snap = await getDocs(collection(db, "cosmetics"));
+    cosmeticsCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error(error);
+    cosmeticsCache = [];
+  }
+  renderCosmeticsList();
+}
+
+function renderCosmeticsImportPreview(candidates) {
+  cosmeticsImportCandidates = candidates;
+  const listEl = $("#cosmetics-import-preview-list");
+  listEl.innerHTML = "";
+
+  candidates.forEach((candidate) => {
+    const row = document.createElement("div");
+    row.className = "admin-item";
+    const line = document.createElement("p");
+    line.className = "admin-meta";
+    line.style.display = "flex";
+    line.style.alignItems = "center";
+    line.style.gap = "8px";
+    line.style.flexWrap = "wrap";
+
+    const label = document.createElement("strong");
+    label.textContent = `${candidate.data.title} (${candidate.id})`;
+    const badge = document.createElement("span");
+    badge.className = `badge ${candidate.status === "new" ? "badge-active" : "badge-previous"}`;
+    badge.textContent = candidate.status === "new" ? "+ New" : "✓ Already exists";
+
+    line.append(label, badge);
+    row.appendChild(line);
+    listEl.appendChild(row);
+  });
+
+  const newCount = candidates.filter((c) => c.status === "new").length;
+  const existsCount = candidates.length - newCount;
+  $("#cosmetics-import-summary").textContent =
+    `${newCount} new cosmetic${newCount === 1 ? "" : "s"} will be created · ${existsCount} already exist and will be left untouched`;
+  $("#cosmetics-import-confirm").disabled = newCount === 0;
+}
+
+function cosmeticTypeSpecificFields(def) {
+  if (def.type === "theme") return { themeKey: def.themeKey };
+  if (def.type === "background") {
+    // previewPath defaults to the desktop image (spec §12: "prefer desktop
+    // preview on desktop... if a dedicated previewPath exists, it may
+    // still override" — none of the defaults need an override).
+    return {
+      desktopAssetPath: def.desktopAssetPath,
+      mobileAssetPath: def.mobileAssetPath,
+      previewPath: def.previewPath || def.desktopAssetPath
+    };
+  }
+  return { assetPath: def.assetPath };
+}
+
+function buildCosmeticsImportCandidates() {
+  const existingIds = new Set(cosmeticsCache.map((c) => c.id));
+  return DEFAULT_COSMETICS.map((def) => ({
+    id: def.id,
+    status: existingIds.has(def.id) ? "exists" : "new",
+    data: {
+      type: def.type,
+      title: def.title,
+      description: def.description,
+      active: true,
+      ...cosmeticTypeSpecificFields(def)
+    }
+  }));
+}
+
+function openCosmeticsImportPanel() {
+  $("#cosmetics-import-panel").hidden = false;
+  $("#cosmetics-import-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus($("#cosmetics-import-status"), "", null);
+  renderCosmeticsImportPreview(buildCosmeticsImportCandidates());
+}
+
+function closeCosmeticsImportPanel() {
+  $("#cosmetics-import-panel").hidden = true;
+  cosmeticsImportCandidates = [];
+}
+
+function initCosmeticsPanel() {
+  $("#cosmetics-import-btn").addEventListener("click", openCosmeticsImportPanel);
+  $("#cosmetics-import-cancel").addEventListener("click", closeCosmeticsImportPanel);
+
+  $("#cosmetics-import-confirm").addEventListener("click", () => {
+    const toCreate = cosmeticsImportCandidates.filter((c) => c.status === "new");
+    if (!toCreate.length) return;
+
+    withSaving($("#cosmetics-import-confirm"), $("#cosmetics-import-status"), "Creating cosmetics…", async () => {
+      // One atomic batch, same convention as the Generate Streaming
+      // Missions tool — either every new definition is created, or none.
+      const batch = writeBatch(db);
+      toCreate.forEach((candidate) => {
+        batch.set(doc(db, "cosmetics", candidate.id), {
+          ...candidate.data,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      });
+      await batch.commit();
+      closeCosmeticsImportPanel();
+      await loadCosmeticsPanel();
+    });
+  });
+
+  initBackgroundUpgradePanel();
+  loadCosmeticsPanel();
+}
+
+/* ==========================================================================
+   "Upgrade Legacy Backgrounds" (Step 10.6) — safe, additive-only migration
+   ------------------------------------------------------------------
+   For any of the 7 known default background cosmetics that exist in
+   Firestore WITHOUT a desktopAssetPath yet (i.e. still on the old
+   single-assetPath schema), proposes ADDING desktopAssetPath/
+   mobileAssetPath/previewPath (merge-update, never a full overwrite) —
+   title/description/active/the original assetPath field are all left
+   completely untouched. A background that already HAS a desktopAssetPath
+   (whether set by this tool before, or hand-customized by the admin) is
+   correctly reported as already up to date and is never touched again.
+   ========================================================================== */
+let backgroundUpgradeCandidates = [];
+
+function buildBackgroundUpgradeCandidates() {
+  const defaultsById = new Map(DEFAULT_COSMETICS.filter((d) => d.type === "background").map((d) => [d.id, d]));
+  return cosmeticsCache
+    .filter((c) => c.type === "background" && defaultsById.has(c.id) && !isNonEmptyString(c.desktopAssetPath))
+    .map((c) => {
+      const def = defaultsById.get(c.id);
+      return {
+        id: c.id,
+        data: {
+          desktopAssetPath: def.desktopAssetPath,
+          mobileAssetPath: def.mobileAssetPath,
+          previewPath: c.previewPath || def.previewPath || def.desktopAssetPath
+        }
+      };
+    });
+}
+
+function renderBackgroundUpgradePreview(candidates) {
+  backgroundUpgradeCandidates = candidates;
+  const listEl = $("#cosmetics-upgrade-preview-list");
+  listEl.innerHTML = "";
+
+  if (!candidates.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "Every known background already has responsive desktop/mobile paths — nothing to upgrade.";
+    listEl.appendChild(empty);
+  }
+
+  candidates.forEach((candidate) => {
+    const row = document.createElement("div");
+    row.className = "admin-item";
+    const line = document.createElement("p");
+    line.className = "admin-meta";
+    line.textContent = `${candidate.id} → adds desktopAssetPath: ${candidate.data.desktopAssetPath}, mobileAssetPath: ${candidate.data.mobileAssetPath}`;
+    row.appendChild(line);
+    listEl.appendChild(row);
+  });
+
+  $("#cosmetics-upgrade-summary").textContent = candidates.length
+    ? `${candidates.length} background${candidates.length === 1 ? "" : "s"} will be upgraded with responsive paths — no other field is touched.`
+    : "";
+  $("#cosmetics-upgrade-confirm").disabled = candidates.length === 0;
+}
+
+function openBackgroundUpgradePanel() {
+  $("#cosmetics-upgrade-panel").hidden = false;
+  $("#cosmetics-upgrade-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus($("#cosmetics-upgrade-status"), "", null);
+  renderBackgroundUpgradePreview(buildBackgroundUpgradeCandidates());
+}
+
+function closeBackgroundUpgradePanel() {
+  $("#cosmetics-upgrade-panel").hidden = true;
+  backgroundUpgradeCandidates = [];
+}
+
+function initBackgroundUpgradePanel() {
+  $("#cosmetics-upgrade-btn").addEventListener("click", openBackgroundUpgradePanel);
+  $("#cosmetics-upgrade-cancel").addEventListener("click", closeBackgroundUpgradePanel);
+
+  $("#cosmetics-upgrade-confirm").addEventListener("click", () => {
+    if (!backgroundUpgradeCandidates.length) return;
+
+    withSaving($("#cosmetics-upgrade-confirm"), $("#cosmetics-upgrade-status"), "Upgrading backgrounds…", async () => {
+      const batch = writeBatch(db);
+      backgroundUpgradeCandidates.forEach((candidate) => {
+        // merge: true (not set/overwrite) — adds exactly these 3 fields,
+        // leaves assetPath/title/description/active/everything else as-is.
+        batch.set(doc(db, "cosmetics", candidate.id), { ...candidate.data, updatedAt: serverTimestamp() }, { merge: true });
+      });
+      await batch.commit();
+      closeBackgroundUpgradePanel();
+      await loadCosmeticsPanel();
+    });
+  });
 }
 
 /* ==========================================================================
@@ -2509,6 +4037,7 @@ async function loadAllPanels() {
   await Promise.all([
     loadDashboard(),
     loadCampaignsPanel(),
+    loadMissionsPanel(),
     loadTiktokViewsPanel(),
     youtubeGoalsPanel.load(),
     tiktokGoalsPanel.load(),
@@ -2595,6 +4124,8 @@ function initAuth() {
 
 initNav();
 initCampaignsPanel();
+initMissionsPanel();
+initCosmeticsPanel();
 initCommentHelperManager();
 initTiktokViewsPanel();
 initMusicPanel();

@@ -14,10 +14,6 @@ concurrency:
   group: update-youtube-views
   cancel-in-progress: false
 
-env:
-  VIDEO_ID: I1guVkLJ4mU
-  STATS_FILE: data/youtube-stats.json
-
 jobs:
   update-view-count:
     runs-on: ubuntu-latest
@@ -25,7 +21,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch view count from YouTube Data API
+      # Single source of truth for every tracked video — add a new
+      # "videoId:statsFile" pair here to track another video. Every video
+      # below is fetched in ONE videos.list call (comma-joined id param),
+      # never one API request per video — see the quota note below.
+      - name: Fetch view counts from YouTube Data API (batched, one request for every tracked video)
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
@@ -36,8 +36,29 @@ jobs:
             exit 1
           fi
 
+          # videoId:statsFile pairs. Heartbound's pilot trailer is unchanged
+          # (same file path as before this change, so no existing consumer
+          # needs updating); the new PerthSanta series pilot
+          # (https://www.youtube.com/watch?v=BxoDDMjgyE0) is the one new
+          # entry added for this task.
+          VIDEOS=(
+            "I1guVkLJ4mU:data/youtube-stats.json"
+            "BxoDDMjgyE0:data/youtube-stats-BxoDDMjgyE0.json"
+          )
+
+          ids=""
+          for entry in "${VIDEOS[@]}"; do
+            id="${entry%%:*}"
+            ids="${ids:+$ids,}${id}"
+          done
+
+          # ONE videos.list request for every tracked video — the YouTube
+          # Data API accepts a comma-separated id list and returns one item
+          # per matched video, so this costs the SAME quota as fetching a
+          # single video, regardless of how many are tracked (spec: "do not
+          # make one API request per video; batch into one videos.list call").
           http_status=$(curl -s -o response.json -w "%{http_code}" \
-            "https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${VIDEO_ID}&key=${YOUTUBE_API_KEY}")
+            "https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&key=${YOUTUBE_API_KEY}")
 
           if [ "$http_status" -ne 200 ]; then
             echo "::error::YouTube API request failed with HTTP status $http_status"
@@ -47,41 +68,64 @@ jobs:
 
           item_count=$(jq '.items | length' response.json)
           if [ "$item_count" -lt 1 ]; then
-            echo "::error::YouTube API response did not contain any video for ID ${VIDEO_ID}. Refusing to overwrite stats file."
-            cat response.json
-            exit 1
-          fi
-
-          view_count=$(jq -r '.items[0].statistics.viewCount // empty' response.json)
-          if [ -z "$view_count" ]; then
-            echo "::error::YouTube API response did not include statistics.viewCount."
+            echo "::error::YouTube API response did not contain any videos for ids ${ids}. Refusing to overwrite any stats file."
             cat response.json
             exit 1
           fi
 
           updated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          changed_files=()
 
-          jq -n \
-            --arg videoId "$VIDEO_ID" \
-            --argjson viewCount "$view_count" \
-            --arg updatedAt "$updated_at" \
-            '{videoId: $videoId, viewCount: $viewCount, updatedAt: $updatedAt}' \
-            > "${STATS_FILE}.tmp"
+          for entry in "${VIDEOS[@]}"; do
+            video_id="${entry%%:*}"
+            stats_file="${entry#*:}"
 
-          mv "${STATS_FILE}.tmp" "$STATS_FILE"
+            view_count=$(jq -r --arg id "$video_id" \
+              '.items[] | select(.id == $id) | .statistics.viewCount // empty' response.json)
+
+            if [ -z "$view_count" ]; then
+              # This specific video wasn't in the response (private/deleted/
+              # quota-filtered) — skip ONLY this file, don't fail the whole
+              # run or touch its existing stats (every other tracked video
+              # still updates normally this run).
+              echo "::warning::No statistics.viewCount returned for video ${video_id} — leaving ${stats_file} untouched this run."
+              continue
+            fi
+
+            jq -n \
+              --arg videoId "$video_id" \
+              --argjson viewCount "$view_count" \
+              --arg updatedAt "$updated_at" \
+              '{videoId: $videoId, viewCount: $viewCount, updatedAt: $updatedAt}' \
+              > "${stats_file}.tmp"
+
+            mkdir -p "$(dirname "$stats_file")"
+            mv "${stats_file}.tmp" "$stats_file"
+            changed_files+=("$stats_file")
+          done
+
           rm -f response.json
+          printf '%s\n' "${changed_files[@]}" > changed_files.txt
 
       - name: Commit and push if changed
         run: |
           set -euo pipefail
 
-          if git diff --quiet -- "$STATS_FILE"; then
-            echo "No change in view count — skipping commit."
+          mapfile -t changed_files < changed_files.txt
+          rm -f changed_files.txt
+
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "No stats files were written this run — skipping commit."
+            exit 0
+          fi
+
+          if git diff --quiet -- "${changed_files[@]}"; then
+            echo "No change in view counts — skipping commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$STATS_FILE"
+          git add -- "${changed_files[@]}"
           git commit -m "Update YouTube view count"
           git push

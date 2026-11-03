@@ -6,17 +6,351 @@ rules_version = '2';
 // truth deployed via the Firebase Console (or `firebase deploy` with
 // the Firebase CLI). Kept in the repo for reference/version control.
 //
-// Public reads everywhere (the site's content is public). Writes are
-// restricted to the single admin UID — this is the actual security
-// boundary for the admin console, not anything in the frontend code.
+// Public site content (campaign/campaigns/content/stats/site/trending)
+// keeps its original behavior: public read, admin-only write. Those
+// collections are listed explicitly below, one per collection actually
+// read by js/firestore-content.js / js/admin.js / js/trending.js, instead
+// of one blanket `match /{document=**}` — because a single recursive
+// wildcard would also grant public read to users/{uid} (Firestore grants
+// access if *any* matching rule allows it, so a stricter rule scoped to
+// `users` cannot override a more permissive one that still matches the
+// same path). Splitting them out is what makes the users/{uid} block
+// below actually private.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /{document=**} {
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.uid == "Y5r0wou7RITpiLjlitGZpnMfMiC2";
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // ---- Public site content (unchanged behavior) ----
+    match /campaign/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /content/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /commentHelperPhrases/{phraseId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    match /stats/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /trending/{category} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /trendingPhrases/{category}/phrases/{phraseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- User accounts (Phase 1: auth + profile foundation) ----
+    // Each signed-in user has exactly one users/{uid} profile doc.
+    //   - Only the owner (or admin) may read it — it holds their email.
+    //   - The owner may create it only once, with every Domiia/mission/
+    //     reward field locked at its zero/empty starting value, and a
+    //     displayName/displayNameNormalized pair that is internally
+    //     consistent (see displayNames/{nameKey} below for how uniqueness
+    //     is actually enforced — this collection cannot verify that on
+    //     its own, since rules have no way to recompute the SHA-256 key
+    //     the client derives the reservation doc ID from).
+    //   - The owner may update ONLY the safe identity fields below
+    //     (displayName, displayNameNormalized, email, photoURL,
+    //     updatedAt). Every other field — including Domiia balance,
+    //     lifetime Domiias, missions completed, and reward/customization
+    //     selections — is read-only to the owner from here on; those
+    //     will be written exclusively by trusted backend logic (Cloud
+    //     Functions) in a later phase.
+    //   - Admin keeps full read/write, same as every other collection.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+             'uid', 'displayName', 'displayNameNormalized', 'email', 'photoURL',
+             'domiiaBalance', 'lifetimeDomiias', 'missionsCompleted',
+             'leaderboardOptIn',
+             'selectedAvatar', 'selectedTheme', 'selectedBackground', 'selectedBadge',
+             'currentStreak', 'longestStreak', 'daysCompleted', 'lastCompletedDay',
+             'achievementsUnlocked',
+             'joinedAt', 'createdAt', 'updatedAt'
+           ])
+        && request.resource.data.uid == uid
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 30
+        && request.resource.data.displayNameNormalized == request.resource.data.displayName.lower()
+        && request.resource.data.domiiaBalance == 0
+        && request.resource.data.lifetimeDomiias == 0
+        && request.resource.data.missionsCompleted == 0
+        && request.resource.data.leaderboardOptIn == false
+        && request.resource.data.selectedAvatar == null
+        && request.resource.data.selectedTheme == null
+        && request.resource.data.selectedBackground == null
+        && request.resource.data.selectedBadge == null
+        // ---- Progression (Step 5) — every new account starts at the
+        // zero/null state; only the Cloud Function ever changes these
+        // from here on (see the update rule below). ----
+        && request.resource.data.currentStreak == 0
+        && request.resource.data.longestStreak == 0
+        && request.resource.data.daysCompleted == 0
+        && request.resource.data.lastCompletedDay == null
+        && request.resource.data.achievementsUnlocked == 0;
+
+      allow update: if isAdmin() || (
+        isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName', 'displayNameNormalized', 'email', 'photoURL', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 30
+        && request.resource.data.displayNameNormalized == request.resource.data.displayName.lower()
+        && request.resource.data.domiiaBalance == resource.data.domiiaBalance
+        && request.resource.data.lifetimeDomiias == resource.data.lifetimeDomiias
+        && request.resource.data.missionsCompleted == resource.data.missionsCompleted
+        && request.resource.data.leaderboardOptIn == resource.data.leaderboardOptIn
+        && request.resource.data.selectedAvatar == resource.data.selectedAvatar
+        && request.resource.data.selectedTheme == resource.data.selectedTheme
+        && request.resource.data.selectedBackground == resource.data.selectedBackground
+        && request.resource.data.selectedBadge == resource.data.selectedBadge
+        && request.resource.data.joinedAt == resource.data.joinedAt
+        && request.resource.data.createdAt == resource.data.createdAt
+        // ---- Progression (Step 5) — owner-read-only, backend-write-only.
+        // Uses .get(field, default) rather than direct field access on
+        // BOTH sides: a user doc created before Step 5 simply doesn't
+        // have these keys yet, and direct access to a missing map key is
+        // a rules evaluation error (which denies the whole request) —
+        // .get() with a matching default makes "field doesn't exist on
+        // either side" trivially equal, so existing users can still do
+        // this update (e.g. rename) without being locked out, while any
+        // attempt to actually change one of these fields via a client
+        // write still correctly fails the equality check. ----
+        && request.resource.data.get('currentStreak', 0) == resource.data.get('currentStreak', 0)
+        && request.resource.data.get('longestStreak', 0) == resource.data.get('longestStreak', 0)
+        && request.resource.data.get('daysCompleted', 0) == resource.data.get('daysCompleted', 0)
+        && request.resource.data.get('lastCompletedDay', null) == resource.data.get('lastCompletedDay', null)
+        && request.resource.data.get('achievementsUnlocked', 0) == resource.data.get('achievementsUnlocked', 0)
+      );
+
+      allow delete: if isAdmin();
+
+      // ---- Mission progress / anti-spam history (Step 3) ----
+      // Both are written EXCLUSIVELY by the recordMissionAction Cloud
+      // Function via the Admin SDK, which bypasses these rules entirely —
+      // that's expected and is the actual security boundary for counting,
+      // completion, and the Domiia reward (see functions/missionLogic.js).
+      // The owner can read their own progress/history (so the Missions
+      // page can render it) but can never write either directly: letting
+      // the client set `progress`/`completed`/`count` itself would let
+      // anyone grant themselves missions and Domiias for free.
+      match /missionProgress/{progressId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      match /actionHistory/{actionKey} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // ---- Daily completion + achievement unlocks (Step 5) ----
+      // Same security boundary as missionProgress/actionHistory above:
+      // written EXCLUSIVELY by recordMissionAction via the Admin SDK,
+      // which bypasses these rules entirely. The owner can read their own
+      // records (Missions page daily summary, Profile achievements
+      // section) but never write either directly — a client-writable
+      // dailyCompletions doc or achievements doc would let anyone grant
+      // themselves the streak/bonus/achievement Domiia rewards for free.
+      match /dailyCompletions/{dateKey} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      match /achievements/{achievementId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // ---- Cosmetic ownership/inventory (Step 6) ----
+      // Same security boundary as achievements/dailyCompletions above:
+      // written EXCLUSIVELY by recordMissionAction (achievement unlocks)
+      // or the equipCosmetic/syncAchievementCosmetics callables, all via
+      // the Admin SDK. The owner can read their own inventory (Profile
+      // customization UI) but can never create/edit an ownership record
+      // directly — that would let anyone grant themselves any cosmetic
+      // for free, bypassing the achievement requirement entirely.
+      match /cosmetics/{cosmeticId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // ---- Trusted Domiia earning ledger (Step 8) ----
+      // One doc per individual reward event (mission completion, daily
+      // bonus, achievement unlock — see functions/ledgerLogic.js). Written
+      // EXCLUSIVELY by recordMissionAction/syncAchievements via the Admin
+      // SDK, which bypasses these rules entirely. Owner-read only — never
+      // public — this is strictly more sensitive than achievements/
+      // dailyCompletions above (it's a full earning history, not just
+      // milestone flags), and it is NEVER the data source for any public
+      // leaderboard query (see leaderboardWeekly/leaderboardMonthly below,
+      // which are separate, minimal, public-safe mirrors). A client-
+      // writable ledger entry would let anyone grant themselves Domiias
+      // and/or fabricate weekly/monthly leaderboard score for free.
+      match /domiiaEarnings/{earningId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // ---- Unique supported-action markers (Step 10.5) ----
+      // One doc per actionId the user has EVER had an accepted action for
+      // (see functions/missionLogic.js) — backs the trusted
+      // uniqueActionsSupported counter and the variety achievements
+      // (unique-3/5/10/20). Written EXCLUSIVELY by recordMissionAction via
+      // the Admin SDK, same security boundary as every other trusted
+      // subcollection above. A client-writable marker would let anyone
+      // inflate uniqueActionsSupported (and its achievements) for free
+      // without ever actually performing the action.
+      match /supportedActions/{actionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ---- Cosmetic definitions (Step 6) ----
+    // Public read (the Profile customization UI needs to show LOCKED
+    // cosmetics too, with their title/description/preview — spec section
+    // 16 explicitly wants users to see what they can earn) but admin-
+    // write-only — there's no Cosmetic Manager UI yet, so definitions are
+    // created directly in the Firestore Console for this step (see the
+    // Step 6 report for the exact documents to create). Safe to be public:
+    // definitions carry no private user data, only which image/themeKey a
+    // cosmetic maps to.
+    match /cosmetics/{cosmeticId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- Mission definitions (Step 3) ----
+    // Definitions are public read (the Missions page needs to render
+    // active missions for signed-out visitors too, same as every other
+    // piece of site content) but admin-write-only for now — there's no
+    // mission management UI yet, so for this step missions are created
+    // directly in the Firestore Console (see the Step 3 report for the
+    // exact document to create).
+    match /missions/{missionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- Public leaderboard mirror (Step 7) ----
+    // A SEPARATE, public-safe collection — users/{uid} itself stays
+    // fully private (email, internal settings, every progression field)
+    // regardless of leaderboard opt-in. A document only exists here for
+    // a user who has actually opted in (users/{uid}.leaderboardOptIn ==
+    // true); opting out deletes it outright. Written EXCLUSIVELY by the
+    // setLeaderboardOptIn/syncLeaderboardProfile callables and by every
+    // reward-flow transaction that changes lifetimeDomiias
+    // (recordMissionAction, syncAchievements) or selectedAvatar
+    // (equipCosmetic) — see functions/leaderboardLogic.js — all via the
+    // Admin SDK, which bypasses these rules entirely. Public read is the
+    // whole point of a leaderboard; a client-writable entry would let
+    // anyone fake their own rank/name/avatar.
+    match /leaderboard/{uid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- Weekly / Monthly public leaderboard mirrors (Step 8) ----
+    // Same posture and rationale as leaderboard/{uid} above, for Domiias
+    // actually EARNED during the current ISO week / calendar month (see
+    // functions/leaderboardLogic.js). Doc IDs are flat {periodKey}_{uid}
+    // (e.g. "2026-W45_abc123", "2026-11_abc123") — a doc only exists for a
+    // (period, user) pair that user earned into (or was reconstructed
+    // into, on opt-in) WHILE opted in; opting out deletes every period
+    // doc this user has ever had, not just the current one (spec section
+    // 15). Written EXCLUSIVELY by recordMissionAction, syncAchievements,
+    // equipCosmetic, setLeaderboardOptIn, and syncLeaderboardProfile, all
+    // via the Admin SDK. Public read is the whole point; a client-writable
+    // entry would let anyone fake their own weekly/monthly rank.
+    match /leaderboardWeekly/{periodDocId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /leaderboardMonthly/{periodDocId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- Display-name reservations ----
+    // One doc per normalized display name, keyed by nameKey = hex(SHA-256(
+    // lowercased, whitespace-collapsed name)) — see js/auth.js's
+    // computeNameKey(). Hashing sidesteps every Firestore document-ID
+    // restriction (slashes, length, reserved patterns) for an otherwise
+    // free-text, non-ASCII-friendly field, and gives exact case-insensitive
+    // matching "for free" since two names that normalize the same always
+    // hash to the same key.
+    //
+    // Rules can't recompute that hash (no SHA-256 in the rules language),
+    // so they can't verify a doc's ID actually matches its own displayName
+    // field. What they CAN and do enforce — the actual security property —
+    // is ownership: nobody can create, overwrite, or delete a reservation
+    // that belongs to a different uid. That, plus the client always
+    // writing both the reservation and the users/{uid} update inside one
+    // transaction (see js/auth.js), is what makes renames atomic and
+    // race-free: two users racing for the same key can't both "win", and
+    // Firestore's normal transaction retry handles the rest.
+    match /displayNames/{nameKey} {
       allow read: if true;
 
-      allow write: if request.auth != null
-                   && request.auth.uid == "Y5r0wou7RITpiLjlitGZpnMfMiC2";
+      allow create: if isAdmin() || (
+        request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'displayNameNormalized', 'createdAt', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 30
+        && request.resource.data.displayNameNormalized == request.resource.data.displayName.lower()
+      );
+
+      allow update: if isAdmin() || (
+        request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'displayNameNormalized', 'createdAt', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 30
+        && request.resource.data.displayNameNormalized == request.resource.data.displayName.lower()
+        && request.resource.data.createdAt == resource.data.createdAt
+      );
+
+      allow delete: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
     }
   }
 }

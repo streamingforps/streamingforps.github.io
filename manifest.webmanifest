@@ -1,0 +1,24 @@
+{
+  "name": "PerthSanta Streaming",
+  "short_name": "PS Streaming",
+  "description": "PerthSanta Streaming is the central hub for PerthSanta fans: current campaigns, daily missions, streaming guides, music, and official links.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -57,7 +57,10 @@
   <div id="admin-dashboard" class="admin-dashboard" hidden>
 
     <header class="admin-topbar">
-      <span class="admin-topbar-title">PerthSanta Streaming <strong>Admin</strong></span>
+      <div class="admin-topbar-left">
+        <a class="admin-back-link" href="index.html">&larr; Back to website</a>
+        <span class="admin-topbar-title">PerthSanta Streaming <strong>Admin</strong></span>
+      </div>
       <div class="admin-topbar-right">
         <span class="admin-user-email" id="admin-user-email"></span>
         <button type="button" class="btn btn-secondary btn-sm" id="logout-btn">Logout</button>
@@ -69,6 +72,8 @@
       <nav class="admin-nav" aria-label="Admin sections">
         <button type="button" class="admin-nav-btn is-active" data-panel="home">Dashboard</button>
         <button type="button" class="admin-nav-btn" data-panel="campaigns">Campaigns</button>
+        <button type="button" class="admin-nav-btn" data-panel="missions">Missions</button>
+        <button type="button" class="admin-nav-btn" data-panel="cosmetics">Cosmetics</button>
         <button type="button" class="admin-nav-btn" data-panel="tiktok-views">TikTok Views (Heartbound)</button>
         <button type="button" class="admin-nav-btn" data-panel="goals">Streaming Goals (Heartbound)</button>
         <button type="button" class="admin-nav-btn" data-panel="announcements">Announcements</button>
@@ -143,6 +148,14 @@
 
               <label for="ce-order">Display order (lower number = higher priority)</label>
               <input type="number" id="ce-order" step="1" />
+
+              <label for="ce-daily-mission-bonus">Daily mission completion bonus</label>
+              <input type="number" id="ce-daily-mission-bonus" min="0" step="1" />
+              <p class="admin-hint" style="margin-top: 0;">
+                Domiias awarded once when a fan completes every one of THIS campaign's active Campaign
+                Daily missions in one day. Leave at 0 for no completion bonus — this is separate from
+                the General daily bonus and from individual mission rewards.
+              </p>
 
               <label for="ce-image">Image path</label>
               <input type="text" id="ce-image" placeholder="assets/images/example.jpg — leave blank for a placeholder" />
@@ -355,6 +368,261 @@
                 <p class="admin-status" id="comment-helper-manage-status" role="status" hidden></p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- Missions (Mission Manager) -->
+        <section class="admin-panel" data-panel="missions">
+          <h2>Missions</h2>
+          <p class="admin-hint">
+            Daily missions reward Domiias for tracked external actions (e.g. opening a campaign's
+            official stream link). Mission progress/rewards are handled entirely by the
+            <code>recordMissionAction</code> Cloud Function — this panel only edits mission
+            definitions, never a user's progress or balance.
+          </p>
+
+          <div class="admin-tabs-sub" id="missions-status-filter-tabs">
+            <button type="button" class="admin-subtab is-active" data-missions-status-filter="all">All</button>
+            <button type="button" class="admin-subtab" data-missions-status-filter="active">Active</button>
+            <button type="button" class="admin-subtab" data-missions-status-filter="inactive">Inactive</button>
+            <button type="button" class="admin-subtab" data-missions-status-filter="scheduled">Scheduled</button>
+            <button type="button" class="admin-subtab" data-missions-status-filter="expired">Expired</button>
+          </div>
+
+          <div class="admin-item-field" style="max-width: 280px; margin-bottom: var(--space-4);">
+            <label for="missions-campaign-filter">Filter by campaign</label>
+            <select id="missions-campaign-filter" class="admin-filter-select">
+              <option value="all">All campaigns</option>
+            </select>
+          </div>
+
+          <div class="admin-list" id="missions-list">
+            <p class="admin-empty">Loading missions…</p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="mission-add-btn">+ Add Mission</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="mission-generate-btn">Generate Streaming Missions</button>
+
+          <div class="admin-subsection" id="mission-generate-panel" hidden>
+            <h3>Generate Streaming Missions — Preview</h3>
+            <p class="admin-hint" style="margin-top: 0;">
+              Reads the real Music catalog (<code>js/data.js</code>) and the current Heartbound
+              campaign links to propose one optional General mission per song/platform and two
+              required Heartbound Campaign missions. Nothing is written until you confirm below.
+              Never fabricates a URL — a song/platform with no confirmed link is skipped and shown
+              as "Missing URL". Safe to re-run: missions whose Action ID already exists are shown
+              as "Already exists" and are never duplicated or overwritten.
+            </p>
+            <div class="admin-list" id="mission-generate-preview-list"></div>
+            <p class="admin-meta" id="mission-generate-summary"></p>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn-primary" id="mission-generate-confirm">Create New Missions</button>
+              <button type="button" class="btn btn-secondary" id="mission-generate-cancel">Cancel</button>
+              <p class="admin-status" id="mission-generate-status" role="status" hidden></p>
+            </div>
+          </div>
+
+          <div class="admin-subsection" id="mission-editor" hidden>
+            <h3 id="mission-editor-title">Add Mission</h3>
+            <form id="mission-editor-form" class="admin-form" novalidate>
+
+              <label for="me-id">Mission ID (auto-generated from title — you can edit before saving, can't change after)</label>
+              <input type="text" id="me-id" placeholder="stream-heartbound-daily" />
+
+              <label for="me-title">Title</label>
+              <input type="text" id="me-title" required />
+
+              <label for="me-description">Description</label>
+              <textarea id="me-description" rows="2"></textarea>
+
+              <label for="me-scope">Mission Type</label>
+              <select id="me-scope">
+                <option value="general">General Daily</option>
+                <option value="campaign">Campaign Daily</option>
+              </select>
+              <p class="admin-hint" style="margin-top: 0;">
+                General Daily missions are evergreen — they form the GENERAL daily set (the one that drives
+                streaks). Campaign Daily missions belong to one current/temporary campaign and form that
+                campaign's own separate daily set — completing a campaign's set never affects the streak.
+              </p>
+
+              <label for="me-action-id">Action ID</label>
+              <input type="text" id="me-action-id" placeholder="heartbound-youtube" />
+              <p class="admin-hint" style="margin-top: 0;">
+                Identifies the TRACKED ACTION, not this one mission — several missions may share the
+                same Action ID to create tiers (e.g. "Stream 3 times" / "Stream 10 times" both using
+                <code>heartbound-youtube</code>). One accepted action advances every active mission
+                subscribed to it. Lowercase kebab-case recommended. Missions sharing an Action ID must
+                use the same destination, Action Type, cooldown, and max count per day — only the
+                target, reward, and other mission-specific fields may differ.
+              </p>
+              <p class="admin-warning-text" id="me-action-id-warning" hidden></p>
+
+              <label for="me-destination-url">Destination URL</label>
+              <input type="url" id="me-destination-url" placeholder="https://www.youtube.com/watch?v=I1guVkLJ4mU" />
+              <p class="admin-hint" style="margin-top: 0;">
+                The official link this mission's Action ID opens and tracks across the website.
+                Required for External Click missions — any matching link anywhere on the site counts
+                toward every mission sharing this Action ID, not just the button on the Missions page.
+              </p>
+              <p class="admin-warning-text" id="me-destination-url-warning" hidden></p>
+
+              <label for="me-action-type">Action Type</label>
+              <select id="me-action-type">
+                <option value="external_click">External Click</option>
+              </select>
+
+              <label for="me-frequency">Frequency</label>
+              <select id="me-frequency">
+                <option value="daily">Daily</option>
+              </select>
+
+              <div id="me-campaign-field">
+                <label for="me-campaign">Campaign (required for Campaign Daily missions)</label>
+                <select id="me-campaign">
+                  <option value="">None / General</option>
+                </select>
+                <input type="text" id="me-campaign-manual" placeholder="campaign id (manual entry)" hidden />
+                <p class="admin-hint" style="margin-top: 0;" id="me-campaign-fallback-note" hidden>
+                  Couldn't load the campaign list — enter the campaign ID manually. This won't block
+                  saving the mission.
+                </p>
+              </div>
+
+              <label for="me-target">Target (completions)</label>
+              <input type="number" id="me-target" min="1" step="1" />
+
+              <label for="me-reward">Reward Domiias</label>
+              <input type="number" id="me-reward" min="0" step="1" />
+
+              <label for="me-cooldown">Cooldown Seconds</label>
+              <input type="number" id="me-cooldown" min="0" step="1" />
+              <p class="admin-hint" style="margin-top: 0;">
+                Applies to the Action ID, not this mission alone — if other active missions share this
+                Action ID, they must use the same value.
+              </p>
+
+              <label for="me-max-count">Max Count Per Day</label>
+              <input type="number" id="me-max-count" min="1" step="1" />
+              <p class="admin-hint" style="margin-top: 0;">
+                Also action-level — if a higher tier shares this Action ID, set this at least as high
+                as that tier's target, or it will never be reachable.
+              </p>
+              <p class="admin-warning-text" id="me-max-count-warning" hidden></p>
+
+              <label for="me-starts-at">Start Date / Time (optional)</label>
+              <input type="datetime-local" id="me-starts-at" />
+
+              <label for="me-ends-at">End Date / Time (optional)</label>
+              <input type="datetime-local" id="me-ends-at" />
+              <p class="admin-hint" style="margin-top: 0;">
+                These use your browser's local time and are stored as an absolute point in time —
+                they do NOT need to be re-entered in Bangkok time. Separately, daily mission
+                progress always resets at midnight Bangkok time, regardless of start/end.
+              </p>
+
+              <label for="me-display-order">Display Order (lower number = shown first)</label>
+              <input type="number" id="me-display-order" step="1" />
+
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="me-active" />
+                Active
+              </label>
+
+              <label class="admin-checkbox-label">
+                <input type="checkbox" id="me-required-for-daily-set" checked />
+                Required for daily set
+              </label>
+              <p class="admin-hint" style="margin-top: 0;">
+                When checked, completing this mission counts toward its daily set's completion
+                (the bonus Domiias and, for General, the streak). Uncheck for an optional "bonus"
+                mission — it still tracks progress and pays its own reward, but the set can
+                complete without it. Defaults to checked so existing missions keep behaving exactly
+                as before.
+              </p>
+
+              <div class="admin-subsection">
+                <h3>Preview</h3>
+                <p class="admin-hint" style="margin-top: 0;">Visual only — doesn't reflect real mission logic.</p>
+                <article class="mission-card" id="me-preview-card">
+                  <h2 class="mission-card-title" id="me-preview-title">Mission title</h2>
+                  <p class="mission-card-desc" id="me-preview-desc" hidden></p>
+                  <div class="mission-card-progress-row">
+                    <span class="mission-card-progress-label">Progress</span>
+                    <span class="mission-card-progress-value" id="me-preview-progress">0 / 0</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="me-preview-progress-fill" style="width: 0%;"></div>
+                  </div>
+                  <div class="mission-card-reward-row">
+                    <span class="mission-card-reward-label">Reward</span>
+                    <span id="me-preview-reward"></span>
+                  </div>
+                  <a class="btn btn-primary mission-card-action" id="me-preview-action" aria-disabled="true">Link unavailable</a>
+                </article>
+              </div>
+
+              <div class="admin-form-actions">
+                <button type="submit" class="btn btn-primary" id="mission-editor-save">Save Mission</button>
+                <button type="button" class="btn btn-secondary" id="mission-editor-cancel">Cancel</button>
+                <p class="admin-status" id="mission-editor-status" role="status" hidden></p>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Cosmetics (Step 10.5 — definitions only, no image generation) -->
+        <section class="admin-panel" data-panel="cosmetics">
+          <h2>Cosmetics</h2>
+          <p class="admin-hint">
+            Cosmetic definitions (<code>cosmetics/{id}</code>) are what <code>equipCosmeticCore</code>
+            and the achievement-unlock flow read from — this panel seeds the default catalog that
+            the expanded achievement list (Missions panel → achievements) grants. Avatar/background
+            definitions point at an expected asset path; add the real image file at that path
+            separately — this tool never generates artwork.
+          </p>
+
+          <button type="button" class="btn btn-secondary btn-sm" id="cosmetics-import-btn">Import Default Cosmetics</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="cosmetics-upgrade-btn">Upgrade Legacy Backgrounds</button>
+
+          <div class="admin-subsection" id="cosmetics-upgrade-panel" hidden>
+            <h3>Upgrade Legacy Backgrounds — Preview</h3>
+            <p class="admin-hint" style="margin-top: 0;">
+              Backgrounds now support separate desktop (landscape) and mobile (portrait) images
+              (Step 10.6). This adds <code>desktopAssetPath</code>/<code>mobileAssetPath</code>/
+              <code>previewPath</code> to any of the 7 known default backgrounds that were imported
+              before this existed — a pure merge-update that never touches the original
+              <code>assetPath</code>, title, description, or active state. A background that already
+              has a <code>desktopAssetPath</code> (upgraded before, or hand-customized) is left alone.
+            </p>
+            <div class="admin-list" id="cosmetics-upgrade-preview-list"></div>
+            <p class="admin-meta" id="cosmetics-upgrade-summary"></p>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn-primary" id="cosmetics-upgrade-confirm">Add Responsive Paths</button>
+              <button type="button" class="btn btn-secondary" id="cosmetics-upgrade-cancel">Cancel</button>
+              <p class="admin-status" id="cosmetics-upgrade-status" role="status" hidden></p>
+            </div>
+          </div>
+
+          <div class="admin-subsection" id="cosmetics-import-panel" hidden>
+            <h3>Import Default Cosmetics — Preview</h3>
+            <p class="admin-hint" style="margin-top: 0;">
+              Proposes the 23 cosmetic definitions referenced by <code>functions/achievements.js</code>'s
+              <code>cosmeticRewards</code>. Never overwrites a definition that already exists — if you've
+              already customized one (different title, asset path, or theme key), it's left alone and
+              shown as "Already exists". Nothing is written until you confirm.
+            </p>
+            <div class="admin-list" id="cosmetics-import-preview-list"></div>
+            <p class="admin-meta" id="cosmetics-import-summary"></p>
+            <div class="admin-form-actions">
+              <button type="button" class="btn btn-primary" id="cosmetics-import-confirm">Create New Cosmetics</button>
+              <button type="button" class="btn btn-secondary" id="cosmetics-import-cancel">Cancel</button>
+              <p class="admin-status" id="cosmetics-import-status" role="status" hidden></p>
+            </div>
+          </div>
+
+          <h3 style="margin-top: var(--space-6);">Existing Definitions</h3>
+          <div class="admin-list" id="cosmetics-list">
+            <p class="admin-empty">Loading cosmetics…</p>
           </div>
         </section>
 

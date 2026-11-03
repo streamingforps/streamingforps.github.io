@@ -86,7 +86,8 @@
 .admin-form textarea,
 .admin-item input,
 .admin-item select,
-.admin-item textarea {
+.admin-item textarea,
+.admin-filter-select {
   width: 100%;
   background: var(--color-surface-alt);
   border: 1px solid var(--color-border-strong);
@@ -148,6 +149,16 @@
   margin: 0 0 var(--space-3);
 }
 
+/* ---- Inline non-blocking warnings (e.g. Mission Manager's actionId
+   collision / target-vs-maxCount notes) — same red as .admin-status's
+   error state, but inline next to a field rather than a boxed banner. ---- */
+.admin-warning-text {
+  color: var(--color-accent-hover);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+}
+
 .admin-meta {
   color: var(--color-text-muted);
   font-size: 0.9rem;
@@ -158,13 +169,50 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
   padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-alt);
   position: sticky;
   top: 0;
   z-index: 50;
+}
+
+/* Groups the back link with the title as one flex child, so
+   justify-content: space-between on .admin-topbar still simply splits
+   "left stuff" vs "right stuff" — and so the two can wrap onto their own
+   line together on narrow screens instead of the title getting squeezed
+   against the right-hand user/logout group. */
+.admin-topbar-left {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Deliberately a plain muted link, not a .btn — this is a secondary way
+   out, not a primary admin action, and shouldn't visually compete with
+   Logout or the nav. Negative margin only enlarges the hover/tap padding
+   without shifting surrounding layout. */
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-faint);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+}
+
+.admin-back-link:hover,
+.admin-back-link:focus-visible {
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .admin-topbar-title {

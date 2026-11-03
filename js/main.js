@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof initCommentHelperInteractions === "function") initCommentHelperInteractions();
   initMusicModal();
   initSiteSettingsMenu();
+  initMoreMenu();
   if (typeof initCampaignFilters === "function") initCampaignFilters();
   if (typeof initAnnouncementInteractions === "function") initAnnouncementInteractions();
 
@@ -95,6 +96,57 @@ function initMobileNav() {
 function initSiteSettingsMenu() {
   const toggle = document.querySelector(".site-settings-toggle");
   const menu = document.querySelector(".site-settings-menu");
+  if (!toggle || !menu) return;
+
+  const isOpen = () => !menu.hidden;
+
+  const closeMenu = () => {
+    menu.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+  };
+
+  const openMenu = () => {
+    menu.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+  };
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (isOpen()) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!isOpen()) return;
+    if (toggle.contains(event.target) || menu.contains(event.target)) return;
+    closeMenu();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isOpen()) {
+      closeMenu();
+      toggle.focus();
+    }
+  });
+
+  menu.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", closeMenu);
+  });
+}
+
+/*
+  "More" nav dropdown (Platforms, FAQ / Important Info) — keeps the
+  primary desktop nav row short. Same open/close/outside-click/Escape
+  pattern as initSiteSettingsMenu() above, just scoped to its own
+  toggle/menu pair so the two never interfere with each other (or with
+  js/auth.js's independent account-menu listeners).
+*/
+function initMoreMenu() {
+  const toggle = document.querySelector(".nav-more-toggle");
+  const menu = document.querySelector(".nav-more-menu");
   if (!toggle || !menu) return;
 
   const isOpen = () => !menu.hidden;

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Domiia History — PerthSanta Streaming</title>
+
+  <meta name="description" content="See where your Domiias came from." />
+
+  <link rel="icon" type="image/jpeg" href="assets/icons/favicon.jpg" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a0a0a" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        <span>PerthSanta</span>
+        <span class="site-logo-accent">Streaming</span>
+      </a>
+
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
+
+        <!-- Not a top-level nav item (spec section 29) — reachable only
+             from Profile. This matches aria-current to "Missions"-less
+             pages elsewhere; no item here is marked current. -->
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="missions.html">Missions</a></li>
+            <li><a href="leaderboard.html">Leaderboard</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html">All Campaigns</a></li>
+            <li><a href="trending.html">Trending</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li class="nav-more">
+              <button type="button" class="nav-more-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-menu">More</button>
+              <div class="nav-more-menu" id="nav-more-menu" hidden>
+                <a class="nav-more-item" href="index.html#platforms">Platforms</a>
+                <a class="nav-more-item" href="index.html#faq">FAQ / Important Info</a>
+              </div>
+            </li>
+            <li class="nav-admin-mobile"><a href="admin.html">Admin console</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="section">
+      <div class="container">
+
+        <div class="section-heading">
+          <h1>Domiia History</h1>
+          <p>See where your Domiias came from.</p>
+        </div>
+
+        <!-- Signed-out state -->
+        <div class="missions-signedout" data-history-signedout hidden>
+          <p>Sign in to view your Domiia history.</p>
+          <button type="button" class="btn btn-primary" data-history-signin-btn>Sign In</button>
+        </div>
+
+        <!-- Signed-in state -->
+        <div data-history-signedin hidden>
+
+          <div class="history-summary-row">
+            <div class="profile-stat">
+              <div data-history-current-balance></div>
+              <span class="profile-stat-label">Current Balance</span>
+            </div>
+            <div class="profile-stat">
+              <div data-history-lifetime-earned></div>
+              <span class="profile-stat-label">Lifetime Earned</span>
+            </div>
+          </div>
+
+          <!-- Optional (spec section 18) — populated only if the summed
+               query succeeds; harmless if left at the loading dash. -->
+          <div class="history-summary-row history-summary-row--period" data-history-period-row>
+            <div class="profile-stat">
+              <div data-history-week-amount></div>
+              <span class="profile-stat-label" data-history-week-label>This Week</span>
+            </div>
+            <div class="profile-stat">
+              <div data-history-month-amount></div>
+              <span class="profile-stat-label" data-history-month-label>This Month</span>
+            </div>
+          </div>
+
+          <p class="history-legacy-note" data-history-legacy-note hidden>
+            Detailed earning history is available for rewards earned after Domiia History tracking
+            was introduced. Earlier earnings may not be listed individually.
+          </p>
+
+          <div class="cosmetic-tabs" data-history-filters role="tablist">
+            <button type="button" class="cosmetic-tab is-active" data-history-filter="all" role="tab" aria-selected="true">All</button>
+            <button type="button" class="cosmetic-tab" data-history-filter="missions" role="tab" aria-selected="false">Missions</button>
+            <button type="button" class="cosmetic-tab" data-history-filter="daily" role="tab" aria-selected="false">Daily Bonuses</button>
+            <button type="button" class="cosmetic-tab" data-history-filter="achievements" role="tab" aria-selected="false">Achievements</button>
+          </div>
+
+          <h2 class="history-recent-heading">Recent earnings</h2>
+
+          <div data-history-list>
+            <p class="cosmetic-section-status">Loading…</p>
+          </div>
+
+          <div style="text-align: center; margin-top: var(--space-5);">
+            <button type="button" class="btn btn-secondary" data-history-load-more hidden>Load More</button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="PerthSanta Streaming profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">PerthSanta Streaming</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, or any associated network,
+        platform, or production.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> PerthSanta Streaming
+      </p>
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
+  <script type="module" src="js/firestore-content.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/domiia-history.js"></script>
+</body>
+</html>

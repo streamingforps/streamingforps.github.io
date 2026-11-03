@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Profile — PerthSanta Streaming</title>
+
+  <meta name="description" content="Your PerthSanta Streaming account profile." />
+
+  <link rel="icon" type="image/jpeg" href="assets/icons/favicon.jpg" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a0a0a" />
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="index.html">
+        <span>PerthSanta</span>
+        <span class="site-logo-accent">Streaming</span>
+      </a>
+
+      <div class="header-right">
+        <button
+          type="button"
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="primary-navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="nav-toggle-icon" aria-hidden="true"></span>
+        </button>
+
+        <nav
+          class="main-nav"
+          id="primary-navigation"
+          aria-label="Primary"
+        >
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="missions.html">Missions</a></li>
+            <li><a href="leaderboard.html">Leaderboard</a></li>
+            <li><a href="campaigns-current.html">Current Campaigns</a></li>
+            <li><a href="campaigns.html">All Campaigns</a></li>
+            <li><a href="trending.html">Trending</a></li>
+            <li><a href="music.html">Music</a></li>
+            <li><a href="index.html#guides">Streaming Guides</a></li>
+            <li class="nav-more">
+              <button type="button" class="nav-more-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-menu">More</button>
+              <div class="nav-more-menu" id="nav-more-menu" hidden>
+                <a class="nav-more-item" href="index.html#platforms">Platforms</a>
+                <a class="nav-more-item" href="index.html#faq">FAQ / Important Info</a>
+              </div>
+            </li>
+            <li class="nav-admin-mobile"><a href="admin.html">Admin console</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-settings">
+          <button
+            type="button"
+            class="site-settings-toggle"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="site-settings-menu"
+            aria-label="Open site settings menu"
+          >
+            <svg class="site-settings-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4" />
+              <line x1="17" y1="12" x2="20" y2="12" />
+              <line x1="15.5" y1="15.5" x2="17.7" y2="17.7" />
+              <line x1="12" y1="17" x2="12" y2="20" />
+              <line x1="8.5" y1="15.5" x2="6.3" y2="17.7" />
+              <line x1="7" y1="12" x2="4" y2="12" />
+              <line x1="8.5" y1="8.5" x2="6.3" y2="6.3" />
+              <line x1="12" y1="7" x2="12" y2="4" />
+              <line x1="15.5" y1="8.5" x2="17.7" y2="6.3" />
+            </svg>
+          </button>
+
+          <div class="site-settings-menu" id="site-settings-menu" hidden>
+            <a class="site-settings-item" href="admin.html">Admin console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="section">
+      <div class="container">
+
+        <div class="section-heading">
+          <h1>Your Profile</h1>
+        </div>
+
+        <!-- Signed-out state -->
+        <div class="profile-signedout" data-profile-signedout hidden>
+          <p>Sign in to view your profile.</p>
+          <button type="button" class="btn btn-primary" data-profile-signin-btn>Sign In</button>
+        </div>
+
+        <!-- Signed-in state -->
+        <div class="profile-card" data-profile-card hidden>
+          <img class="profile-avatar" data-profile-avatar alt="" width="96" height="96" />
+
+          <div class="profile-name-section">
+            <!-- Normal view -->
+            <div data-profile-name-display>
+              <h2 class="profile-name" data-profile-name></h2>
+              <button type="button" class="profile-name-change-btn" data-profile-name-change-btn>Change display name</button>
+            </div>
+
+            <!-- Edit view -->
+            <form class="profile-name-edit" data-profile-name-edit hidden novalidate>
+              <label for="profile-name-input">New display name</label>
+              <input type="text" id="profile-name-input" data-profile-name-input autocomplete="name" maxlength="30" />
+              <p class="name-availability" data-profile-name-status role="status" hidden></p>
+              <div class="profile-name-actions">
+                <button type="submit" class="btn btn-primary" data-profile-name-save disabled>Save</button>
+                <button type="button" class="btn btn-secondary" data-profile-name-cancel>Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <p class="profile-joined" data-profile-joined></p>
+
+          <h3 class="profile-section-title">Statistics</h3>
+          <div class="profile-stats">
+            <!-- Current Balance / Lifetime Earned double as a quick link
+                 into Domiia History (spec section 29 — optional, not the
+                 header token globally, just these two stats here). -->
+            <a class="profile-stat profile-stat--link" href="domiia-history.html">
+              <div data-profile-current-domiia></div>
+              <span class="profile-stat-label">Current Balance</span>
+            </a>
+            <a class="profile-stat profile-stat--link" href="domiia-history.html">
+              <div data-profile-lifetime-domiia></div>
+              <span class="profile-stat-label">Lifetime Earned</span>
+            </a>
+            <div class="profile-stat">
+              <span class="profile-stat-value" data-profile-missions>0</span>
+              <span class="profile-stat-label">Missions Completed</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-value" data-profile-days-completed>0</span>
+              <span class="profile-stat-label">Days Completed</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-value" data-profile-current-streak>0</span>
+              <span class="profile-stat-label">Current Streak</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-value" data-profile-longest-streak>0</span>
+              <span class="profile-stat-label">Longest Streak</span>
+            </div>
+          </div>
+
+          <h3 class="profile-section-title">Domiia History</h3>
+          <p class="cosmetic-section-status" style="margin-bottom: var(--space-3);">
+            See where your Domiias came from.
+          </p>
+          <a class="btn btn-secondary btn-sm" href="domiia-history.html">View History</a>
+
+          <h3 class="profile-section-title">Leaderboard</h3>
+          <p class="cosmetic-section-status" style="margin-bottom: var(--space-3);">
+            Appear on the public leaderboard. Your display name, selected site avatar, and lifetime
+            Domiias will be visible to other visitors.
+          </p>
+          <button type="button" class="btn btn-secondary btn-sm" data-leaderboard-toggle-btn>Join Leaderboard</button>
+          <p class="cosmetic-section-status" data-leaderboard-status hidden></p>
+        </div>
+
+        <!-- Achievements — deliberately OUTSIDE .profile-card's narrow
+             480px width, so achievement cards have room to lay out as a
+             responsive grid rather than one cramped column. -->
+        <div class="profile-achievements" data-profile-achievements hidden>
+          <h3 class="profile-section-title">Achievements</h3>
+          <p class="achievement-unlocked-count" data-achievement-unlocked-count></p>
+
+          <div class="achievement-tabs" data-achievement-tabs>
+            <!-- Rendered below, from js/achievements-data.js's ACHIEVEMENT_CATEGORIES -->
+          </div>
+
+          <div class="achievement-grid" id="achievement-grid" data-achievement-grid>
+            <!-- Rendered below -->
+          </div>
+
+          <div style="text-align: center; margin-top: var(--space-5);">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-achievements-expand
+              aria-expanded="false"
+              aria-controls="achievement-grid"
+              hidden
+            >Show more</button>
+          </div>
+        </div>
+
+        <!-- Customize Profile — cosmetic rewards unlocked via achievements.
+             Also outside .profile-card for the same grid-width reason. -->
+        <div class="cosmetic-section" data-cosmetic-section hidden>
+          <h3 class="profile-section-title">Customize Profile</h3>
+
+          <div class="cosmetic-tabs">
+            <button type="button" class="cosmetic-tab is-active" data-cosmetic-tab="avatar">Avatars</button>
+            <button type="button" class="cosmetic-tab" data-cosmetic-tab="background">Backgrounds</button>
+            <button type="button" class="cosmetic-tab" data-cosmetic-tab="theme">Themes</button>
+          </div>
+
+          <p class="cosmetic-section-status" data-cosmetic-admin-note hidden>Admin testing mode — all cosmetics unlocked</p>
+          <p class="cosmetic-section-status" data-cosmetic-status hidden>Loading…</p>
+          <div class="cosmetic-grid" data-cosmetic-grid></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <img
+          class="footer-brand-avatar"
+          src="assets/images/streaming4ps-profile.jpg"
+          alt="PerthSanta Streaming profile picture"
+          width="56"
+          height="56"
+          loading="lazy"
+        >
+        <div class="footer-brand-info">
+          <p class="footer-brand-name">PerthSanta Streaming</p>
+          <p class="footer-brand-desc">
+            Created to unlock the full streaming potential of PerthSanta and bring fans
+            together to support their projects.
+          </p>
+          <a
+            class="footer-brand-link"
+            href="https://x.com/Streaming4PS"
+            target="_blank"
+            rel="noopener noreferrer"
+          >View on X</a>
+        </div>
+      </div>
+
+      <p class="footer-disclaimer">
+        PerthSanta Streaming is an unofficial, fan-run project and is not affiliated with,
+        endorsed by, or operated on behalf of PerthSanta, or any associated network,
+        platform, or production.
+      </p>
+
+      <p class="footer-credit">
+        Website developed by
+        <a href="https://x.com/moonforpedta" target="_blank" rel="noopener noreferrer">@moonforpedta</a>
+      </p>
+
+      <p class="footer-meta">
+        &copy; <span data-render="year"></span> PerthSanta Streaming
+      </p>
+
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/campaigns.js"></script>
+  <script type="module" src="js/firestore-content.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/mission-tracking.js"></script>
+  <script type="module">
+    import { onAuthChange, openAuthModal, getCurrentUserProfile, renameDisplayName, checkDisplayNameAvailability, safeDomiiaField, safeProgressField } from "./js/auth.js";
+    import { renderDomiiaAmount, updateDomiiaAmount } from "./js/domiia.js";
+    import { db } from "./js/firebase-app.js";
+    import { collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_CATEGORIES } from "./js/achievements-data.js";
+    import { equipCosmetic, unequipCosmetic, syncAchievementCosmetics } from "./js/cosmetics.js";
+    import { isAdminUser } from "./js/firebase-config.js";
+    import { setLeaderboardOptIn } from "./js/leaderboard.js";
+
+    const signedOutEl = document.querySelector("[data-profile-signedout]");
+    const signedInEl = document.querySelector("[data-profile-card]");
+    const signInBtn = document.querySelector("[data-profile-signin-btn]");
+    const avatarEl = document.querySelector("[data-profile-avatar]");
+    const nameEl = document.querySelector("[data-profile-name]");
+    const joinedEl = document.querySelector("[data-profile-joined]");
+    const missionsEl = document.querySelector("[data-profile-missions]");
+    const daysCompletedEl = document.querySelector("[data-profile-days-completed]");
+    const currentStreakEl = document.querySelector("[data-profile-current-streak]");
+    const longestStreakEl = document.querySelector("[data-profile-longest-streak]");
+    const leaderboardToggleBtn = document.querySelector("[data-leaderboard-toggle-btn]");
+    const leaderboardStatusEl = document.querySelector("[data-leaderboard-status]");
+    const achievementsSectionEl = document.querySelector("[data-profile-achievements]");
+    const achievementGridEl = document.querySelector("[data-achievement-grid]");
+    const achievementTabsEl = document.querySelector("[data-achievement-tabs]");
+    const achievementUnlockedCountEl = document.querySelector("[data-achievement-unlocked-count]");
+    const achievementExpandBtn = document.querySelector("[data-achievements-expand]");
+
+    // Single source of truth for the Achievements collapse preview size —
+    // never hardcode 6 anywhere else (renderAchievements references this
+    // constant for both the slice() limit and the "N more" button count).
+    const ACHIEVEMENT_PREVIEW_LIMIT = 6;
+    const cosmeticSectionEl = document.querySelector("[data-cosmetic-section]");
+    const cosmeticGridEl = document.querySelector("[data-cosmetic-grid]");
+    const cosmeticStatusEl = document.querySelector("[data-cosmetic-status]");
+    const cosmeticAdminNoteEl = document.querySelector("[data-cosmetic-admin-note]");
+
+    // Built once, then updated in place on every profile change — same
+    // "[Domiia icon] amount" component the header uses, just the large
+    // size variant for a stat card.
+    const currentDomiiaEl = renderDomiiaAmount(null, { size: "large" });
+    const lifetimeDomiiaEl = renderDomiiaAmount(null, { size: "large" });
+    const currentDomiiaSlot = document.querySelector("[data-profile-current-domiia]");
+    const lifetimeDomiiaSlot = document.querySelector("[data-profile-lifetime-domiia]");
+    if (currentDomiiaSlot) currentDomiiaSlot.appendChild(currentDomiiaEl);
+    if (lifetimeDomiiaSlot) lifetimeDomiiaSlot.appendChild(lifetimeDomiiaEl);
+
+    const nameDisplayEl = document.querySelector("[data-profile-name-display]");
+    const nameChangeBtn = document.querySelector("[data-profile-name-change-btn]");
+    const nameEditForm = document.querySelector("[data-profile-name-edit]");
+    const nameInput = document.querySelector("[data-profile-name-input]");
+    const nameStatusEl = document.querySelector("[data-profile-name-status]");
+    const nameSaveBtn = document.querySelector("[data-profile-name-save]");
+    const nameCancelBtn = document.querySelector("[data-profile-name-cancel]");
+
+    let currentUser = null;
+    let currentUid = null;
+
+    // Same convention as js/domiia.js/js/cosmetics.js's own basePrefix()
+    // copies — profile.html is always at the site root, so this is
+    // mostly defensive, but keeps the resolution logic identical/correct
+    // everywhere a cosmetic asset path is displayed.
+    function basePrefix() {
+      const logo = document.querySelector(".site-logo");
+      const href = (logo && logo.getAttribute("href")) || "index.html";
+      return href.endsWith("index.html") ? href.slice(0, -"index.html".length) : "";
+    }
+    function resolveAssetUrl(rawPath) {
+      if (typeof rawPath !== "string" || !rawPath) return null;
+      if (/^(https?:|data:)/i.test(rawPath)) return rawPath;
+      return `${basePrefix()}${rawPath}`;
+    }
+    const DEFAULT_AVATAR_DATA_URI = "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">' +
+      '<circle cx="20" cy="20" r="20" fill="#242424"/>' +
+      '<circle cx="20" cy="16" r="7" fill="#888888"/>' +
+      '<path d="M5 36c0-8.3 6.7-14 15-14s15 5.7 15 14" fill="#888888"/>' +
+      "</svg>"
+    );
+    if (avatarEl) {
+      // Cosmetic avatar asset missing/broken -> fall back safely instead
+      // of a giant broken-image icon (spec section 31).
+      avatarEl.addEventListener("error", () => {
+        if (avatarEl.src !== DEFAULT_AVATAR_DATA_URI) avatarEl.src = DEFAULT_AVATAR_DATA_URI;
+      });
+    }
+
+    if (signInBtn) {
+      signInBtn.addEventListener("click", () => openAuthModal("signin", signInBtn));
+    }
+
+    function formatJoinedDate(profile) {
+      const value = profile && profile.joinedAt;
+      if (!value) return "";
+      const dateObj = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+      if (Number.isNaN(dateObj.getTime())) return "";
+      return `Joined ${new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(dateObj)}`;
+    }
+
+    /* ---- Display-name inline edit ---- */
+
+    function setNameStatus(message, variant) {
+      if (!nameStatusEl) return;
+      nameStatusEl.hidden = !message;
+      nameStatusEl.textContent = message || "";
+      nameStatusEl.className = "name-availability" + (variant ? ` name-availability--${variant}` : "");
+    }
+
+    function showNameDisplay() {
+      if (nameDisplayEl) nameDisplayEl.hidden = false;
+      if (nameEditForm) nameEditForm.hidden = true;
+    }
+
+    function showNameEdit() {
+      if (!nameEl || !nameInput) return;
+      nameInput.value = nameEl.textContent || "";
+      setNameStatus("");
+      if (nameSaveBtn) nameSaveBtn.disabled = true;
+      if (nameDisplayEl) nameDisplayEl.hidden = true;
+      if (nameEditForm) nameEditForm.hidden = false;
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    if (nameChangeBtn) nameChangeBtn.addEventListener("click", showNameEdit);
+    if (nameCancelBtn) nameCancelBtn.addEventListener("click", showNameDisplay);
+
+    let lastCheckedAsAvailable = null;
+    let nameCheckToken = 0;
+
+    if (nameInput) {
+      nameInput.addEventListener("input", () => {
+        lastCheckedAsAvailable = null;
+        if (nameSaveBtn) nameSaveBtn.disabled = true;
+        const token = ++nameCheckToken;
+        const value = nameInput.value;
+
+        // Typing back to exactly the current name needs no availability
+        // check at all — it's trivially "available" (it's already yours).
+        if (value.trim() === (nameEl && nameEl.textContent || "").trim()) {
+          setNameStatus("");
+          lastCheckedAsAvailable = (nameEl && nameEl.textContent || "").trim();
+          if (nameSaveBtn) nameSaveBtn.disabled = !lastCheckedAsAvailable;
+          return;
+        }
+
+        setNameStatus("Checking availability…");
+        checkDisplayNameAvailability(value, currentUid).then((result) => {
+          if (token !== nameCheckToken) return; // superseded by a later keystroke
+          if (result.status === "available") {
+            lastCheckedAsAvailable = result.value;
+            setNameStatus("✓ Available", "available");
+            if (nameSaveBtn) nameSaveBtn.disabled = false;
+          } else if (result.status === "unknown") {
+            lastCheckedAsAvailable = value.trim();
+            setNameStatus(result.message, "invalid");
+            if (nameSaveBtn) nameSaveBtn.disabled = false;
+          } else {
+            setNameStatus(result.message, result.status === "taken" ? "taken" : "invalid");
+          }
+        });
+      });
+    }
+
+    if (nameEditForm) {
+      nameEditForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!lastCheckedAsAvailable || (nameSaveBtn && nameSaveBtn.disabled)) return;
+
+        nameSaveBtn.disabled = true;
+        nameCancelBtn.disabled = true;
+        const previousLabel = nameSaveBtn.textContent;
+        nameSaveBtn.textContent = "Saving…";
+        try {
+          await renameDisplayName(lastCheckedAsAvailable);
+          showNameDisplay();
+        } catch (error) {
+          setNameStatus(error.message || "Something went wrong. Please try again.", "taken");
+        } finally {
+          nameSaveBtn.textContent = previousLabel;
+          nameCancelBtn.disabled = false;
+          nameSaveBtn.disabled = !lastCheckedAsAvailable;
+        }
+      });
+    }
+
+    /* ---- Achievements — definitions (js/achievements-data.js) are
+       static and always shown, even locked ones (spec section 23). Only
+       the UNLOCK state (users/{uid}/achievements/{id}) is per-user and
+       realtime, via its own small listener mirrored on the pattern
+       js/missions.js already uses for missionProgress. ---- */
+
+    let achievementsUnsub = null;
+    let achievementsListenerUid = null;
+    let unlockedAchievementsById = {};
+    let achievementCategoryFilter = "all"; // one of ACHIEVEMENT_CATEGORIES' ids, or "all"
+    let achievementTabsBuilt = false;
+    // Local-only (no Firestore/localStorage persistence) — every fresh
+    // Profile page load starts collapsed, and switching category tabs
+    // always resets this back to false (see renderAchievementTabs below).
+    let achievementsExpanded = false;
+
+    // Assembles the same `stats` shape functions/achievements.js's
+    // check()/progress() read, straight from the signed-in user's own
+    // profile doc fields (owner-readable per firestore.rules) — never
+    // recomputed/guessed, just the current authoritative counters. Missing
+    // fields (pre-Step-10.5 profiles) default to 0 via safeProgressField,
+    // same convention as every other progression field on this page.
+    function achievementStatsFromProfile(profile) {
+      const streamingStats = safeProgressField(profile, "streamingStats", {}) || {};
+      return {
+        missionsCompleted: safeDomiiaField(profile, "missionsCompleted") || 0,
+        daysCompleted: safeProgressField(profile, "daysCompleted", 0),
+        longestStreak: safeProgressField(profile, "longestStreak", 0),
+        lifetimeDomiias: safeDomiiaField(profile, "lifetimeDomiias") || 0,
+        campaignMissionsCompleted: safeProgressField(profile, "campaignMissionsCompleted", 0),
+        campaignDailySetsCompleted: safeProgressField(profile, "campaignDailySetsCompleted", 0),
+        streamingStats: {
+          totalActions: streamingStats.totalActions || 0,
+          youtubeActions: streamingStats.youtubeActions || 0,
+          spotifyActions: streamingStats.spotifyActions || 0,
+          tiktokActions: streamingStats.tiktokActions || 0
+        },
+        uniqueActionsSupported: safeProgressField(profile, "uniqueActionsSupported", 0)
+      };
+    }
+
+    function renderAchievementTabs() {
+      if (!achievementTabsEl || achievementTabsBuilt) return;
+      achievementTabsBuilt = true;
+      ACHIEVEMENT_CATEGORIES.forEach((category) => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = `achievement-tab${category.id === achievementCategoryFilter ? " is-active" : ""}`;
+        tab.textContent = category.label;
+        tab.setAttribute("data-achievement-tab", category.id);
+        tab.addEventListener("click", () => {
+          achievementCategoryFilter = category.id;
+          achievementsExpanded = false; // switching filters always resets the collapse state
+          achievementTabsEl.querySelectorAll(".achievement-tab").forEach((t) => {
+            t.classList.toggle("is-active", t.getAttribute("data-achievement-tab") === category.id);
+          });
+          renderAchievements();
+        });
+        achievementTabsEl.appendChild(tab);
+      });
+    }
+
+    function subscribeAchievements(uid) {
+      if (achievementsListenerUid === uid && achievementsUnsub) return;
+      unsubscribeAchievements();
+      achievementsListenerUid = uid;
+      achievementsUnsub = onSnapshot(
+        collection(db, "users", uid, "achievements"),
+        (snap) => {
+          const map = {};
+          snap.docs.forEach((d) => {
+            map[d.id] = d.data();
+          });
+          unlockedAchievementsById = map;
+          renderAchievements();
+        },
+        (error) => console.error("[profile] could not load achievements", error)
+      );
+    }
+
+    function unsubscribeAchievements() {
+      if (achievementsUnsub) {
+        achievementsUnsub();
+        achievementsUnsub = null;
+      }
+      achievementsListenerUid = null;
+      unlockedAchievementsById = {};
+    }
+
+    function formatUnlockedDate(value) {
+      if (!value) return "";
+      const dateObj = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+      if (Number.isNaN(dateObj.getTime())) return "";
+      return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(dateObj);
+    }
+
+    function buildAchievementCard(def) {
+      const unlock = unlockedAchievementsById[def.id];
+      const isUnlocked = !!unlock;
+
+      const card = document.createElement("article");
+      card.className = `achievement-card ${isUnlocked ? "is-unlocked" : "is-locked"}`;
+
+      const title = document.createElement("h4");
+      title.className = "achievement-card-title";
+      title.textContent = `${isUnlocked ? "✓" : "🔒"} ${def.title}`;
+      card.appendChild(title);
+
+      const desc = document.createElement("p");
+      desc.className = "achievement-card-desc";
+      desc.textContent = def.description;
+      card.appendChild(desc);
+
+      const rewardRow = document.createElement("div");
+      rewardRow.className = "achievement-card-reward";
+      rewardRow.appendChild(renderDomiiaAmount(def.rewardDomiias, { size: "small" }));
+      card.appendChild(rewardRow);
+
+      // Cosmetic reward is ADDITIONAL to the Domiia reward above, never
+      // instead of it (spec section 9) — shown by title when the
+      // definition has loaded, otherwise falls back to the id so this
+      // never blocks on load order.
+      if (Array.isArray(def.cosmeticRewards) && def.cosmeticRewards.length) {
+        const cosmeticLine = document.createElement("p");
+        cosmeticLine.className = "achievement-card-date";
+        const names = def.cosmeticRewards.map((cosmeticId) => {
+          const found = cosmeticDefinitions.find((c) => c.id === cosmeticId);
+          return found ? found.title : cosmeticId;
+        });
+        cosmeticLine.textContent = `Also unlocks: ${names.join(", ")}`;
+        card.appendChild(cosmeticLine);
+      }
+
+      if (isUnlocked) {
+        const unlockedDate = formatUnlockedDate(unlock.unlockedAt);
+        if (unlockedDate) {
+          const dateEl = document.createElement("p");
+          dateEl.className = "achievement-card-date";
+          dateEl.textContent = `Unlocked ${unlockedDate}`;
+          card.appendChild(dateEl);
+        }
+      } else if (typeof def.progress === "function") {
+        // Numeric progress for a LOCKED achievement (e.g. "34/50
+        // missions") — uses the same safe {current, target} getter
+        // functions/achievements.js defines, never anything beyond what
+        // the achievement's own description already implies.
+        const profile = getCurrentUserProfile();
+        const { current, target } = def.progress(achievementStatsFromProfile(profile));
+        if (target > 0) {
+          const progressWrap = document.createElement("div");
+          progressWrap.className = "achievement-card-progress";
+          const track = document.createElement("div");
+          track.className = "achievement-card-progress-track";
+          const fill = document.createElement("div");
+          fill.className = "achievement-card-progress-fill";
+          fill.style.width = `${Math.min(100, (current / target) * 100)}%`;
+          track.appendChild(fill);
+          const label = document.createElement("p");
+          label.className = "achievement-card-progress-label";
+          label.textContent = `${current} / ${target}`;
+          progressWrap.append(track, label);
+          card.appendChild(progressWrap);
+        }
+      }
+
+      return card;
+    }
+
+    function renderAchievements() {
+      if (!achievementGridEl) return;
+      renderAchievementTabs();
+
+      // "X / Y unlocked" always reflects the FULL catalog, regardless of
+      // which category tab is selected AND regardless of the show-more
+      // collapse below — this is overall progress, never affected by how
+      // many cards happen to be visible right now.
+      const unlockedCount = ACHIEVEMENT_DEFINITIONS.filter((def) => !!unlockedAchievementsById[def.id]).length;
+      if (achievementUnlockedCountEl) {
+        achievementUnlockedCountEl.textContent = `${unlockedCount} / ${ACHIEVEMENT_DEFINITIONS.length} unlocked`;
+      }
+
+      // FILTER first, then LIMIT — never the reverse, or a category's
+      // "first 6" would actually be some slice of the unfiltered 52.
+      const filteredDefs = achievementCategoryFilter === "all"
+        ? ACHIEVEMENT_DEFINITIONS
+        : ACHIEVEMENT_DEFINITIONS.filter((def) => def.category === achievementCategoryFilter);
+
+      const shouldCollapse = filteredDefs.length > ACHIEVEMENT_PREVIEW_LIMIT;
+      const visibleDefs = achievementsExpanded && shouldCollapse
+        ? filteredDefs
+        : filteredDefs.slice(0, ACHIEVEMENT_PREVIEW_LIMIT);
+
+      // Render ONLY the currently-visible cards (never all 52 hidden via
+      // CSS) — keeps DOM size light and matches how every other
+      // card/progress value on this page already works (no reorder; the
+      // original achievement order from ACHIEVEMENT_DEFINITIONS is
+      // preserved exactly, slice() never resorts).
+      achievementGridEl.innerHTML = "";
+      visibleDefs.forEach((def) => {
+        achievementGridEl.appendChild(buildAchievementCard(def));
+      });
+
+      if (achievementExpandBtn) {
+        achievementExpandBtn.hidden = !shouldCollapse;
+        if (shouldCollapse) {
+          const remaining = filteredDefs.length - ACHIEVEMENT_PREVIEW_LIMIT;
+          achievementExpandBtn.textContent = achievementsExpanded ? "Show less" : `Show more (${remaining})`;
+          achievementExpandBtn.setAttribute("aria-expanded", achievementsExpanded ? "true" : "false");
+        }
+      }
+    }
+
+    if (achievementExpandBtn) {
+      achievementExpandBtn.addEventListener("click", () => {
+        const wasExpanded = achievementsExpanded;
+        achievementsExpanded = !achievementsExpanded;
+        renderAchievements();
+        // Only on COLLAPSE (Show less) — bring the Achievements heading
+        // back into comfortable view without jumping to the top of the
+        // whole page. Never scrolls on expand (Show more).
+        if (wasExpanded && achievementsSectionEl) {
+          achievementsSectionEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+
+    /* ---- Customize Profile (Step 6) ----
+       Cosmetic DEFINITIONS (cosmetics/{id}) are public/admin-written and
+       loaded once per sign-in (a plain getDocs — they change rarely, and
+       nothing here needs them reactively). OWNERSHIP
+       (users/{uid}/cosmetics) is the one piece that needs a realtime
+       listener (spec section 19) so a brand-new achievement unlock
+       updates this UI immediately without a reload — ONE listener on the
+       whole collection, never one per cosmetic. Equipping itself never
+       touches local state directly: it calls the Cloud Function and lets
+       the existing realtime profile listener (js/auth.js) propagate the
+       resulting selectedAvatar/selectedBackground/selectedTheme change
+       back here (and to the header, and to the site-wide theme/
+       background) on its own. ---- */
+
+    let cosmeticDefinitions = [];
+    let cosmeticDefinitionsLoaded = false;
+    let ownedCosmeticIds = new Set();
+    let activeCosmeticTab = "avatar";
+    let cosmeticInventoryUnsub = null;
+    let cosmeticInventoryListenerUid = null;
+    let syncedCosmeticsForUid = null;
+    let cosmeticEquipInFlight = false;
+
+    function setCosmeticStatus(message) {
+      if (!cosmeticStatusEl) return;
+      cosmeticStatusEl.hidden = !message;
+      cosmeticStatusEl.textContent = message || "";
+    }
+
+    async function loadCosmeticDefinitionsOnce() {
+      if (cosmeticDefinitionsLoaded) return;
+      try {
+        const snap = await getDocs(collection(db, "cosmetics"));
+        cosmeticDefinitions = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((c) => c.active !== false);
+        cosmeticDefinitionsLoaded = true;
+      } catch (error) {
+        console.error("[profile] could not load cosmetic definitions", error);
+      }
+      renderCosmetics();
+      // Achievement cards resolve cosmeticRewards IDs to titles from this
+      // same list (see buildAchievementCard) — re-render so that resolves
+      // correctly even if achievements loaded first.
+      renderAchievements();
+    }
+
+    function subscribeCosmeticInventory(uid) {
+      if (cosmeticInventoryListenerUid === uid && cosmeticInventoryUnsub) return;
+      unsubscribeCosmeticInventory();
+      cosmeticInventoryListenerUid = uid;
+      cosmeticInventoryUnsub = onSnapshot(
+        collection(db, "users", uid, "cosmetics"),
+        (snap) => {
+          ownedCosmeticIds = new Set(snap.docs.map((d) => d.id));
+          renderCosmetics();
+        },
+        (error) => console.error("[profile] could not load cosmetic inventory", error)
+      );
+    }
+
+    function unsubscribeCosmeticInventory() {
+      if (cosmeticInventoryUnsub) {
+        cosmeticInventoryUnsub();
+        cosmeticInventoryUnsub = null;
+      }
+      cosmeticInventoryListenerUid = null;
+      ownedCosmeticIds = new Set();
+    }
+
+    function achievementTitleFor(achievementId) {
+      const def = ACHIEVEMENT_DEFINITIONS.find((a) => a.id === achievementId);
+      return def ? def.title : achievementId;
+    }
+
+    // Single source of truth for "can this account use this cosmetic" —
+    // the admin account can test-equip any active cosmetic without truly
+    // owning it (backend-enforced bypass, see functions/cosmeticLogic.js;
+    // this is a DISPLAY convenience only, never the security boundary).
+    // Every other owned/locked check in this file goes through this
+    // helper rather than re-checking ownedCosmeticIds directly, so there
+    // is exactly one place that knows about the admin bypass.
+    function canUseCosmetic(cosmeticId) {
+      if (isAdminUser(currentUser)) return true;
+      return ownedCosmeticIds.has(cosmeticId);
+    }
+
+    function isCosmeticEquipped(cosmetic, profile) {
+      if (!profile) return false;
+      if (cosmetic.type === "avatar") return profile.selectedAvatar === cosmetic.assetPath;
+      // Step 10.6: selectedBackground now stores the cosmeticId (so one
+      // cosmetic can carry responsive desktop/mobile variants) — but a
+      // user who equipped a background BEFORE this change still has the
+      // old literal assetPath stored, so both are recognized here. See
+      // functions/cosmeticLogic.js's equipCosmeticCore for the write side.
+      if (cosmetic.type === "background") {
+        return profile.selectedBackground === cosmetic.id || profile.selectedBackground === cosmetic.assetPath;
+      }
+      if (cosmetic.type === "theme") return profile.selectedTheme === cosmetic.themeKey;
+      return false;
+    }
+
+    function isDefaultEquipped(type, profile) {
+      if (!profile) return true;
+      if (type === "avatar") return !profile.selectedAvatar;
+      if (type === "background") return !profile.selectedBackground;
+      if (type === "theme") return !profile.selectedTheme;
+      return true;
+    }
+
+    async function handleEquipClick(cosmeticId, type, button) {
+      if (cosmeticEquipInFlight) return;
+      cosmeticEquipInFlight = true;
+      const previousLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "Equipping…";
+      setCosmeticStatus("");
+      try {
+        if (cosmeticId) await equipCosmetic(cosmeticId);
+        else await unequipCosmetic(type);
+      } catch (error) {
+        console.error("[profile] equip failed", error);
+        setCosmeticStatus(error.message || "Couldn't update your selection. Please try again.");
+      } finally {
+        cosmeticEquipInFlight = false;
+        button.disabled = false;
+        button.textContent = previousLabel;
+      }
+    }
+
+    // Same mobile boundary css/style.css's body.has-cosmetic-background
+    // media query uses (the project's existing 600px tablet/mobile
+    // breakpoint, expressed as max-width:599px) — keeps "what the
+    // customization preview shows" consistent with "what the page will
+    // actually apply" on this device.
+    const MOBILE_PREVIEW_QUERY = "(max-width: 599px)";
+
+    // Step 10.6.1 — a background cosmetic's device-specific asset now takes
+    // PRIORITY over previewPath (previewPath defaults to the desktop image
+    // at import time — see js/admin.js — so letting it win unconditionally
+    // meant mobile users always saw the landscape preview, misleadingly,
+    // since their phone actually equips the portrait/mobile variant).
+    // previewPath is still consulted, just only as a FALLBACK on each
+    // device's own axis, so a half-configured definition (e.g. mobile asset
+    // missing) still shows something rather than a blank placeholder.
+    function isMobilePreviewViewport() {
+      return typeof window.matchMedia === "function" && window.matchMedia(MOBILE_PREVIEW_QUERY).matches;
+    }
+
+    function backgroundPreviewPath(cosmetic, isMobile) {
+      if (isMobile) {
+        return cosmetic.mobileAssetPath || cosmetic.previewPath || cosmetic.desktopAssetPath || cosmetic.assetPath || null;
+      }
+      return cosmetic.desktopAssetPath || cosmetic.previewPath || cosmetic.assetPath || cosmetic.mobileAssetPath || null;
+    }
+
+    function buildCosmeticPreview(cosmetic) {
+      const wrap = document.createElement("div");
+      wrap.className = `cosmetic-card-preview${cosmetic.type === "background" ? " cosmetic-card-preview--wide" : ""}`;
+
+      const isBackground = cosmetic.type === "background";
+      const isMobile = isBackground && isMobilePreviewViewport();
+      // Avatar/theme preview resolution is completely unchanged — only
+      // background cosmetics get the device-aware priority above.
+      const previewPath = isBackground ? backgroundPreviewPath(cosmetic, isMobile) : (cosmetic.previewPath || cosmetic.assetPath);
+      // Preview is a plain <img src>, which resolves relative to the
+      // DOCUMENT (not a stylesheet) — the CSS custom-property-specific
+      // toAbsoluteUrl() fix does not apply here and must not be used;
+      // resolveAssetUrl() alone is the correct, already-working resolver
+      // for this case (same one every other <img> on this page uses).
+      const previewUrl = resolveAssetUrl(previewPath);
+      if (cosmetic.type !== "theme" && previewUrl) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = previewUrl;
+        // Asset file doesn't exist yet -> swap to a placeholder glyph
+        // instead of a broken-image icon (spec section 31).
+        img.addEventListener("error", () => {
+          img.remove();
+          const placeholder = document.createElement("span");
+          placeholder.className = "cosmetic-card-preview-placeholder";
+          placeholder.textContent = "🖼";
+          wrap.appendChild(placeholder);
+        }, { once: true });
+        wrap.appendChild(img);
+      } else {
+        const placeholder = document.createElement("span");
+        placeholder.className = "cosmetic-card-preview-placeholder";
+        placeholder.textContent = cosmetic.type === "theme" ? "🎨" : "🖼";
+        wrap.appendChild(placeholder);
+      }
+
+      // Subtle device-aware label — background cosmetics only, never
+      // avatars/themes. Makes it clear the card adapts to the viewer's
+      // device rather than looking like an arbitrary preview mismatch.
+      if (isBackground) {
+        const deviceLabel = document.createElement("span");
+        deviceLabel.className = "cosmetic-preview-device-label";
+        deviceLabel.textContent = isMobile ? "Mobile Preview" : "Desktop Preview";
+        wrap.appendChild(deviceLabel);
+      }
+
+      return wrap;
+    }
+
+    function buildCosmeticCard(cosmetic, profile) {
+      const isDefault = cosmetic.__isDefault === true;
+      const owned = isDefault || canUseCosmetic(cosmetic.id);
+      const equipped = isDefault ? isDefaultEquipped(cosmetic.type, profile) : isCosmeticEquipped(cosmetic, profile);
+
+      const card = document.createElement("article");
+      card.className = `cosmetic-card ${owned ? "is-unlocked" : "is-locked"}`;
+
+      card.appendChild(buildCosmeticPreview(cosmetic));
+
+      const title = document.createElement("h4");
+      title.className = "cosmetic-card-title";
+      title.textContent = `${owned ? "✓" : "🔒"} ${cosmetic.title}`;
+      card.appendChild(title);
+
+      if (cosmetic.description) {
+        const desc = document.createElement("p");
+        desc.className = "cosmetic-card-desc";
+        desc.textContent = cosmetic.description;
+        card.appendChild(desc);
+      }
+
+      if (!owned) {
+        const req = document.createElement("p");
+        req.className = "cosmetic-card-requirement";
+        req.textContent = cosmetic.unlockType === "achievement"
+          ? `Unlock by earning: ${achievementTitleFor(cosmetic.unlockSourceId)}`
+          : "Not yet unlocked.";
+        card.appendChild(req);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "cosmetic-card-actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `btn btn-sm ${equipped ? "btn-secondary" : "btn-primary"}`;
+      if (equipped) {
+        btn.textContent = "✓ Equipped";
+        btn.disabled = true;
+      } else if (owned) {
+        btn.textContent = isDefault ? "Use default" : "Use";
+        btn.addEventListener("click", () => handleEquipClick(isDefault ? null : cosmetic.id, cosmetic.type, btn));
+      } else {
+        btn.textContent = "🔒 Locked";
+        btn.disabled = true;
+      }
+      actions.appendChild(btn);
+      card.appendChild(actions);
+
+      return card;
+    }
+
+    function renderCosmetics() {
+      if (!cosmeticGridEl) return;
+
+      if (!cosmeticDefinitionsLoaded) {
+        setCosmeticStatus("Loading…");
+        cosmeticGridEl.innerHTML = "";
+        return;
+      }
+      setCosmeticStatus("");
+      if (cosmeticAdminNoteEl) cosmeticAdminNoteEl.hidden = !isAdminUser(currentUser);
+
+      const profile = getCurrentUserProfile();
+      const itemsForTab = cosmeticDefinitions
+        .filter((c) => c.type === activeCosmeticTab)
+        .sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999));
+
+      const defaultCard = {
+        id: null,
+        type: activeCosmeticTab,
+        title: "Default",
+        description: `The standard PerthSanta Streaming ${activeCosmeticTab}.`,
+        __isDefault: true
+      };
+
+      cosmeticGridEl.innerHTML = "";
+      cosmeticGridEl.appendChild(buildCosmeticCard(defaultCard, profile));
+      itemsForTab.forEach((cosmetic) => cosmeticGridEl.appendChild(buildCosmeticCard(cosmetic, profile)));
+    }
+
+    document.querySelectorAll("[data-cosmetic-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("[data-cosmetic-tab]").forEach((t) => t.classList.remove("is-active"));
+        tab.classList.add("is-active");
+        activeCosmeticTab = tab.getAttribute("data-cosmetic-tab");
+        renderCosmetics();
+      });
+    });
+
+    // Step 10.6.1 — ONE shared media-query listener for the whole page
+    // (never one per cosmetic card) so a desktop<->mobile resize updates
+    // background preview images live, without a page reload. Only
+    // re-renders when the Backgrounds tab is actually the active one —
+    // avatar/theme previews never consult this breakpoint, so re-rendering
+    // them on resize would be pure wasted work.
+    const backgroundPreviewMedia = window.matchMedia(MOBILE_PREVIEW_QUERY);
+    backgroundPreviewMedia.addEventListener("change", () => {
+      if (activeCosmeticTab === "background") renderCosmetics();
+    });
+
+    /* ---- Leaderboard opt-in (Step 7) ----
+       The realtime profile listener (js/auth.js) picks up the backend's
+       write to leaderboardOptIn on its own and re-renders this button —
+       no manual/faked UI state, no page refresh needed (spec section 27). ---- */
+
+    function setLeaderboardStatus(message) {
+      if (!leaderboardStatusEl) return;
+      leaderboardStatusEl.hidden = !message;
+      leaderboardStatusEl.textContent = message || "";
+    }
+
+    function renderLeaderboardToggle(profile) {
+      if (!leaderboardToggleBtn) return;
+      const optedIn = !!(profile && profile.leaderboardOptIn);
+      leaderboardToggleBtn.textContent = optedIn ? "Leave Leaderboard" : "Join Leaderboard";
+      leaderboardToggleBtn.className = `btn btn-sm ${optedIn ? "btn-secondary" : "btn-primary"}`;
+    }
+
+    if (leaderboardToggleBtn) {
+      leaderboardToggleBtn.addEventListener("click", async () => {
+        const profile = getCurrentUserProfile();
+        const nextEnabled = !(profile && profile.leaderboardOptIn);
+        leaderboardToggleBtn.disabled = true;
+        setLeaderboardStatus(nextEnabled ? "Joining leaderboard…" : "Leaving leaderboard…");
+        try {
+          await setLeaderboardOptIn(nextEnabled);
+          setLeaderboardStatus(nextEnabled ? "You're visible on the leaderboard." : "You've been removed from the public leaderboard.");
+        } catch (error) {
+          console.error("[profile] setLeaderboardOptIn failed", error);
+          setLeaderboardStatus(error.message || "Couldn't update your leaderboard visibility. Please try again.");
+        } finally {
+          leaderboardToggleBtn.disabled = false;
+        }
+      });
+    }
+
+    onAuthChange((user, profile, loaded) => {
+      if (!signedOutEl || !signedInEl) return;
+
+      currentUser = user;
+      currentUid = user ? user.uid : null;
+
+      if (!user) {
+        signedOutEl.hidden = false;
+        signedInEl.hidden = true;
+        if (achievementsSectionEl) achievementsSectionEl.hidden = true;
+        unsubscribeAchievements();
+        if (cosmeticSectionEl) cosmeticSectionEl.hidden = true;
+        unsubscribeCosmeticInventory();
+        syncedCosmeticsForUid = null;
+        return;
+      }
+
+      signedOutEl.hidden = true;
+      signedInEl.hidden = false;
+      if (achievementsSectionEl) achievementsSectionEl.hidden = false;
+      subscribeAchievements(user.uid);
+
+      if (cosmeticSectionEl) cosmeticSectionEl.hidden = false;
+      subscribeCosmeticInventory(user.uid);
+      loadCosmeticDefinitionsOnce();
+      if (syncedCosmeticsForUid !== user.uid) {
+        syncedCosmeticsForUid = user.uid;
+        syncAchievementCosmetics().catch((error) => {
+          console.error("[profile] syncAchievementCosmetics failed", error);
+        });
+      }
+      renderCosmetics();
+
+      const displayProfile = profile || getCurrentUserProfile();
+      const displayName = (displayProfile && displayProfile.displayName) || user.displayName || "Fan";
+      // Priority: unlocked cosmetic avatar -> Google photoURL -> generic
+      // default (spec section 15) — selectedAvatar is always a site-root-
+      // relative asset path (needs resolveAssetUrl), unlike photoURL,
+      // which is already an absolute Google URL.
+      const photoURL = resolveAssetUrl(displayProfile && displayProfile.selectedAvatar) || (user && user.photoURL) || "";
+
+      if (avatarEl) {
+        avatarEl.src = photoURL || DEFAULT_AVATAR_DATA_URI;
+      }
+      if (nameEl) nameEl.textContent = displayName;
+      if (joinedEl) joinedEl.textContent = formatJoinedDate(displayProfile);
+
+      // null (not 0) until the profile listener delivers its first
+      // snapshot — renders "—" instead of a balance that falsely reads
+      // as zero (section 11).
+      const currentBalance = loaded ? safeDomiiaField(displayProfile, "domiiaBalance") : null;
+      const lifetimeBalance = loaded ? safeDomiiaField(displayProfile, "lifetimeDomiias") : null;
+      updateDomiiaAmount(currentDomiiaEl, currentBalance);
+      updateDomiiaAmount(lifetimeDomiiaEl, lifetimeBalance);
+      if (missionsEl) missionsEl.textContent = loaded ? safeDomiiaField(displayProfile, "missionsCompleted") : "—";
+
+      // Progression fields (Step 5) use safeProgressField, not
+      // safeDomiiaField — missing is the EXPECTED state for any profile
+      // created before Step 5 shipped, not a sign of a corrupted doc, so
+      // this quietly defaults to 0 instead of warning (see js/auth.js).
+      if (daysCompletedEl) daysCompletedEl.textContent = loaded ? safeProgressField(displayProfile, "daysCompleted", 0) : "—";
+      if (currentStreakEl) currentStreakEl.textContent = loaded ? safeProgressField(displayProfile, "currentStreak", 0) : "—";
+      if (longestStreakEl) longestStreakEl.textContent = loaded ? safeProgressField(displayProfile, "longestStreak", 0) : "—";
+      renderLeaderboardToggle(displayProfile);
+
+      // A rename elsewhere (or this page's own save) just updated the
+      // name — make sure we're not left showing a stale edit form.
+      showNameDisplay();
+    });
+  </script>
+</body>
+</html>

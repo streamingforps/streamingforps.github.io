@@ -1,0 +1,12 @@
+# Cloud Functions dependencies — installed via `npm install` in functions/,
+# never committed.
+functions/node_modules/
+
+# Firebase CLI local state/logs.
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# Never commit real service-account credentials.
+*serviceAccountKey*.json

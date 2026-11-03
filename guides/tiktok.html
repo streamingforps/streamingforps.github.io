@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TikTok Guide — PerthSanta Streaming</title>
   <meta name="description" content="How to support PerthSanta content and campaigns on TikTok." />
-  <link rel="icon" type="image/png" href="../assets/icons/favicon.jpg">
+  <link rel="icon" type="image/jpeg" href="../assets/icons/favicon.jpg">
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <meta name="theme-color" content="#0a0a0a">
   <link rel="stylesheet" href="../css/variables.css" />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
@@ -14,7 +17,7 @@
 
   <header class="site-header">
     <div class="container">
-      <a class="site-logo" href="../index.html">PerthSanta <span>Streaming</span></a>
+      <a class="site-logo" href="../index.html"><span>PerthSanta</span><span class="site-logo-accent">Streaming</span></a>
 
       <div class="header-right">
         <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="primary-navigation" aria-label="Toggle navigation menu">
@@ -24,13 +27,21 @@
         <nav class="main-nav" id="primary-navigation" aria-label="Primary">
           <ul>
             <li><a href="../index.html">Home</a></li>
+            <li><a href="../missions.html">Missions</a></li>
+            <li><a href="../leaderboard.html">Leaderboard</a></li>
             <li><a href="../campaigns-current.html">Current Campaigns</a></li>
             <li><a href="../campaigns.html">All Campaigns</a></li>
             <li><a href="../trending.html">Trending</a></li>
             <li><a href="../music.html">Music</a></li>
             <li><a href="../index.html#guides">Streaming Guides</a></li>
-            <li><a href="../index.html#platforms">Platforms</a></li>
-            <li><a href="../index.html#faq">FAQ / Important Info</a></li>
+            <li class="nav-more">
+              <button type="button" class="nav-more-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-menu">More</button>
+              <div class="nav-more-menu" id="nav-more-menu" hidden>
+                <a class="nav-more-item" href="../index.html#platforms">Platforms</a>
+                <a class="nav-more-item" href="../index.html#faq">FAQ / Important Info</a>
+              </div>
+            </li>
+            <li class="nav-admin-mobile"><a href="../admin.html">Admin console</a></li>
           </ul>
         </nav>
 
@@ -195,5 +206,7 @@
   <script src="../js/main.js"></script>
   <script src="../js/campaigns.js"></script>
   <script type="module" src="../js/firestore-content.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <script type="module" src="../js/mission-tracking.js"></script>
 </body>
 </html>

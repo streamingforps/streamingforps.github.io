@@ -919,7 +919,8 @@ function commentHelperEls() {
     copyBtn: section.querySelector("[data-comment-copy]"),
     resultBox: section.querySelector("[data-comment-result]"),
     textEl: section.querySelector("[data-comment-text]"),
-    emptyEl: section.querySelector("[data-comment-helper-empty]")
+    emptyEl: section.querySelector("[data-comment-helper-empty]"),
+    youtubeLink: section.querySelector("[data-comment-helper-youtube-link]")
   };
 }
 
@@ -943,6 +944,23 @@ function renderCommentHelper(campaign) {
 
   if (els.resultBox) els.resultBox.hidden = true;
   if (els.emptyEl) els.emptyEl.hidden = true;
+
+  // Generic, campaign-agnostic: any campaign with a confirmed YouTube link
+  // gets this shortcut next to the generated comment — reuses the exact
+  // same URL as the campaign's own main YouTube CTA, so a click here is
+  // automatically tracked by js/mission-tracking.js's existing href-match
+  // mechanism against whichever mission(s) share that destinationUrl. No
+  // new tracking code, no second action identity for the same link.
+  if (els.youtubeLink) {
+    const youtubeUrl = campaign.links && campaign.links.youtube && campaign.links.youtube.url;
+    if (youtubeUrl) {
+      els.youtubeLink.href = youtubeUrl;
+      els.youtubeLink.hidden = false;
+    } else {
+      els.youtubeLink.hidden = true;
+      els.youtubeLink.removeAttribute("href");
+    }
+  }
 }
 
 async function generateCommentHelperResult() {
