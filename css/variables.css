@@ -85,5 +85,10 @@
   --cosmetic-bg-desktop: none;
   --cosmetic-bg-mobile: none;
   --cosmetic-bg-position-desktop: center;
-  --cosmetic-bg-position-mobile: center;
+  /* "center top" (not "center") — matches js/cosmetics.js's own ultimate
+     mobile-position fallback; portrait artwork's subject is typically
+     nearer the top of frame. js/cosmetics.js overwrites this the moment
+     any background cosmetic applies, so this static default only covers
+     the instant before that JS runs. */
+  --cosmetic-bg-position-mobile: center top;
 }

@@ -219,7 +219,14 @@ async function applySelectedBackground(selectedBackground) {
   root.style.setProperty("--cosmetic-bg-desktop", desktopUrl ? `url("${desktopUrl}")` : "none");
   root.style.setProperty("--cosmetic-bg-mobile", mobileUrl ? `url("${mobileUrl}")` : "none");
   root.style.setProperty("--cosmetic-bg-position-desktop", (variants && variants.desktopPosition) || "center");
-  root.style.setProperty("--cosmetic-bg-position-mobile", (variants && (variants.mobilePosition || variants.desktopPosition)) || "center");
+  // Mobile's ultimate fallback (nothing configured at all) is "center top",
+  // not "center" — portrait artwork typically has its subject/faces nearer
+  // the top of the frame, and cropping from the bottom first keeps that
+  // visible. Still inherits an explicit desktopPosition first if one is
+  // set and mobilePosition isn't (unchanged) — this only changes what
+  // happens when NEITHER is configured, a pure default/fallback change,
+  // never a Firestore write.
+  root.style.setProperty("--cosmetic-bg-position-mobile", (variants && (variants.mobilePosition || variants.desktopPosition)) || "center top");
   document.body.classList.add("has-cosmetic-background");
 }
 

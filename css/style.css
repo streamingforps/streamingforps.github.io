@@ -3568,11 +3568,29 @@ body.has-cosmetic-background {
 }
 
 @media (max-width: 599px) {
+  /* Mobile deliberately does NOT inherit the base rule's
+     background-size: cover. A portrait mobile asset's aspect ratio
+     rarely matches the viewport's exactly (e.g. a 9:16 image on a
+     9:19.5-ish real phone) — `cover` scales to the LARGER of the two
+     axis ratios, which here means matching height and cropping the
+     image's sides off, leaving only a zoomed-in vertical strip visible.
+     `contain` (image layer only — the gradient scrim layer keeps `cover`,
+     which is visually irrelevant for an infinite gradient either way)
+     guarantees the full portrait artwork is always visible with its
+     aspect ratio intact, never stretched/distorted; any letterboxing this
+     introduces is filled by the scrim + the page's own dark background
+     color underneath, so it never reads as a blank gap. */
   body.has-cosmetic-background {
     background-image:
       linear-gradient(rgba(var(--color-bg-rgb), 0.72), rgba(var(--color-bg-rgb), 0.72)),
       var(--cosmetic-bg-mobile, none);
-    background-position: center, var(--cosmetic-bg-position-mobile, center);
+    background-size: cover, contain;
+    /* Default mobile position (when a cosmetic doesn't set its own
+       mobilePosition) is "center top" rather than desktop's "center" —
+       portrait artwork typically has its subject/faces nearer the top,
+       and this is a pure CSS-fallback change, not a Firestore migration:
+       any cosmetic that already sets mobilePosition is unaffected. */
+    background-position: center, var(--cosmetic-bg-position-mobile, center top);
   }
 }
 
