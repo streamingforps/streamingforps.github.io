@@ -3556,7 +3556,21 @@ body.auth-modal-open {
    listener at all. Reuses the project's existing 600px tablet/mobile
    boundary (see .guides-grid etc.'s `@media (min-width: 600px)`, which
    already treats <600px as "mobile" here) — expressed as max-width:599px
-   so the two rules never both match at exactly 600px. ---- */
+   so the two rules never both match at exactly 600px.
+
+   Desktop paints the cosmetic directly on body's own background, with
+   background-attachment: fixed — this is left exactly as-is below and is
+   NOT changed by the mobile fix that follows.
+
+   Mobile does NOT use background-attachment: fixed on body (step 10.6.2):
+   mobile browsers — Safari in particular — are known to handle a fixed
+   background-attachment on body/html inconsistently (silently falling
+   back to normal document-scroll behavior), which is exactly the bug this
+   fixes: the cosmetic was scrolling away with the page instead of staying
+   put as a wallpaper. Mobile instead moves the cosmetic entirely onto a
+   `position: fixed` ::before pseudo-element (see the media query below) —
+   a plain positioned box pinned to the viewport always behaves
+   consistently across browsers, unlike the attachment property. ---- */
 body.has-cosmetic-background {
   background-size: cover;
   background-repeat: no-repeat;
@@ -3568,23 +3582,56 @@ body.has-cosmetic-background {
 }
 
 @media (max-width: 599px) {
-  /* Mobile deliberately does NOT inherit the base rule's
-     background-size: cover. A portrait mobile asset's aspect ratio
-     rarely matches the viewport's exactly (e.g. a 9:16 image on a
-     9:19.5-ish real phone) — `cover` scales to the LARGER of the two
-     axis ratios, which here means matching height and cropping the
-     image's sides off, leaving only a zoomed-in vertical strip visible.
-     `contain` (image layer only — the gradient scrim layer keeps `cover`,
-     which is visually irrelevant for an infinite gradient either way)
-     guarantees the full portrait artwork is always visible with its
-     aspect ratio intact, never stretched/distorted; any letterboxing this
-     introduces is filled by the scrim + the page's own dark background
-     color underneath, so it never reads as a blank gap. */
+  /* Establishes body as its OWN stacking context (scoped to only this
+     class, not every body on the site) so the fixed pseudo-element's
+     z-index: -1 below is unambiguous: it stacks behind body's own
+     normal-flow children (the actual page content), never behind the
+     page's root/canvas background, and never in conflict with the site's
+     other positioned/z-indexed elements (header ~100-200, modals ~1000 —
+     all comfortably positive, all still part of the SAME root stacking
+     context otherwise, which a bare z-index:-1 on a fixed element with no
+     stacking-context ancestor would also have been safely behind — this
+     just removes any doubt). position: relative has no visual/layout
+     side effect here; it exists purely to create that stacking context. */
   body.has-cosmetic-background {
+    position: relative;
+    /* The cosmetic image moves ENTIRELY to the ::before layer below on
+       mobile — removed here so it's never ALSO painted as part of body's
+       own (scrolling) background at the same time (that would show a
+       fixed copy AND a scrolling duplicate underneath it). */
+    background-image: none;
+  }
+
+  /* Fixed "wallpaper" layer — mobile only. inset: 0 + position: fixed
+     pins it to the CURRENT viewport (not document/page height), so it
+     naturally tracks the visual viewport across mobile browser chrome
+     changes without any JS/innerHeight calculation. pointer-events: none
+     plus z-index: -1 together guarantee it can never intercept scrolling,
+     taps, or any other input — content always remains interactive. */
+  body.has-cosmetic-background::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    /* Mobile deliberately does NOT use background-size: cover for the
+       image layer. A portrait mobile asset's aspect ratio rarely matches
+       the viewport's exactly (e.g. a 9:16 image on a 9:19.5-ish real
+       phone) — `cover` scales to the LARGER of the two axis ratios, which
+       here means matching height and cropping the image's sides off,
+       leaving only a zoomed-in vertical strip visible. `contain` (image
+       layer only — the gradient scrim layer keeps `cover`, visually
+       irrelevant for an infinite gradient either way) guarantees the full
+       portrait artwork is always visible with its aspect ratio intact,
+       never stretched/distorted; any letterboxing this introduces is
+       filled by the scrim + the page's own dark background color
+       underneath, so it never reads as a blank gap. */
     background-image:
       linear-gradient(rgba(var(--color-bg-rgb), 0.72), rgba(var(--color-bg-rgb), 0.72)),
       var(--cosmetic-bg-mobile, none);
     background-size: cover, contain;
+    background-repeat: no-repeat, no-repeat;
     /* Default mobile position (when a cosmetic doesn't set its own
        mobilePosition) is "center top" rather than desktop's "center" —
        portrait artwork typically has its subject/faces nearer the top,
