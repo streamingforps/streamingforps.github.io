@@ -32,12 +32,22 @@ import {
   where,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  disableNetwork,
+  enableNetwork
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const CATEGORIES = ["perthsanta", "perth", "santa"];
-const FETCH_TIMEOUT_MS = 2500;
+// Generous ceilings, not expected latencies. The first Firestore read on a
+// page has to open the SDK's network channel (and, on some mobile/in-app
+// browsers, auto-detect long-polling) before any document comes back, which
+// can take several seconds on a slow phone connection. A short ceiling here
+// used to make those visitors' config read "time out", fall back to
+// data.js (active: false), and see "No active trend" while everyone on a
+// fast connection saw the generator.
+const CONFIG_TIMEOUT_MS = 12000;
+const PHRASE_TIMEOUT_MS = 10000;
 const BATCH_SIZE = 40;
 const ELIGIBLE_FLOOR = 8;
 const RECENT_LIMIT = 20;
@@ -46,34 +56,47 @@ const MAX_POST_LENGTH = 280;
 
 let db = null;
 
+// Public, non-sensitive runtime state — read by the temporary
+// ?debug-trending=1 overlay (js/trending-debug.js) and by the boot check in
+// trending.html, which shows an error if this module never ran at all.
+const debugState = {
+  booted: true,
+  firestore: "initializing",
+  lastError: "",
+  configs: {},
+  phrasesLoaded: {}
+};
+window.__trendingState = debugState;
+
+function recordError(context, error) {
+  const message = `${context}: ${(error && (error.code || error.message)) || String(error)}`;
+  debugState.lastError = message;
+  console.warn(`[trending] ${message}`, error);
+}
+
 /* ==========================================================================
    Small shared helpers
    ========================================================================== */
 
+// Rejects (rather than silently resolving null) on both timeout and
+// failure, so callers can tell "no data" apart from "couldn't load" and the
+// real error reaches the console instead of being swallowed.
 function withTimeout(promise, ms) {
-  return new Promise((resolve) => {
-    let settled = false;
+  return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        resolve(null);
-      }
+      const error = new Error(`timed out after ${ms}ms`);
+      error.code = "timeout";
+      reject(error);
     }, ms);
 
     promise.then(
       (value) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          resolve(value);
-        }
+        clearTimeout(timer);
+        resolve(value);
       },
-      () => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          resolve(null);
-        }
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
       }
     );
   });
@@ -132,6 +155,12 @@ function pushRecentId(category, id) {
    Config loading (eager, cheap — one small doc per category)
    ========================================================================== */
 
+// Resolves to the merged config plus a `source`:
+//   "firestore" — trending/{category} loaded (missing fields fall back)
+//   "fallback"  — the doc doesn't exist; data.js is the intended config
+//   "error"     — Firestore unreachable/slow/denied; data.js was used, but
+//                 its active:false means "unknown", not "no trend", so the
+//                 page shows a retryable error instead of "No active trend"
 async function fetchConfig(category) {
   const fallback = (typeof siteData !== "undefined" && siteData.trending && siteData.trending[category]) || {
     eventName: "",
@@ -140,28 +169,39 @@ async function fetchConfig(category) {
     active: false
   };
 
-  if (!db) return fallback;
+  if (!db) return { ...fallback, source: "error" };
 
   try {
-    const snap = await withTimeout(getDoc(doc(db, `trending/${category}`)), FETCH_TIMEOUT_MS);
-    if (!snap || typeof snap.exists !== "function" || !snap.exists()) return fallback;
+    const snap = await withTimeout(getDoc(doc(db, `trending/${category}`)), CONFIG_TIMEOUT_MS);
+    if (!snap.exists()) return { ...fallback, source: "fallback" };
     const data = snap.data();
     return {
       eventName: typeof data.eventName === "string" ? data.eventName : fallback.eventName,
       keyword: typeof data.keyword === "string" ? data.keyword : fallback.keyword,
       hashtags: Array.isArray(data.hashtags) ? data.hashtags : fallback.hashtags,
-      active: typeof data.active === "boolean" ? data.active : fallback.active
+      active: typeof data.active === "boolean" ? data.active : fallback.active,
+      source: "firestore"
     };
   } catch (error) {
-    console.warn(`[trending] Could not load config for "${category}" — using fallback.`, error);
-    return fallback;
+    recordError(`config "${category}"`, error);
+    return { ...fallback, source: "error" };
   }
+}
+
+async function loadConfig(category) {
+  const config = await fetchConfig(category);
+  configCache[category] = config;
+  debugState.configs[category] = { active: config.active, source: config.source };
+  if (config.source === "firestore") debugState.firestore = "ok";
+  else if (config.source === "error" && debugState.firestore !== "ok") debugState.firestore = "error";
+  return config;
 }
 
 /* ==========================================================================
    Bounded randomized phrase pool
    ========================================================================== */
 
+const configCache = {};
 const poolState = {}; // category -> { items: [{id, text}], ids: Set }
 
 function getPoolState(category) {
@@ -176,6 +216,7 @@ async function fetchCandidateBatch(category) {
   const randomStart = Math.random();
 
   const merged = new Map();
+  let failures = 0;
 
   try {
     const firstQuery = query(
@@ -184,25 +225,30 @@ async function fetchCandidateBatch(category) {
       orderBy("randomKey"),
       limit(BATCH_SIZE)
     );
-    const firstSnap = await withTimeout(getDocs(firstQuery), FETCH_TIMEOUT_MS);
-    if (firstSnap) {
-      firstSnap.docs.forEach((d) => merged.set(d.id, d));
-    }
-
-    // Wrap around: if the random start didn't yield a full batch (ran off
-    // the end of the key space, or the whole library is smaller than
-    // BATCH_SIZE), pull a batch from the very start and merge (Map dedupes).
-    if (merged.size < BATCH_SIZE) {
-      const wrapQuery = query(phrasesRef, orderBy("randomKey"), limit(BATCH_SIZE));
-      const wrapSnap = await withTimeout(getDocs(wrapQuery), FETCH_TIMEOUT_MS);
-      if (wrapSnap) {
-        wrapSnap.docs.forEach((d) => merged.set(d.id, d));
-      }
-    }
+    const firstSnap = await withTimeout(getDocs(firstQuery), PHRASE_TIMEOUT_MS);
+    firstSnap.docs.forEach((d) => merged.set(d.id, d));
   } catch (error) {
-    console.warn(`[trending] Could not load phrase batch for "${category}".`, error);
-    return null;
+    failures++;
+    recordError(`phrases "${category}"`, error);
   }
+
+  // Wrap around: if the random start didn't yield a full batch (ran off
+  // the end of the key space, or the whole library is smaller than
+  // BATCH_SIZE), pull a batch from the very start and merge (Map dedupes).
+  if (merged.size < BATCH_SIZE) {
+    try {
+      const wrapQuery = query(phrasesRef, orderBy("randomKey"), limit(BATCH_SIZE));
+      const wrapSnap = await withTimeout(getDocs(wrapQuery), PHRASE_TIMEOUT_MS);
+      wrapSnap.docs.forEach((d) => merged.set(d.id, d));
+    } catch (error) {
+      failures++;
+      recordError(`phrases "${category}" (wrap)`, error);
+    }
+  }
+
+  // Both queries failed: report a load error (null), distinct from a
+  // successful-but-empty library ([]).
+  if (failures > 0 && merged.size === 0) return null;
 
   return Array.from(merged.values())
     .map((d) => ({ id: d.id, ...d.data() }))
@@ -222,7 +268,13 @@ async function ensurePool(category, minEligible) {
     if (eligibleCount >= minEligible && state.items.length > 0) break;
 
     const batch = await fetchCandidateBatch(category);
-    if (batch === null) break; // fetch error — stop; caller checks state.items.length
+    if (batch === null) {
+      // Fetch error — stop. Callers keep the generator visible and offer a
+      // retry (the next Generate click calls ensurePool again).
+      state.loadFailed = true;
+      break;
+    }
+    state.loadFailed = false;
 
     let addedNew = 0;
     batch.forEach((p) => {
@@ -237,6 +289,7 @@ async function ensurePool(category, minEligible) {
     if (addedNew === 0) break; // library exhausted — stop retrying
   }
 
+  debugState.phrasesLoaded[category] = state.items.length;
   return state;
 }
 
@@ -244,7 +297,6 @@ async function ensurePool(category, minEligible) {
    Page wiring
    ========================================================================== */
 
-const configCache = {};
 
 function panelEls(category) {
   const panel = document.querySelector(`[data-trending-panel="${category}"]`);
@@ -259,8 +311,10 @@ function panelEls(category) {
     generateBtn: panel.querySelector("[data-trending-generate]"),
     copyBtn: panel.querySelector("[data-trending-copy]"),
     warning: panel.querySelector("[data-trending-warning]"),
+    loadingMsg: panel.querySelector("[data-trending-loading]"),
     inactiveMsg: panel.querySelector("[data-trending-inactive]"),
-    unavailableMsg: panel.querySelector("[data-trending-unavailable]")
+    unavailableMsg: panel.querySelector("[data-trending-unavailable]"),
+    retryBtn: panel.querySelector("[data-trending-retry]")
   };
 }
 
@@ -281,32 +335,77 @@ function showWarning(els, message) {
   els.warning.textContent = message;
 }
 
+// Exactly one of: loading / generator / inactive / unavailable.
+function showPanelState(els, which) {
+  els.loadingMsg.hidden = which !== "loading";
+  els.generator.hidden = which !== "generator";
+  els.eventTag.hidden = which !== "generator";
+  els.inactiveMsg.hidden = which !== "inactive";
+  els.unavailableMsg.hidden = which !== "unavailable";
+}
+
+const PHRASE_LOAD_WARNING = "Couldn't load post ideas right now. Tap Generate Post to try again.";
+
+// After a pool (re)load: an empty library hides the generator, but a load
+// *error* keeps it on screen with a retryable warning.
+function applyPoolResult(els, state) {
+  if (state.items.length > 0) return true;
+  if (state.loadFailed) {
+    showWarning(els, PHRASE_LOAD_WARNING);
+  } else {
+    showPanelState(els, "unavailable");
+  }
+  return false;
+}
+
 async function renderCategoryState(category) {
   const els = panelEls(category);
   if (!els) return;
 
   const config = configCache[category];
 
-  if (!config || !config.active) {
-    els.eventTag.hidden = true;
-    els.generator.hidden = true;
-    els.unavailableMsg.hidden = true;
-    els.inactiveMsg.hidden = false;
+  if (!config) {
+    showPanelState(els, "loading"); // configs still in flight
     return;
   }
 
-  els.inactiveMsg.hidden = true;
-  els.eventTag.hidden = false;
+  if (!config.active) {
+    // Only claim "no active trend" when we actually know that. If Firestore
+    // couldn't be reached, data.js's active:false is a guess, not an answer.
+    showPanelState(els, config.source === "error" ? "unavailable" : "inactive");
+    return;
+  }
+
   els.eventName.textContent = config.eventName || "";
-  els.generator.hidden = false;
-  els.unavailableMsg.hidden = true;
+  showPanelState(els, "generator");
 
   // Warm the candidate pool for this category the first time its tab is
   // shown, so the first "Generate Post" click doesn't have to wait.
   const state = await ensurePool(category, ELIGIBLE_FLOOR);
-  if (state.items.length === 0) {
-    els.generator.hidden = true;
-    els.unavailableMsg.hidden = false;
+  applyPoolResult(els, state);
+}
+
+async function retryCategory(category) {
+  const els = panelEls(category);
+  if (!els) return;
+  if (els.retryBtn) els.retryBtn.disabled = true;
+  showPanelState(els, "loading");
+  try {
+    // After a failure the SDK considers itself offline and backs off its
+    // reconnect attempts (up to a minute), so a plain re-read would fail
+    // instantly. Cycling the network resets that and reconnects now.
+    if (db) {
+      try {
+        await disableNetwork(db);
+        await enableNetwork(db);
+      } catch (error) {
+        recordError("network reset", error);
+      }
+    }
+    await loadConfig(category);
+    await renderCategoryState(category);
+  } finally {
+    if (els.retryBtn) els.retryBtn.disabled = false;
   }
 }
 
@@ -322,12 +421,7 @@ async function generatePost(category) {
 
   try {
     const state = await ensurePool(category, ELIGIBLE_FLOOR);
-
-    if (state.items.length === 0) {
-      els.generator.hidden = true;
-      els.unavailableMsg.hidden = false;
-      return;
-    }
+    if (!applyPoolResult(els, state)) return;
 
     const recentIds = getRecentIds(category);
     const eligible = state.items.filter((p) => !recentIds.includes(p.id));
@@ -414,6 +508,7 @@ function initGenerators() {
     els.generateBtn.addEventListener("click", () => generatePost(category));
     els.copyBtn.addEventListener("click", () => copyPost(category));
     els.textarea.addEventListener("input", () => updateCharCount(els));
+    if (els.retryBtn) els.retryBtn.addEventListener("click", () => retryCategory(category));
   });
 }
 
@@ -425,14 +520,11 @@ async function init() {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
   } catch (error) {
-    console.warn("[trending] Firebase failed to initialize — using data.js fallback config only.", error);
+    recordError("Firebase init", error);
     db = null;
   }
 
-  const configs = await Promise.all(CATEGORIES.map((c) => fetchConfig(c)));
-  CATEGORIES.forEach((c, i) => {
-    configCache[c] = configs[i];
-  });
+  await Promise.all(CATEGORIES.map((c) => loadConfig(c)));
 
   // Re-render whichever tab is currently visible now that configs have
   // loaded (the user may have already switched tabs while this was in

@@ -184,13 +184,18 @@
             <p class="admin-status" data-trending-warning role="alert" hidden></p>
           </div>
 
+          <p class="trending-empty-state" data-trending-loading>
+            Loading the current PerthSanta event…
+          </p>
+
           <p class="trending-empty-state" data-trending-inactive hidden>
             No active PerthSanta trend right now. Check back for the next event!
           </p>
 
-          <p class="trending-empty-state" data-trending-unavailable hidden>
-            We couldn't load post ideas for PerthSanta right now. Please try again in a bit.
-          </p>
+          <div class="trending-empty-state" data-trending-unavailable hidden>
+            <p>We couldn't load post ideas for PerthSanta right now. Please try again in a bit.</p>
+            <button type="button" class="btn btn-secondary" data-trending-retry>Try again</button>
+          </div>
         </div>
 
         <!-- Perth -->
@@ -230,13 +235,18 @@
             <p class="admin-status" data-trending-warning role="alert" hidden></p>
           </div>
 
+          <p class="trending-empty-state" data-trending-loading>
+            Loading the current Perth event…
+          </p>
+
           <p class="trending-empty-state" data-trending-inactive hidden>
             No active Perth trend right now. Check back for the next event!
           </p>
 
-          <p class="trending-empty-state" data-trending-unavailable hidden>
-            We couldn't load post ideas for Perth right now. Please try again in a bit.
-          </p>
+          <div class="trending-empty-state" data-trending-unavailable hidden>
+            <p>We couldn't load post ideas for Perth right now. Please try again in a bit.</p>
+            <button type="button" class="btn btn-secondary" data-trending-retry>Try again</button>
+          </div>
         </div>
 
         <!-- Santa -->
@@ -276,13 +286,18 @@
             <p class="admin-status" data-trending-warning role="alert" hidden></p>
           </div>
 
+          <p class="trending-empty-state" data-trending-loading>
+            Loading the current Santa event…
+          </p>
+
           <p class="trending-empty-state" data-trending-inactive hidden>
             No active Santa trend right now. Check back for the next event!
           </p>
 
-          <p class="trending-empty-state" data-trending-unavailable hidden>
-            We couldn't load post ideas for Santa right now. Please try again in a bit.
-          </p>
+          <div class="trending-empty-state" data-trending-unavailable hidden>
+            <p>We couldn't load post ideas for Santa right now. Please try again in a bit.</p>
+            <button type="button" class="btn btn-secondary" data-trending-retry>Try again</button>
+          </div>
         </div>
 
         <p class="trending-disclaimer">
@@ -345,6 +360,27 @@
   <script src="js/main.js"></script>
   <script src="js/campaigns.js"></script>
   <script type="module" src="js/trending.js"></script>
+  <script>
+    // If js/trending.js never ran (its Firebase SDK imports from
+    // www.gstatic.com were blocked/failed, or the browser couldn't parse
+    // it), don't leave "Loading…" up forever: show the error + a reload.
+    // Module scripts always finish evaluating before window "load".
+    window.addEventListener("load", function () {
+      if (window.__trendingState) return;
+      console.warn("[trending] js/trending.js did not load — generator unavailable.");
+      var panels = document.querySelectorAll("[data-trending-panel]");
+      for (var i = 0; i < panels.length; i++) {
+        var loading = panels[i].querySelector("[data-trending-loading]");
+        var unavailable = panels[i].querySelector("[data-trending-unavailable]");
+        var retry = panels[i].querySelector("[data-trending-retry]");
+        if (loading) loading.hidden = true;
+        if (unavailable) unavailable.hidden = false;
+        if (retry) retry.onclick = function () { window.location.reload(); };
+      }
+    });
+  </script>
+  <!-- TEMPORARY: ?debug-trending=1 runtime overlay. Remove with js/trending-debug.js. -->
+  <script src="js/trending-debug.js" defer></script>
   <script type="module" src="js/auth.js"></script>
   <script type="module" src="js/mission-tracking.js"></script>
 </body>
